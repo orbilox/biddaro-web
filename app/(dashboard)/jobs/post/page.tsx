@@ -1,7 +1,9 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, DollarSign, Calendar, MapPin, Clock, Wand2 } from 'lucide-react';
+import {
+  ArrowLeft, Upload, DollarSign, Calendar, MapPin, Wand2, X, FileText,
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea, Select } from '@/components/ui/Input';
@@ -9,7 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { JOB_CATEGORIES, TIMELINE_OPTIONS, SKILLS, ROUTES } from '@/lib/constants';
 import { toast } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
-import { jobsApi } from '@/lib/api';
+import { jobsApi, uploadApi } from '@/lib/api';
 
 interface PostJobForm {
   title: string;
@@ -27,12 +29,25 @@ const steps = [
   { id: 3, title: 'Review', desc: 'Confirm & post' },
 ];
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function PostJobPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [aiSuggesting, setAiSuggesting] = useState(false);
+
+  // ── File upload state ──────────────────────────────────────────────────────
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register, handleSubmit, watch, setValue,
@@ -47,6 +62,45 @@ export default function PostJobPage() {
     );
   };
 
+  // ── Image handlers ─────────────────────────────────────────────────────────
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (selectedImages.length + files.length > 10) {
+      toast.error('Too many photos', 'You can upload up to 10 photos.');
+      e.target.value = '';
+      return;
+    }
+    const previews = files.map((f) => URL.createObjectURL(f));
+    setSelectedImages((prev) => [...prev, ...files]);
+    setImagePreviews((prev) => [...prev, ...previews]);
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    URL.revokeObjectURL(imagePreviews[index]);
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ── Document handlers ──────────────────────────────────────────────────────
+  const handleDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (selectedDocuments.length + files.length > 5) {
+      toast.error('Too many documents', 'You can attach up to 5 documents.');
+      e.target.value = '';
+      return;
+    }
+    setSelectedDocuments((prev) => [...prev, ...files]);
+    e.target.value = '';
+  };
+
+  const removeDoc = (index: number) => {
+    setSelectedDocuments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ── AI estimate ────────────────────────────────────────────────────────────
   const handleAiEstimate = async () => {
     setAiSuggesting(true);
     await new Promise((r) => setTimeout(r, 1500));
@@ -56,13 +110,42 @@ export default function PostJobPage() {
     toast.success('AI Estimate Ready', 'Budget and timeline estimated based on your project details.');
   };
 
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const onSubmit = async (data: PostJobForm) => {
     if (step < 3) {
       setStep((s) => s + 1);
       return;
     }
+
     setSubmitting(true);
     try {
+      let imageUrls: string[] = [];
+      let documentUrls: string[] = [];
+
+      // Upload photos first (if any)
+      if (selectedImages.length > 0) {
+        try {
+          const imgRes = await uploadApi.images(selectedImages);
+          imageUrls = imgRes.data.data.files.map((f) => f.url);
+        } catch {
+          toast.error('Photo upload failed', 'Could not upload photos. Please try smaller files or remove them and try again.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      // Upload documents (if any)
+      if (selectedDocuments.length > 0) {
+        try {
+          const docRes = await uploadApi.documents(selectedDocuments);
+          documentUrls = docRes.data.data.files.map((f) => f.url);
+        } catch {
+          toast.error('Document upload failed', 'Could not upload documents. Please try smaller files or remove them and try again.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       await jobsApi.create({
         title: data.title,
         description: data.description,
@@ -71,11 +154,15 @@ export default function PostJobPage() {
         location: data.location,
         startDate: data.startDate || undefined,
         skills: selectedSkills,
+        images: imageUrls,
+        documents: documentUrls,
       });
+
       toast.success('Job posted!', 'Contractors will start bidding soon.');
       router.push(ROUTES.MY_JOBS);
-    } catch (err: any) {
-      toast.error('Failed to post job', err?.response?.data?.message || 'Please try again.');
+    } catch (err: unknown) {
+      const errMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error('Failed to post job', errMsg || 'Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -127,7 +214,8 @@ export default function PostJobPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Step 1: Job Details */}
+
+        {/* ── Step 1: Job Details ──────────────────────────────────────────── */}
         {step === 1 && (
           <div className="space-y-5">
             <div className="form-section">
@@ -138,7 +226,10 @@ export default function PostJobPage() {
                 placeholder="e.g., Kitchen Renovation - Modern Open Plan"
                 error={errors.title?.message}
                 hint="Be specific to attract the right contractors"
-                {...register('title', { required: 'Title is required', minLength: { value: 10, message: 'At least 10 characters' } })}
+                {...register('title', {
+                  required: 'Title is required',
+                  minLength: { value: 10, message: 'At least 10 characters' },
+                })}
               />
 
               <Select
@@ -155,10 +246,14 @@ export default function PostJobPage() {
                 rows={8}
                 error={errors.description?.message}
                 hint="More detail = better bids"
-                {...register('description', { required: 'Description is required', minLength: { value: 50, message: 'At least 50 characters' } })}
+                {...register('description', {
+                  required: 'Description is required',
+                  minLength: { value: 50, message: 'At least 50 characters' },
+                })}
               />
             </div>
 
+            {/* Required Skills */}
             <div className="form-section">
               <h2 className="form-section-title">Required Skills</h2>
               <div className="flex flex-wrap gap-2">
@@ -183,23 +278,135 @@ export default function PostJobPage() {
               )}
             </div>
 
+            {/* Job Photos */}
             <div className="form-section">
-              <h2 className="form-section-title">Job Photos (Optional)</h2>
-              <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-brand-300 transition-colors cursor-pointer">
+              <h2 className="form-section-title">Job Photos <span className="text-dark-400 font-normal">(Optional)</span></h2>
+
+              {/* Hidden file input */}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                multiple
+                className="hidden"
+                onChange={handleImageChange}
+              />
+
+              {/* Drop zone */}
+              <div
+                className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-brand-300 transition-colors cursor-pointer"
+                onClick={() => imageInputRef.current?.click()}
+              >
                 <Upload className="w-8 h-8 text-dark-300 mx-auto mb-2" />
                 <p className="text-sm font-medium text-dark-600">Drop photos here or click to upload</p>
-                <p className="text-xs text-dark-400 mt-1">PNG, JPG up to 10MB each</p>
+                <p className="text-xs text-dark-400 mt-1">JPEG, PNG, GIF, WebP — up to 10MB each (max 10 photos)</p>
               </div>
+
+              {/* Image previews grid */}
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mt-3">
+                  {imagePreviews.map((src, i) => (
+                    <div key={i} className="relative aspect-square group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={`Photo ${i + 1}`}
+                        className="w-full h-full object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {/* Add more button */}
+                  {imagePreviews.length < 10 && (
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      className="aspect-square rounded-lg border-2 border-dashed border-gray-200 hover:border-brand-300 flex items-center justify-center text-dark-300 hover:text-brand-500 transition-colors"
+                    >
+                      <Upload className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {imagePreviews.length > 0 && (
+                <p className="text-xs text-dark-400 mt-1">{imagePreviews.length}/10 photo(s) selected</p>
+              )}
+            </div>
+
+            {/* Project Documents */}
+            <div className="form-section">
+              <h2 className="form-section-title">Project Documents <span className="text-dark-400 font-normal">(Optional)</span></h2>
+
+              {/* Hidden file input */}
+              <input
+                ref={docInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                multiple
+                className="hidden"
+                onChange={handleDocChange}
+              />
+
+              {/* Drop zone */}
+              <div
+                className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-brand-300 transition-colors cursor-pointer"
+                onClick={() => docInputRef.current?.click()}
+              >
+                <FileText className="w-7 h-7 text-dark-300 mx-auto mb-2" />
+                <p className="text-sm font-medium text-dark-600">Attach blueprints, plans or specifications</p>
+                <p className="text-xs text-dark-400 mt-1">PDF, Word (.doc/.docx), TXT — up to 10MB each (max 5)</p>
+              </div>
+
+              {/* Document list */}
+              {selectedDocuments.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {selectedDocuments.map((doc, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <FileText className="w-4 h-4 text-brand-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-dark-800 truncate">{doc.name}</p>
+                        <p className="text-xs text-dark-400">{formatFileSize(doc.size)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeDoc(i)}
+                        className="text-dark-400 hover:text-red-500 transition-colors flex-shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {selectedDocuments.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => docInputRef.current?.click()}
+                      className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+                    >
+                      + Add another document
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Step 2: Requirements */}
+        {/* ── Step 2: Requirements ─────────────────────────────────────────── */}
         {step === 2 && (
           <div className="space-y-5">
             <div className="form-section">
               <div className="flex items-center justify-between">
-                <h2 className="form-section-title">Budget & Timeline</h2>
+                <h2 className="form-section-title">Budget &amp; Timeline</h2>
                 <Button
                   type="button"
                   variant="outline"
@@ -256,9 +463,7 @@ export default function PostJobPage() {
 
             {values.budget && (
               <div className="bg-brand-50 border border-brand-100 rounded-xl p-4">
-                <p className="text-sm font-semibold text-brand-800 mb-1">
-                  💡 Budget Insights
-                </p>
+                <p className="text-sm font-semibold text-brand-800 mb-1">💡 Budget Insights</p>
                 <p className="text-xs text-brand-700">
                   For a {values.category || 'general construction'} project with a budget of{' '}
                   <strong>${Number(values.budget).toLocaleString()}</strong>, you can expect to receive{' '}
@@ -269,7 +474,7 @@ export default function PostJobPage() {
           </div>
         )}
 
-        {/* Step 3: Review */}
+        {/* ── Step 3: Review ───────────────────────────────────────────────── */}
         {step === 3 && (
           <div className="space-y-5">
             <Card padding="md">
@@ -301,6 +506,7 @@ export default function PostJobPage() {
                     <p className="font-bold text-dark-900">{values.location || '—'}</p>
                   </div>
                 </div>
+
                 {selectedSkills.length > 0 && (
                   <div className="pt-4 border-t border-gray-100">
                     <p className="text-xs text-dark-400 font-medium mb-2">Required Skills</p>
@@ -313,8 +519,43 @@ export default function PostJobPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Photo summary */}
+                {imagePreviews.length > 0 && (
+                  <div className="pt-4 border-t border-gray-100">
+                    <p className="text-xs text-dark-400 font-medium mb-2">Photos ({imagePreviews.length})</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {imagePreviews.map((src, i) => (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          key={i}
+                          src={src}
+                          alt={`Photo ${i + 1}`}
+                          className="w-14 h-14 object-cover rounded-lg border border-gray-200"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Document summary */}
+                {selectedDocuments.length > 0 && (
+                  <div className="pt-4 border-t border-gray-100">
+                    <p className="text-xs text-dark-400 font-medium mb-2">Documents ({selectedDocuments.length})</p>
+                    <div className="space-y-1">
+                      {selectedDocuments.map((doc, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs text-dark-600">
+                          <FileText className="w-3.5 h-3.5 text-brand-500 flex-shrink-0" />
+                          <span className="truncate">{doc.name}</span>
+                          <span className="text-dark-400 flex-shrink-0">({formatFileSize(doc.size)})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
+
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
               ⚠️ By posting, your job will be visible to all verified contractors in your area. You&apos;ll receive an email notification for each new bid.
             </div>

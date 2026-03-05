@@ -150,6 +150,49 @@ export const usersApi = {
     api.get('/users/contractors', { params }),
 };
 
+// ─── Upload ───────────────────────────────────────────────────────────────────
+
+// ─── Upload helper (uses native fetch so multipart boundary is set correctly) ─
+
+type UploadFileResult = { url: string; originalName: string; size: number; mimeType: string };
+
+async function uploadFetch<T>(path: string, formData: FormData): Promise<{ data: T }> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('biddaro_token') : null;
+  const res = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+    method: 'POST',
+    body: formData,
+    // Only set Authorization — do NOT set Content-Type so the browser can add the multipart boundary automatically
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    const err = Object.assign(new Error(json?.message || 'Upload failed'), { response: { data: json } });
+    throw err;
+  }
+  return { data: json };
+}
+
+export const uploadApi = {
+  /** Upload up to 10 images. Returns { files: UploadFileResult[] }. */
+  images: (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return uploadFetch<{ success: boolean; data: { files: UploadFileResult[] } }>('/upload/images', formData);
+  },
+  /** Upload up to 5 documents (PDF/Word/txt). Returns { files: UploadFileResult[] }. */
+  documents: (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return uploadFetch<{ success: boolean; data: { files: UploadFileResult[] } }>('/upload/documents', formData);
+  },
+  /** Upload a single file. Returns UploadFileResult. */
+  single: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return uploadFetch<{ success: boolean; data: UploadFileResult }>('/upload/single', formData);
+  },
+};
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export const notificationsApi = {
