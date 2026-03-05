@@ -1,14 +1,15 @@
 'use client';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, Send, Loader2, MessageSquare } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { timeAgo } from '@/lib/utils';
-import { messagesApi } from '@/lib/api';
+import { messagesApi, usersApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
-import type { Conversation, Message } from '@/types';
+import type { Conversation, Message, User } from '@/types';
 
 // ─── Conversation list item ────────────────────────────────────────────────────
 
@@ -100,10 +101,12 @@ function ChatBubble({
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Inner page (reads search params) ────────────────────────────────────────
 
-export default function MessagesPage() {
+function MessagesInner() {
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
+  const initUserId = searchParams.get('userId') ?? null;
 
   const [search, setSearch] = useState('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -113,6 +116,8 @@ export default function MessagesPage() {
   const [loadingThread, setLoadingThread] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  // Holds user info when navigated directly to a user with no existing conversation
+  const [fallbackUser, setFallbackUser] = useState<Partial<User> | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -121,7 +126,8 @@ export default function MessagesPage() {
     try {
       const res = await messagesApi.conversations();
       const data = res.data.data;
-      setConversations(data.conversations || data || []);
+      // Backend returns a plain array of conversation objects
+      setConversations(Array.isArray(data) ? data : []);
     } catch {
       toast.error('Failed to load messages', 'Please try again.');
     } finally {
@@ -133,6 +139,26 @@ export default function MessagesPage() {
     loadConversations();
   }, [loadConversations]);
 
+  // ── Pre-select conversation from ?userId query param ───────────────────────
+  useEffect(() => {
+    if (initUserId && !activeOtherUserId) {
+      setActiveOtherUserId(initUserId);
+    }
+  }, [initUserId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── When active userId is set but not in conv list, fetch their info ───────
+  useEffect(() => {
+    if (!activeOtherUserId) { setFallbackUser(null); return; }
+    const found = conversations.find((c) => c.otherUserId === activeOtherUserId);
+    if (!found) {
+      usersApi.getPublic(activeOtherUserId)
+        .then((res) => setFallbackUser(res.data.data))
+        .catch(() => setFallbackUser(null));
+    } else {
+      setFallbackUser(null);
+    }
+  }, [activeOtherUserId, conversations]);
+
   // ── Load thread when active conversation changes ────────────────────────────
   useEffect(() => {
     if (!activeOtherUserId) return;
@@ -143,7 +169,8 @@ export default function MessagesPage() {
       try {
         const res = await messagesApi.getThread(activeOtherUserId);
         const data = res.data.data;
-        setThreadMessages(data.messages || data || []);
+        // getMessages returns a paginated result: { data: [...messages], pagination: {...} }
+        setThreadMessages(data.data || (Array.isArray(data) ? data : []));
 
         // Mark as read and update unread count locally
         messagesApi.markRead(activeOtherUserId).catch(() => null);
@@ -175,13 +202,16 @@ export default function MessagesPage() {
     setNewMessage('');
     setSending(true);
 
+    const activeConvUser = conversations.find((c) => c.otherUserId === activeOtherUserId)?.otherUser
+      ?? (fallbackUser as User | undefined);
+
     // Optimistic update
     const optimistic: Message = {
       id: `tmp-${Date.now()}`,
       senderId: user?.id ?? '',
-      sender: user as any,
+      sender: user as User,
       receiverId: activeOtherUserId,
-      receiver: activeConv?.otherUser as any,
+      receiver: activeConvUser as User,
       content,
       isRead: false,
       createdAt: new Date().toISOString(),
@@ -202,8 +232,11 @@ export default function MessagesPage() {
       const sent: Message = res.data.data;
       // Replace optimistic with real message
       setThreadMessages((prev) => prev.map((m) => (m.id === optimistic.id ? sent : m)));
-    } catch (err: any) {
-      toast.error('Failed to send', err?.response?.data?.message || 'Please try again.');
+      // Reload conversations to get accurate last message + ensure conv appears in list
+      loadConversations();
+    } catch (err: unknown) {
+      const errMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error('Failed to send', errMsg || 'Please try again.');
       // Rollback optimistic message
       setThreadMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setNewMessage(content);
@@ -221,6 +254,9 @@ export default function MessagesPage() {
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const activeConv = conversations.find((c) => c.otherUserId === activeOtherUserId) ?? null;
+  // Use fallback user info when conv doesn't exist yet (new conversation)
+  const activeDisplayUser: Partial<User> | null =
+    (activeConv?.otherUser as Partial<User>) ?? fallbackUser ?? null;
 
   const filtered = conversations.filter((c) => {
     const name = `${c.otherUser?.firstName ?? ''} ${c.otherUser?.lastName ?? ''}`.toLowerCase();
@@ -270,23 +306,23 @@ export default function MessagesPage() {
       </div>
 
       {/* ── Chat area ─────────────────────────────────────────────────────── */}
-      {activeConv ? (
+      {activeOtherUserId ? (
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <div className="h-16 border-b border-gray-200 px-5 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-3">
               <Avatar
-                firstName={activeConv.otherUser?.firstName}
-                lastName={activeConv.otherUser?.lastName}
+                firstName={activeDisplayUser?.firstName}
+                lastName={activeDisplayUser?.lastName}
                 size="sm"
               />
               <div>
                 <p className="font-semibold text-dark-900 text-sm">
-                  {activeConv.otherUser?.firstName} {activeConv.otherUser?.lastName}
+                  {activeDisplayUser?.firstName ?? '—'} {activeDisplayUser?.lastName ?? ''}
                 </p>
                 <p className="text-xs text-dark-400 capitalize">
-                  {activeConv.otherUser?.role?.replace('_', ' ')}
-                  {activeConv.job?.title ? ` · ${activeConv.job.title}` : ''}
+                  {(activeDisplayUser?.role as string | undefined)?.replace('_', ' ') ?? ''}
+                  {activeConv?.job?.title ? ` · ${activeConv.job.title}` : ''}
                 </p>
               </div>
             </div>
@@ -309,7 +345,7 @@ export default function MessagesPage() {
                   key={msg.id}
                   message={msg}
                   isMe={msg.senderId === user?.id}
-                  otherUser={activeConv.otherUser}
+                  otherUser={activeConv?.otherUser}
                 />
               ))
             )}
@@ -352,5 +388,19 @@ export default function MessagesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Page wrapper (Suspense required by Next.js for useSearchParams) ──────────
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center py-24">
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+      </div>
+    }>
+      <MessagesInner />
+    </Suspense>
   );
 }

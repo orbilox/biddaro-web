@@ -73,12 +73,20 @@ export default function JobDetailPage() {
       toast.error('Missing fields', 'Please fill in amount and proposal.');
       return;
     }
+    if (parseFloat(bidAmount) < 1) {
+      toast.error('Invalid amount', 'Bid amount must be at least $1.');
+      return;
+    }
+    if (bidProposal.trim().length < 20) {
+      toast.error('Proposal too short', 'Your proposal must be at least 20 characters.');
+      return;
+    }
     setSubmitting(true);
     try {
       await bidsApi.create(jobId, {
         amount: parseFloat(bidAmount),
         estimatedDays: bidDays ? parseInt(bidDays, 10) : undefined,
-        proposal: bidProposal,
+        proposal: bidProposal.trim(),
       });
       setBidModalOpen(false);
       setBidAmount('');
@@ -86,7 +94,11 @@ export default function JobDetailPage() {
       setBidProposal('');
       toast.success('Bid submitted!', 'Your bid has been sent to the job poster.');
     } catch (err: any) {
-      toast.error('Failed to submit bid', err?.response?.data?.message || 'Please try again.');
+      const msg =
+        err?.response?.data?.errors?.[0] ||
+        err?.response?.data?.message ||
+        'Please try again.';
+      toast.error('Failed to submit bid', msg);
     } finally {
       setSubmitting(false);
     }
@@ -253,7 +265,11 @@ export default function JobDetailPage() {
                               {bid.status}
                             </Badge>
                           )}
-                          <Button size="xs" variant="outline">
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={() => router.push(`${ROUTES.MESSAGES}?userId=${bid.contractor?.id}`)}
+                          >
                             <MessageSquare className="w-3.5 h-3.5 mr-1" />
                             Message
                           </Button>
@@ -375,13 +391,18 @@ export default function JobDetailPage() {
               onChange={(e) => setBidDays(e.target.value)}
             />
           </div>
-          <Textarea
-            label="Your Proposal"
-            placeholder="Describe your experience, approach, and why you're the best fit for this project…"
-            rows={6}
-            value={bidProposal}
-            onChange={(e) => setBidProposal(e.target.value)}
-          />
+          <div>
+            <Textarea
+              label="Your Proposal"
+              placeholder="Describe your experience, approach, and why you're the best fit for this project…"
+              rows={6}
+              value={bidProposal}
+              onChange={(e) => setBidProposal(e.target.value)}
+            />
+            <p className={`text-xs mt-1 ${bidProposal.trim().length < 20 && bidProposal.length > 0 ? 'text-red-500' : 'text-dark-400'}`}>
+              {bidProposal.trim().length}/20 characters minimum
+            </p>
+          </div>
         </div>
       </Modal>
     </div>

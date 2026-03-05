@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { JOB_CATEGORIES, TIMELINE_OPTIONS, SKILLS, ROUTES } from '@/lib/constants';
 import { toast } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
+import { jobsApi } from '@/lib/api';
 
 interface PostJobForm {
   title: string;
@@ -61,10 +62,23 @@ export default function PostJobPage() {
       return;
     }
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setSubmitting(false);
-    toast.success('Job posted!', 'Contractors will start bidding soon.');
-    router.push(ROUTES.MY_JOBS);
+    try {
+      await jobsApi.create({
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        budget: Number(data.budget),
+        location: data.location,
+        startDate: data.startDate || undefined,
+        skills: selectedSkills,
+      });
+      toast.success('Job posted!', 'Contractors will start bidding soon.');
+      router.push(ROUTES.MY_JOBS);
+    } catch (err: any) {
+      toast.error('Failed to post job', err?.response?.data?.message || 'Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

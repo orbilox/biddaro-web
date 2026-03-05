@@ -105,7 +105,7 @@ function ContractCard({ contract, isPoster }: { contract: Contract; isPoster: bo
           <Button size="xs" variant="outline">View Contract</Button>
         </Link>
         {contract.status === 'active' && (
-          <Link href={ROUTES.MESSAGES}>
+          <Link href={`${ROUTES.MESSAGES}?userId=${isPoster ? contract.contractorId : contract.posterId}`}>
             <Button size="xs" variant="ghost">
               {isPoster ? 'Message Contractor' : 'Message Client'}
             </Button>

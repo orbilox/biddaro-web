@@ -13,8 +13,10 @@ export function formatCurrency(amount: number, currency = 'USD'): string {
   }).format(amount);
 }
 
-export function formatDate(dateStr: string, options?: Intl.DateTimeFormatOptions): string {
+export function formatDate(dateStr: string | null | undefined, options?: Intl.DateTimeFormatOptions): string {
+  if (!dateStr) return '—';
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -23,8 +25,10 @@ export function formatDate(dateStr: string, options?: Intl.DateTimeFormatOptions
   }).format(date);
 }
 
-export function timeAgo(dateStr: string): string {
+export function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '—';
   const now = new Date();
   const diff = now.getTime() - date.getTime();
 
