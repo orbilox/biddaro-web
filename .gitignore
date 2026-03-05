@@ -1,1 +1,16 @@
-node_modules
+# dependencies
+node_modules/
+
+# next build
+.next/
+
+# production
+out/
+
+# misc
+.DS_Store
+*.tsbuildinfo
+
+# env files
+.env.local
+.env.*.local
