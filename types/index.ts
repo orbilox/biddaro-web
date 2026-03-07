@@ -106,6 +106,10 @@ export interface Milestone {
   amount: number;
   status: 'pending' | 'in_progress' | 'completed' | 'approved';
   dueDate?: string;
+  proofDocuments?: string[];   // URLs of proof files uploaded by contractor
+  startedAt?: string;
+  completedAt?: string;
+  approvedAt?: string;
 }
 
 export interface Contract {
@@ -121,6 +125,9 @@ export interface Contract {
   totalAmount: number;
   currency: string;
   status: ContractStatus;
+  escrowFunded: boolean;
+  escrowAmount: number;
+  releasedAmount: number;
   startDate?: string;
   endDate?: string;
   milestones?: Milestone[];   // parsed from JSON

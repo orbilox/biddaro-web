@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FileText, CheckCircle, Clock, AlertCircle, DollarSign, Loader2 } from 'lucide-react';
+import { FileText, CheckCircle, Clock, AlertCircle, DollarSign, Loader2, Lock, Unlock } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabList, Tab, TabPanel } from '@/components/ui/Tabs';
@@ -16,12 +16,12 @@ import type { Contract } from '@/types';
 
 function MilestoneProgress({ milestones }: { milestones: Contract['milestones'] }) {
   if (!milestones || milestones.length === 0) return null;
-  const completed = milestones.filter((m) => m.status === 'completed').length;
-  const pct = Math.round((completed / milestones.length) * 100);
+  const paid = milestones.filter((m) => m.status === 'approved').length;
+  const pct = Math.round((paid / milestones.length) * 100);
   return (
     <div className="mt-3">
       <div className="flex justify-between text-xs text-dark-400 mb-1">
-        <span>{completed}/{milestones.length} milestones</span>
+        <span>{paid}/{milestones.length} milestones paid</span>
         <span>{pct}%</span>
       </div>
       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -40,8 +40,12 @@ function ContractCard({ contract, isPoster }: { contract: Contract; isPoster: bo
   // Poster sees contractor; contractor sees poster
   const other = isPoster ? contract.contractor : contract.poster;
 
+  const hasMilestones = contract.milestones && contract.milestones.length > 0;
+  const needsFunding = contract.status === 'active' && hasMilestones && !contract.escrowFunded && isPoster;
+  const escrowFunded = contract.escrowFunded;
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-card-hover transition-shadow">
+    <div className={`bg-white rounded-xl border p-5 hover:shadow-card-hover transition-shadow ${needsFunding ? 'border-amber-300' : 'border-gray-200'}`}>
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex items-start gap-3">
           <Avatar firstName={other?.firstName} lastName={other?.lastName} size="sm" />
@@ -58,9 +62,22 @@ function ContractCard({ contract, isPoster }: { contract: Contract; isPoster: bo
             </p>
           </div>
         </div>
-        <Badge variant={statusVariant} dot>
-          {getStatusLabel(contract.status)}
-        </Badge>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {hasMilestones && contract.status === 'active' && (
+            escrowFunded ? (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
+                <Lock className="w-3 h-3" /> Escrow Funded
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                <Unlock className="w-3 h-3" /> Awaiting Escrow
+              </span>
+            )
+          )}
+          <Badge variant={statusVariant} dot>
+            {getStatusLabel(contract.status)}
+          </Badge>
+        </div>
       </div>
 
       <div className="flex items-center gap-4 py-3 bg-gray-50 rounded-xl px-4 mb-3 flex-wrap">
@@ -104,6 +121,13 @@ function ContractCard({ contract, isPoster }: { contract: Contract; isPoster: bo
         <Link href={ROUTES.CONTRACT_DETAIL(contract.id)}>
           <Button size="xs" variant="outline">View Contract</Button>
         </Link>
+        {needsFunding && (
+          <Link href={ROUTES.CONTRACT_DETAIL(contract.id)}>
+            <Button size="xs" variant="primary">
+              <Lock className="w-3 h-3 mr-1" /> Fund Escrow
+            </Button>
+          </Link>
+        )}
         {contract.status === 'active' && (
           <Link href={`${ROUTES.MESSAGES}?userId=${isPoster ? contract.contractorId : contract.posterId}`}>
             <Button size="xs" variant="ghost">

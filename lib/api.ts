@@ -79,8 +79,16 @@ export const contractsApi = {
   get: (id: string) => api.get(`/contracts/${id}`),
   updateMilestones: (id: string, milestones: unknown[]) =>
     api.put(`/contracts/${id}/milestones`, { milestones }),
-  completeMilestone: (id: string, milestoneIndex: number) =>
-    api.post(`/contracts/${id}/milestones/complete`, { milestoneIndex }),
+  // ── Escrow ──────────────────────────────────────────────────────────────────
+  fundEscrow: (id: string) => api.post(`/contracts/${id}/fund`),
+  // ── Milestone lifecycle ─────────────────────────────────────────────────────
+  startMilestone: (id: string, milestoneIndex: number) =>
+    api.post(`/contracts/${id}/milestones/start`, { milestoneIndex }),
+  submitMilestone: (id: string, milestoneIndex: number, proofDocuments: string[]) =>
+    api.post(`/contracts/${id}/milestones/submit`, { milestoneIndex, proofDocuments }),
+  approveMilestone: (id: string, milestoneIndex: number) =>
+    api.post(`/contracts/${id}/milestones/approve`, { milestoneIndex }),
+  // ── Contract lifecycle ──────────────────────────────────────────────────────
   complete: (id: string) => api.post(`/contracts/${id}/complete`),
   cancel: (id: string) => api.post(`/contracts/${id}/cancel`),
 };
