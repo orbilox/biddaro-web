@@ -1,16 +1,20 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { HardHat, Menu, X } from 'lucide-react';
+import { HardHat, Menu, X, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
+import { useAuthStore } from '@/store/authStore';
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -61,20 +65,30 @@ export function Navbar() {
 
           {/* CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              href={ROUTES.LOGIN}
-              className={cn(
-                'text-sm font-medium transition-colors px-4 py-2 rounded-lg',
-                scrolled
-                  ? 'text-dark-700 hover:text-dark-900 hover:bg-gray-100'
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-              )}
-            >
-              Sign In
-            </Link>
-            <Link href={ROUTES.REGISTER}>
-              <Button size="sm">Get Started Free</Button>
-            </Link>
+            {mounted && isAuthenticated ? (
+              <Link href={ROUTES.DASHBOARD}>
+                <Button size="sm" rightIcon={<LayoutDashboard className="w-4 h-4" />}>
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href={ROUTES.LOGIN}
+                  className={cn(
+                    'text-sm font-medium transition-colors px-4 py-2 rounded-lg',
+                    scrolled
+                      ? 'text-dark-700 hover:text-dark-900 hover:bg-gray-100'
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                  )}
+                >
+                  Sign In
+                </Link>
+                <Link href={ROUTES.REGISTER}>
+                  <Button size="sm">Get Started Free</Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -105,12 +119,26 @@ export function Navbar() {
               </a>
             ))}
             <hr className="my-2 border-gray-100" />
-            <Link href={ROUTES.LOGIN} className="px-3 py-2.5 text-sm font-medium text-dark-700 hover:bg-gray-50 rounded-lg">
-              Sign In
-            </Link>
-            <Link href={ROUTES.REGISTER}>
-              <Button fullWidth size="sm">Get Started Free</Button>
-            </Link>
+            {mounted && isAuthenticated ? (
+              <Link href={ROUTES.DASHBOARD} onClick={() => setMobileOpen(false)}>
+                <Button fullWidth size="sm" rightIcon={<LayoutDashboard className="w-4 h-4" />}>
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href={ROUTES.LOGIN}
+                  className="px-3 py-2.5 text-sm font-medium text-dark-700 hover:bg-gray-50 rounded-lg"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link href={ROUTES.REGISTER}>
+                  <Button fullWidth size="sm">Get Started Free</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

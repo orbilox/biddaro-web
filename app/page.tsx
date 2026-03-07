@@ -1,13 +1,15 @@
-import React from 'react';
+'use client';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle, Star, HardHat, Zap, Shield, Users,
-  BarChart3, MessageSquare, Wallet, FileText, Bot, MapPin,
+  BarChart3, MessageSquare, Wallet, FileText, Bot, MapPin, LayoutDashboard,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
+import { useAuthStore } from '@/store/authStore';
 
 const stats = [
   { value: '12,000+', label: 'Active Contractors' },
@@ -112,6 +114,15 @@ const testimonials = [
 ];
 
 export default function LandingPage() {
+  const { isAuthenticated } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isLoggedIn = mounted && isAuthenticated;
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -147,20 +158,30 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href={ROUTES.REGISTER}>
-                <Button size="lg" rightIcon={<ArrowRight className="w-5 h-5" />}>
-                  Post Your Job Free
-                </Button>
-              </Link>
-              <Link href={ROUTES.REGISTER + '?type=contractor'}>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="bg-transparent border-white/20 text-white hover:bg-white/10"
-                >
-                  I&apos;m a Contractor
-                </Button>
-              </Link>
+              {isLoggedIn ? (
+                <Link href={ROUTES.DASHBOARD}>
+                  <Button size="lg" rightIcon={<LayoutDashboard className="w-5 h-5" />}>
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href={ROUTES.REGISTER}>
+                    <Button size="lg" rightIcon={<ArrowRight className="w-5 h-5" />}>
+                      Post Your Job Free
+                    </Button>
+                  </Link>
+                  <Link href={ROUTES.REGISTER + '?type=contractor'}>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="bg-transparent border-white/20 text-white hover:bg-white/10"
+                    >
+                      I&apos;m a Contractor
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Trust signals */}
@@ -247,11 +268,19 @@ export default function LandingPage() {
           </div>
 
           <div className="text-center mt-12">
-            <Link href={ROUTES.REGISTER}>
-              <Button size="lg" rightIcon={<ArrowRight className="w-5 h-5" />}>
-                Get Started — It&apos;s Free
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <Link href={ROUTES.DASHBOARD}>
+                <Button size="lg" rightIcon={<LayoutDashboard className="w-5 h-5" />}>
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <Link href={ROUTES.REGISTER}>
+                <Button size="lg" rightIcon={<ArrowRight className="w-5 h-5" />}>
+                  Get Started — It&apos;s Free
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -331,25 +360,40 @@ export default function LandingPage() {
             Join 50,000+ clients and contractors using Biddaro to get construction work done right.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href={ROUTES.REGISTER}>
-              <Button
-                size="lg"
-                variant="secondary"
-                className="bg-white text-brand-600 hover:bg-gray-100"
-                rightIcon={<ArrowRight className="w-5 h-5" />}
-              >
-                Post Your First Job
-              </Button>
-            </Link>
-            <Link href={ROUTES.REGISTER + '?type=contractor'}>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white/30 text-white hover:bg-white/10 bg-transparent"
-              >
-                Start Bidding as a Pro
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <Link href={ROUTES.DASHBOARD}>
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="bg-white text-brand-600 hover:bg-gray-100"
+                  rightIcon={<LayoutDashboard className="w-5 h-5" />}
+                >
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href={ROUTES.REGISTER}>
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    className="bg-white text-brand-600 hover:bg-gray-100"
+                    rightIcon={<ArrowRight className="w-5 h-5" />}
+                  >
+                    Post Your First Job
+                  </Button>
+                </Link>
+                <Link href={ROUTES.REGISTER + '?type=contractor'}>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-white/30 text-white hover:bg-white/10 bg-transparent"
+                  >
+                    Start Bidding as a Pro
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
