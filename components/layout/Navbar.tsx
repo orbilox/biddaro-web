@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { HardHat, Menu, X, LayoutDashboard, Sparkles } from 'lucide-react';
+import { HardHat, Menu, X, LayoutDashboard, Sparkles, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
@@ -23,8 +23,8 @@ export function Navbar() {
   const navLinks = [
     { href: '#features', label: 'Features' },
     { href: '#how-it-works', label: 'How It Works' },
-    { href: '#pricing', label: 'Pricing' },
-    { href: ROUTES.AI_ASSISTANT, label: 'AI Assistant', isNew: true },
+    { href: ROUTES.AI_ASSISTANT, label: 'AI Assistant', isNew: true, icon: Sparkles },
+    { href: ROUTES.AI_IMAGE, label: 'AI Image', isNew: true, icon: Wand2 },
   ];
 
   return (
@@ -50,24 +50,27 @@ export function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'text-sm font-medium transition-colors flex items-center gap-1.5',
-                  scrolled ? 'text-dark-600 hover:text-dark-900' : 'text-white/80 hover:text-white'
-                )}
-              >
-                {link.isNew && <Sparkles className="w-3.5 h-3.5 text-brand-400" />}
-                {link.label}
-                {link.isNew && (
-                  <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
-                    FREE
-                  </span>
-                )}
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const NavIcon = link.icon;
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    'text-sm font-medium transition-colors flex items-center gap-1.5',
+                    scrolled ? 'text-dark-600 hover:text-dark-900' : 'text-white/80 hover:text-white'
+                  )}
+                >
+                  {link.isNew && NavIcon && <NavIcon className="w-3.5 h-3.5 text-brand-400" />}
+                  {link.label}
+                  {link.isNew && (
+                    <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                      FREE
+                    </span>
+                  )}
+                </a>
+              );
+            })}
           </div>
 
           {/* CTA */}
@@ -115,22 +118,25 @@ export function Navbar() {
       {mobileOpen && (
         <div className="md:hidden bg-white border-b border-gray-200 px-4 pb-4 animate-slide-up">
           <div className="flex flex-col gap-1 pt-2">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className="px-3 py-2.5 text-sm font-medium text-dark-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
-              >
-                {link.isNew && <Sparkles className="w-3.5 h-3.5 text-brand-400" />}
-                {link.label}
-                {link.isNew && (
-                  <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
-                    FREE
-                  </span>
-                )}
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const NavIcon = link.icon;
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="px-3 py-2.5 text-sm font-medium text-dark-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
+                >
+                  {link.isNew && NavIcon && <NavIcon className="w-3.5 h-3.5 text-brand-400" />}
+                  {link.label}
+                  {link.isNew && (
+                    <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                      FREE
+                    </span>
+                  )}
+                </a>
+              );
+            })}
             <hr className="my-2 border-gray-100" />
             {mounted && isAuthenticated ? (
               <Link href={ROUTES.DASHBOARD} onClick={() => setMobileOpen(false)}>

@@ -164,20 +164,34 @@ export const usersApi = {
 
 type UploadFileResult = { url: string; originalName: string; size: number; mimeType: string };
 
-async function uploadFetch<T>(path: string, formData: FormData): Promise<{ data: T }> {
+async function uploadFetch<T>(
+  path: string,
+  formData: FormData,
+  timeoutMs = 30_000
+): Promise<{ data: T }> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('biddaro_token') : null;
-  const res = await fetch(`${API_BASE_URL}/api/v1${path}`, {
-    method: 'POST',
-    body: formData,
-    // Only set Authorization — do NOT set Content-Type so the browser can add the multipart boundary automatically
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  const json = await res.json();
-  if (!res.ok) {
-    const err = Object.assign(new Error(json?.message || 'Upload failed'), { response: { data: json } });
+  const controller = new AbortController();
+  const timerId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+      method: 'POST',
+      body: formData,
+      // Only set Authorization — do NOT set Content-Type so the browser adds the multipart boundary automatically
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: controller.signal,
+    });
+    clearTimeout(timerId);
+    const json = await res.json();
+    if (!res.ok) {
+      const err = Object.assign(new Error(json?.message || 'Upload failed'), { response: { data: json } });
+      throw err;
+    }
+    return { data: json };
+  } catch (err) {
+    clearTimeout(timerId);
     throw err;
   }
-  return { data: json };
 }
 
 export const uploadApi = {
@@ -206,6 +220,25 @@ export const uploadApi = {
 export const aiApi = {
   chat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
     api.post('/ai/chat', { messages }),
+};
+
+// ─── AI Image Generation ───────────────────────────────────────────────────────
+
+export const imageGenApi = {
+  /**
+   * Upload an image + prompt → receive a base64 data URL of the generated image.
+   * Uses a 150-second timeout to handle HuggingFace cold-start delays.
+   */
+  generate: (imageFile: File, prompt: string) => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('prompt', prompt);
+    return uploadFetch<{ success: boolean; data: { imageUrl: string } }>(
+      '/image-gen/generate',
+      formData,
+      150_000 // 2.5 min — model can take time to warm up
+    );
+  },
 };
 
 // ─── Notifications ────────────────────────────────────────────────────────────

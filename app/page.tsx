@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {
   ArrowRight, CheckCircle, Star, HardHat, Zap, Shield, Users,
   BarChart3, MessageSquare, Wallet, FileText, Bot, LayoutDashboard,
-  Sparkles, DollarSign, Hammer, Clock,
+  Sparkles, DollarSign, Hammer, Clock, Wand2,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -362,11 +362,23 @@ export default function LandingPage() {
                   ))}
                 </ul>
 
-                <Link href={ROUTES.AI_ASSISTANT}>
-                  <Button size="lg" rightIcon={<ArrowRight className="w-5 h-5" />}>
-                    Try AI Assistant — It&apos;s Free
-                  </Button>
-                </Link>
+                <div className="flex flex-wrap gap-3">
+                  <Link href={ROUTES.AI_ASSISTANT}>
+                    <Button size="lg" rightIcon={<ArrowRight className="w-5 h-5" />}>
+                      Try AI Assistant — Free
+                    </Button>
+                  </Link>
+                  <Link href={ROUTES.AI_IMAGE}>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="bg-transparent border-white/20 text-white hover:bg-white/10"
+                      rightIcon={<Wand2 className="w-5 h-5" />}
+                    >
+                      AI Image Studio
+                    </Button>
+                  </Link>
+                </div>
               </div>
 
               {/* Right: fake chat preview */}
