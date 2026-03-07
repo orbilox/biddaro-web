@@ -68,6 +68,13 @@ export interface Job {
 
 export type BidStatus = 'pending' | 'accepted' | 'declined' | 'withdrawn' | 'expired';
 
+export interface BidMilestone {
+  title: string;
+  description?: string;
+  amount: number;
+  dueDate?: string;
+}
+
 export interface Bid {
   id: string;
   jobId: string;
@@ -78,6 +85,8 @@ export interface Bid {
   currency: string;
   estimatedDays?: number;
   proposal?: string;
+  documents?: string[];           // uploaded file URLs
+  milestones?: BidMilestone[];    // proposed payment milestones
   status: BidStatus;
   createdAt: string;
   updatedAt: string;
