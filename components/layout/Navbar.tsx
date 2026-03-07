@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { HardHat, Menu, X, LayoutDashboard } from 'lucide-react';
+import { HardHat, Menu, X, LayoutDashboard, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
@@ -24,6 +24,7 @@ export function Navbar() {
     { href: '#features', label: 'Features' },
     { href: '#how-it-works', label: 'How It Works' },
     { href: '#pricing', label: 'Pricing' },
+    { href: ROUTES.AI_ASSISTANT, label: 'AI Assistant', isNew: true },
   ];
 
   return (
@@ -54,11 +55,17 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'text-sm font-medium transition-colors',
+                  'text-sm font-medium transition-colors flex items-center gap-1.5',
                   scrolled ? 'text-dark-600 hover:text-dark-900' : 'text-white/80 hover:text-white'
                 )}
               >
+                {link.isNew && <Sparkles className="w-3.5 h-3.5 text-brand-400" />}
                 {link.label}
+                {link.isNew && (
+                  <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                    FREE
+                  </span>
+                )}
               </a>
             ))}
           </div>
@@ -113,9 +120,15 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="px-3 py-2.5 text-sm font-medium text-dark-700 hover:bg-gray-50 rounded-lg"
+                className="px-3 py-2.5 text-sm font-medium text-dark-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
               >
+                {link.isNew && <Sparkles className="w-3.5 h-3.5 text-brand-400" />}
                 {link.label}
+                {link.isNew && (
+                  <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                    FREE
+                  </span>
+                )}
               </a>
             ))}
             <hr className="my-2 border-gray-100" />

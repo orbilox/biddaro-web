@@ -201,6 +201,13 @@ export const uploadApi = {
   },
 };
 
+// ─── AI Assistant ─────────────────────────────────────────────────────────────
+
+export const aiApi = {
+  chat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
+    api.post('/ai/chat', { messages }),
+};
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export const notificationsApi = {

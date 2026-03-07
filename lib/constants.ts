@@ -80,6 +80,7 @@ export const SORT_OPTIONS = [
 
 export const ROUTES = {
   HOME: '/',
+  AI_ASSISTANT: '/ai-assistant',
   LOGIN: '/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',

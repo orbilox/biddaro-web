@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle, Star, HardHat, Zap, Shield, Users,
-  BarChart3, MessageSquare, Wallet, FileText, Bot, MapPin, LayoutDashboard,
+  BarChart3, MessageSquare, Wallet, FileText, Bot, LayoutDashboard,
+  Sparkles, DollarSign, Hammer, Clock,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -312,6 +313,133 @@ export default function LandingPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── AI Assistant Promo ─────────────────────────────────────── */}
+      <section className="py-20 bg-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 rounded-3xl overflow-hidden">
+            {/* Glow */}
+            <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-80 h-80 rounded-full bg-brand-500/15 blur-[80px] pointer-events-none" />
+            <div className="absolute bottom-0 right-1/4 w-60 h-60 rounded-full bg-violet-500/10 blur-[60px] pointer-events-none" />
+
+            <div className="relative grid lg:grid-cols-2 gap-10 items-center p-10 md:p-14">
+              {/* Left: copy */}
+              <div>
+                <div className="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 rounded-full px-4 py-1.5 mb-6">
+                  <Sparkles className="w-3.5 h-3.5 text-brand-400" />
+                  <span className="text-brand-400 text-xs font-semibold uppercase tracking-wider">
+                    Free · No Login Required
+                  </span>
+                </div>
+
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4 leading-tight">
+                  Get Instant Construction
+                  <br />
+                  <span className="text-gradient">Answers with AI</span>
+                </h2>
+                <p className="text-dark-300 text-lg mb-8 leading-relaxed">
+                  Ask our AI assistant anything — cost estimates, material quantities,
+                  permit requirements, how to hire safely, and more. No account needed.
+                </p>
+
+                {/* Mini feature list */}
+                <ul className="space-y-3 mb-10">
+                  {[
+                    { icon: DollarSign, text: 'Instant cost & budget estimates' },
+                    { icon: Hammer,     text: 'Material lists & quantity guides' },
+                    { icon: Clock,      text: 'Project timelines & planning tips' },
+                    { icon: Shield,     text: 'Safe contractor hiring advice' },
+                  ].map(({ icon: Icon, text }) => (
+                    <li key={text} className="flex items-center gap-3 text-dark-300 text-sm">
+                      <div className="w-7 h-7 rounded-lg bg-brand-500/15 flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-3.5 h-3.5 text-brand-400" />
+                      </div>
+                      {text}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link href={ROUTES.AI_ASSISTANT}>
+                  <Button size="lg" rightIcon={<ArrowRight className="w-5 h-5" />}>
+                    Try AI Assistant — It&apos;s Free
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Right: fake chat preview */}
+              <div className="lg:flex justify-center hidden">
+                <div className="w-full max-w-sm bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+                  {/* Chat header */}
+                  <div className="bg-dark-900 px-4 py-3 flex items-center gap-2 border-b border-dark-700">
+                    <div className="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center">
+                      <Bot className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="text-white text-sm font-semibold">Biddaro AI</span>
+                    <span className="ml-auto flex items-center gap-1 text-green-400 text-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                      Online
+                    </span>
+                  </div>
+
+                  {/* Chat messages */}
+                  <div className="p-4 space-y-4">
+                    {/* User message */}
+                    <div className="flex justify-end">
+                      <div className="bg-brand-500 text-white text-xs rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]">
+                        How much does a bathroom renovation cost?
+                      </div>
+                    </div>
+
+                    {/* AI message */}
+                    <div className="flex gap-2">
+                      <div className="w-6 h-6 rounded-full bg-dark-800 border border-dark-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Bot className="w-3 h-3 text-brand-400" />
+                      </div>
+                      <div className="bg-white border border-gray-200 text-dark-700 text-xs rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%] shadow-sm">
+                        A bathroom renovation typically costs{' '}
+                        <strong>$3,000–$25,000</strong> depending on size and
+                        finishes. A basic refresh runs $3K–$7K, mid-range
+                        $7K–$15K, and a full gut renovation $15K–$25K+.
+                      </div>
+                    </div>
+
+                    {/* User follow-up */}
+                    <div className="flex justify-end">
+                      <div className="bg-brand-500 text-white text-xs rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]">
+                        What permits do I need?
+                      </div>
+                    </div>
+
+                    {/* Typing indicator */}
+                    <div className="flex gap-2">
+                      <div className="w-6 h-6 rounded-full bg-dark-800 border border-dark-600 flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-3 h-3 text-brand-400" />
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-3 py-2.5 shadow-sm">
+                        <div className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-dark-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-dark-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-dark-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Input */}
+                  <div className="px-4 pb-4">
+                    <div className="flex gap-2 bg-white border border-gray-300 rounded-xl px-3 py-2">
+                      <span className="text-xs text-dark-400 flex-1">Ask a question…</span>
+                      <div className="w-6 h-6 rounded-lg bg-brand-500 flex items-center justify-center">
+                        <ArrowRight className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
