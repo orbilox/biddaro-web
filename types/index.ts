@@ -1,6 +1,38 @@
 // ─── User Types ───────────────────────────────────────────────────────────────
 
 export type UserRole = 'job_poster' | 'contractor' | 'admin';
+export type AvailabilityStatus = 'available' | 'busy' | 'unavailable';
+
+export interface PortfolioItem {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  category: string;
+  projectValue?: number;
+  year: number;
+  location?: string;
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  year: number;
+  expiryYear?: number;
+  imageUrl?: string;
+}
+
+export interface WorkHistoryItem {
+  id: string;
+  company: string;
+  role: string;
+  startYear: number;
+  endYear?: number;
+  current: boolean;
+  description: string;
+  location?: string;
+}
 
 export interface User {
   id: string;
@@ -12,12 +44,21 @@ export interface User {
   phone?: string;
   location?: string;
   bio?: string;
-  skills?: string | string[];   // stored as JSON string, may be parsed
+  skills?: string | string[];       // JSON string or parsed array
   licenseNumber?: string;
   yearsExperience?: number;
   isVerified: boolean;
   rating?: number;
   isActive?: boolean;
+  // ── Extended contractor profile ──────────────────────────────────────────
+  portfolio?:      PortfolioItem[];
+  certifications?: Certification[];
+  workHistory?:    WorkHistoryItem[];
+  availability?:   AvailabilityStatus;
+  hourlyRate?:     number;
+  website?:        string;
+  languages?:      string | string[];
+  serviceRadius?:  number;
   createdAt: string;
   updatedAt: string;
 }
