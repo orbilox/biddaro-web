@@ -61,7 +61,7 @@ export default function DashboardPage() {
       try {
         const results = await Promise.allSettled([
           isPoster ? jobsApi.myJobs({ limit: 3 }) : jobsApi.list({ limit: 3, status: 'open' }),
-          bidsApi.myBids({ limit: 3 }),
+          isPoster ? bidsApi.receivedBids({ limit: 3 }) : bidsApi.myBids({ limit: 3 }),
           walletApi.transactions({ limit: 4 }),
           walletApi.get(),
           usersApi.myStats(),

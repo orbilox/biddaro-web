@@ -65,6 +65,7 @@ export const jobsApi = {
 
 export const bidsApi = {
   myBids: (params?: Record<string, string | number>) => api.get('/bids/my', { params }),
+  receivedBids: (params?: Record<string, string | number>) => api.get('/bids/received', { params }),
   create: (jobId: string, data: Record<string, unknown>) =>
     api.post(`/jobs/${jobId}/bids`, data),
   accept: (id: string) => api.post(`/bids/${id}/accept`),
