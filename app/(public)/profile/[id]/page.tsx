@@ -93,7 +93,7 @@ function PortfolioCard({ item }: { item: PortfolioItem }) {
       )}
       <div className="p-3">
         <p className="font-semibold text-dark-900 text-sm truncate">{item.title}</p>
-        <p className="text-xs text-dark-400 mt-0.5 line-clamp-2">{item.description}</p>
+        <p className="text-xs text-dark-400 mt-0.5 line-clamp-2 break-words overflow-hidden">{item.description}</p>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-medium">{item.category}</span>
           <span className="text-xs text-dark-400">{item.year}</span>
@@ -139,7 +139,7 @@ function WorkHistoryCard({ item }: { item: WorkHistoryItem }) {
           </p>
         )}
         {item.description && (
-          <p className="text-xs text-dark-500 mt-2 leading-relaxed">{item.description}</p>
+          <p className="text-xs text-dark-500 mt-2 leading-relaxed break-words overflow-hidden">{item.description}</p>
         )}
       </div>
     </div>
@@ -473,7 +473,7 @@ export default function PublicProfilePage() {
           {/* Bio */}
           {contractor.bio && (
             <Section title="About" icon={Briefcase}>
-              <p className="text-sm text-dark-600 leading-relaxed whitespace-pre-line">{contractor.bio}</p>
+              <p className="text-sm text-dark-600 leading-relaxed whitespace-pre-line break-words overflow-hidden">{contractor.bio}</p>
             </Section>
           )}
 
