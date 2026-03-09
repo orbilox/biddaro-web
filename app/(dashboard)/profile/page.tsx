@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {
   Camera, MapPin, Phone, Globe, CheckCircle, Plus, X, Edit2, Trash2,
   Briefcase, Award, Image as ImageIcon, Clock, Star, DollarSign,
-  ExternalLink, Languages, Building, Shield, Lock, Eye,
+  ExternalLink, Languages, Building, Shield, Lock, Eye, Share2, Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea, Select } from '@/components/ui/Input';
@@ -520,6 +520,46 @@ export default function ProfilePage() {
             {isContractor && user?.hourlyRate && <div className="flex items-center gap-2.5"><DollarSign className="w-4 h-4 text-dark-400 flex-shrink-0" /><span>{formatCurrency(user.hourlyRate)}/hr</span></div>}
             {isContractor && user?.yearsExperience && <div className="flex items-center gap-2.5"><Clock className="w-4 h-4 text-dark-400 flex-shrink-0" /><span>{user.yearsExperience} yrs experience</span></div>}
           </div>
+
+          {/* Share profile button — contractors only */}
+          {isContractor && user?.id && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h3 className="font-semibold text-dark-900 text-sm mb-2 flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-brand-500" />
+                Share Your Profile
+              </h3>
+              <p className="text-xs text-dark-400 mb-3">
+                Share this link with clients so they can view your public profile.
+              </p>
+              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-2">
+                <span className="text-xs text-dark-500 truncate flex-1">
+                  {typeof window !== 'undefined' ? `${window.location.origin}/profile/${user.id}` : `/profile/${user.id}`}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  leftIcon={<Copy className="w-3.5 h-3.5" />}
+                  onClick={() => {
+                    const url = `${window.location.origin}/profile/${user.id}`;
+                    navigator.clipboard.writeText(url).then(() => toast.success('Link copied!', 'Your public profile link is in the clipboard.'));
+                  }}
+                >
+                  Copy Link
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  leftIcon={<Eye className="w-3.5 h-3.5" />}
+                  onClick={() => window.open(`/profile/${user.id}`, '_blank')}
+                >
+                  Preview
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Quick summary chips */}
           {isContractor && (

@@ -6,12 +6,10 @@ import Image from 'next/image';
 import {
   MapPin, Phone, Globe, Star, Briefcase, Award, CheckCircle,
   ArrowLeft, MessageSquare, Clock, DollarSign, Calendar,
-  Languages, Shield, ExternalLink, Loader2, AlertCircle,
+  Languages, Shield, ExternalLink, Loader2, AlertCircle, LogIn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
-import { Card } from '@/components/ui/Card';
 import { StarRating } from '@/components/shared/StarRating';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { usersApi, reviewsApi } from '@/lib/api';
@@ -32,6 +30,8 @@ function tryParseArr(raw: string | string[] | undefined): string[] {
   if (Array.isArray(raw)) return raw;
   try { return JSON.parse(raw as string); } catch { return []; }
 }
+
+// ─── Availability badge ───────────────────────────────────────────────────────
 
 function AvailabilityBadge({ status }: { status?: string }) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -116,8 +116,7 @@ function PortfolioCard({ item }: { item: PortfolioItem }) {
 function WorkHistoryCard({ item }: { item: WorkHistoryItem }) {
   return (
     <div className="relative pl-6 pb-6 last:pb-0">
-      {/* timeline line */}
-      <div className="absolute left-0 top-1.5 bottom-0 w-px bg-gray-200 last:hidden" />
+      <div className="absolute left-0 top-1.5 bottom-0 w-px bg-gray-200" />
       <div className="absolute left-[-4px] top-1.5 w-2.5 h-2.5 rounded-full bg-brand-500 border-2 border-white ring-1 ring-brand-300" />
       <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
         <div className="flex items-start justify-between gap-2 flex-wrap">
@@ -218,7 +217,7 @@ function StatPill({ label, value, icon: Icon }: { label: string; value: string |
 export default function PublicProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user: me } = useAuthStore();
+  const { user: me, isAuthenticated } = useAuthStore();
 
   const [contractor, setContractor] = useState<User | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -233,13 +232,11 @@ export default function PublicProfilePage() {
           usersApi.getPublic(id),
           reviewsApi.forUser(id),
         ]);
-
         if (profileRes.status === 'fulfilled') {
           setContractor(profileRes.value.data.data as User);
         } else {
           setError('Contractor profile not found.');
         }
-
         if (reviewsRes.status === 'fulfilled') {
           const d = reviewsRes.value.data.data;
           setReviews(Array.isArray(d) ? d : (d?.data ?? []));
@@ -253,7 +250,6 @@ export default function PublicProfilePage() {
     load();
   }, [id]);
 
-  // ── Derived data ────────────────────────────────────────────────────────────
   const portfolio      = tryParse<PortfolioItem>(contractor?.portfolio as any);
   const certifications = tryParse<Certification>(contractor?.certifications as any);
   const workHistory    = tryParse<WorkHistoryItem>(contractor?.workHistory as any);
@@ -266,7 +262,7 @@ export default function PublicProfilePage() {
 
   const isOwnProfile = me?.id === id;
 
-  // ── Loading ─────────────────────────────────────────────────────────────────
+  // ── Loading ──────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -275,7 +271,7 @@ export default function PublicProfilePage() {
     );
   }
 
-  // ── Error ───────────────────────────────────────────────────────────────────
+  // ── Error ────────────────────────────────────────────────────────────────────
   if (error || !contractor) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-4">
@@ -291,29 +287,20 @@ export default function PublicProfilePage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
 
-      {/* Back button */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-sm text-dark-500 hover:text-dark-800 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back
-      </button>
-
       <div className="grid lg:grid-cols-[300px,1fr] gap-6 items-start">
 
-        {/* ── Left sidebar ───────────────────────────────────────────────────── */}
-        <div className="space-y-4 lg:sticky lg:top-6">
+        {/* ── Left sidebar ─────────────────────────────────────────────────── */}
+        <div className="space-y-4 lg:sticky lg:top-24">
 
           {/* Profile card */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* Cover gradient */}
+            {/* Cover */}
             <div className="h-20 bg-gradient-to-br from-brand-500 via-brand-600 to-blue-600" />
 
-            {/* Avatar */}
             <div className="px-5 pb-5">
+              {/* Avatar */}
               <div className="relative -mt-10 mb-3">
-                <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-white shadow-lg relative">
                   {contractor.profileImage ? (
                     <Image
                       src={contractor.profileImage}
@@ -423,25 +410,37 @@ export default function PublicProfilePage() {
                 )}
               </div>
 
-              {/* CTA buttons */}
-              {!isOwnProfile && (
-                <div className="mt-5 space-y-2">
-                  <Link href={`${ROUTES.MESSAGES}?to=${contractor.id}`} className="block">
-                    <Button className="w-full" leftIcon={<MessageSquare className="w-4 h-4" />} size="sm">
-                      Send Message
-                    </Button>
-                  </Link>
-                </div>
-              )}
-              {isOwnProfile && (
-                <div className="mt-5">
+              {/* CTA */}
+              <div className="mt-5 space-y-2">
+                {isOwnProfile ? (
                   <Link href={ROUTES.PROFILE} className="block">
                     <Button variant="outline" className="w-full" size="sm">
                       Edit Your Profile
                     </Button>
                   </Link>
-                </div>
-              )}
+                ) : isAuthenticated ? (
+                  <Link href={`${ROUTES.MESSAGES}?to=${contractor.id}`} className="block">
+                    <Button className="w-full" leftIcon={<MessageSquare className="w-4 h-4" />} size="sm">
+                      Send Message
+                    </Button>
+                  </Link>
+                ) : (
+                  /* Guest — nudge to login */
+                  <div className="space-y-2">
+                    <Link href={`${ROUTES.LOGIN}?redirect=/profile/${id}`} className="block">
+                      <Button className="w-full" leftIcon={<MessageSquare className="w-4 h-4" />} size="sm">
+                        Contact Contractor
+                      </Button>
+                    </Link>
+                    <p className="text-xs text-center text-dark-400">
+                      <Link href={ROUTES.LOGIN} className="text-brand-600 hover:underline">Log in</Link>
+                      {' '}or{' '}
+                      <Link href={ROUTES.REGISTER} className="text-brand-600 hover:underline">sign up</Link>
+                      {' '}to send a message
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -454,12 +453,24 @@ export default function PublicProfilePage() {
             </div>
           )}
 
+          {/* Sign-up nudge for guests */}
+          {!isAuthenticated && (
+            <div className="bg-brand-50 rounded-xl border border-brand-100 p-4 text-center">
+              <p className="text-xs font-semibold text-brand-800 mb-1">Looking to hire?</p>
+              <p className="text-xs text-brand-600 mb-3">Create a free account to post jobs and contact contractors.</p>
+              <Link href={ROUTES.REGISTER} className="block">
+                <Button size="sm" className="w-full" leftIcon={<LogIn className="w-3.5 h-3.5" />}>
+                  Get Started Free
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* ── Main content ────────────────────────────────────────────────────── */}
+        {/* ── Main content ──────────────────────────────────────────────────── */}
         <div className="space-y-5">
 
-          {/* About / Bio */}
+          {/* Bio */}
           {contractor.bio && (
             <Section title="About" icon={Briefcase}>
               <p className="text-sm text-dark-600 leading-relaxed whitespace-pre-line">{contractor.bio}</p>
@@ -471,10 +482,7 @@ export default function PublicProfilePage() {
             <Section title="Skills & Expertise" icon={CheckCircle}>
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="px-3 py-1 bg-brand-50 text-brand-700 border border-brand-100 rounded-full text-xs font-medium"
-                  >
+                  <span key={skill} className="px-3 py-1 bg-brand-50 text-brand-700 border border-brand-100 rounded-full text-xs font-medium">
                     {skill}
                   </span>
                 ))}
@@ -486,9 +494,7 @@ export default function PublicProfilePage() {
           {portfolio.length > 0 && (
             <Section title={`Portfolio (${portfolio.length} projects)`} icon={Briefcase}>
               <div className="grid sm:grid-cols-2 gap-4">
-                {portfolio.map((item) => (
-                  <PortfolioCard key={item.id} item={item} />
-                ))}
+                {portfolio.map((item) => <PortfolioCard key={item.id} item={item} />)}
               </div>
             </Section>
           )}
@@ -503,9 +509,7 @@ export default function PublicProfilePage() {
                     if (!a.current && b.current) return 1;
                     return (b.startYear ?? 0) - (a.startYear ?? 0);
                   })
-                  .map((item) => (
-                    <WorkHistoryCard key={item.id} item={item} />
-                  ))}
+                  .map((item) => <WorkHistoryCard key={item.id} item={item} />)}
               </div>
             </Section>
           )}
@@ -514,9 +518,7 @@ export default function PublicProfilePage() {
           {certifications.length > 0 && (
             <Section title={`Certifications & Licenses (${certifications.length})`} icon={Award}>
               <div className="grid sm:grid-cols-2 gap-3">
-                {certifications.map((cert) => (
-                  <CertCard key={cert.id} cert={cert} />
-                ))}
+                {certifications.map((cert) => <CertCard key={cert.id} cert={cert} />)}
               </div>
             </Section>
           )}
@@ -530,7 +532,7 @@ export default function PublicProfilePage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Rating summary */}
+                {/* Rating summary bar */}
                 {avgRating !== null && (
                   <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 mb-5">
                     <div className="text-center">
@@ -547,10 +549,7 @@ export default function PublicProfilePage() {
                             <span className="text-xs text-dark-400 w-3">{star}</span>
                             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                             <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-yellow-400 rounded-full transition-all duration-500"
-                                style={{ width: `${pct}%` }}
-                              />
+                              <div className="h-full bg-yellow-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                             </div>
                             <span className="text-xs text-dark-400 w-4 text-right">{count}</span>
                           </div>
@@ -559,22 +558,18 @@ export default function PublicProfilePage() {
                     </div>
                   </div>
                 )}
-                {reviews.map((review) => (
-                  <ReviewCard key={review.id} review={review} />
-                ))}
+                {reviews.map((review) => <ReviewCard key={review.id} review={review} />)}
               </div>
             )}
           </Section>
 
-          {/* Empty state — no content at all */}
+          {/* Empty state */}
           {!contractor.bio && skills.length === 0 && portfolio.length === 0 &&
            workHistory.length === 0 && certifications.length === 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
               <Briefcase className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-dark-500 font-medium">Profile not fully set up yet.</p>
-              <p className="text-sm text-dark-400 mt-1">
-                This contractor hasn't added details to their profile.
-              </p>
+              <p className="text-sm text-dark-400 mt-1">This contractor hasn't added details to their profile.</p>
             </div>
           )}
 
