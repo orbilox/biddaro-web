@@ -59,7 +59,7 @@ function Section({ title, icon: Icon, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 overflow-hidden">
       <div className="flex items-center gap-2 mb-5">
         <div className="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center">
           <Icon className="w-4 h-4 text-brand-600" />
@@ -468,7 +468,7 @@ export default function PublicProfilePage() {
         </div>
 
         {/* ── Main content ──────────────────────────────────────────────────── */}
-        <div className="space-y-5">
+        <div className="space-y-5 min-w-0 overflow-hidden">
 
           {/* Bio */}
           {contractor.bio && (
