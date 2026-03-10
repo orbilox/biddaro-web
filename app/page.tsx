@@ -1,16 +1,261 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle, Star, HardHat, Zap, Shield, Users,
   BarChart3, MessageSquare, Wallet, FileText, Bot, LayoutDashboard,
   Sparkles, DollarSign, Hammer, Clock, Wand2,
+  Search, MapPin, Briefcase, X, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
-import { ROUTES } from '@/lib/constants';
+import { Input, Textarea } from '@/components/ui/Input';
+import { Avatar } from '@/components/ui/Avatar';
+import { ROUTES, JOB_CATEGORIES } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
+import { jobsApi, bidsApi } from '@/lib/api';
+import { toast } from '@/store/uiStore';
+import { formatCurrency, timeAgo } from '@/lib/utils';
+import type { Job } from '@/types';
+
+// ─── Browse Jobs helpers & sub-components ────────────────────────────────────
+
+const JOBS_PER_PAGE = 9;
+
+function getCategoryEmoji(category: string): string {
+  const map: Record<string, string> = {
+    'General Construction': '🏗️', Plumbing: '🔧', Electrical: '⚡', HVAC: '🌡️',
+    Roofing: '🏠', Flooring: '🪟', Painting: '🎨', Landscaping: '🌿',
+    Carpentry: '🪚', Masonry: '🧱', Demolition: '⛏️', Renovation: '🔨',
+    'New Construction': '🏢', Foundation: '🏛️', Insulation: '🌡️',
+    Drywall: '🪣', 'Tile & Stone': '🪨', 'Windows & Doors': '🚪',
+    Siding: '🏡', Concrete: '🪣', Other: '🔩',
+  };
+  return map[category] ?? '🔩';
+}
+
+function PublicSkeletonCard() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
+      <div className="flex items-start justify-between mb-3">
+        <div className="h-5 bg-gray-200 rounded w-3/4" />
+        <div className="h-5 bg-gray-200 rounded w-16" />
+      </div>
+      <div className="h-3 bg-gray-200 rounded w-full mb-2" />
+      <div className="h-3 bg-gray-200 rounded w-5/6 mb-4" />
+      <div className="flex gap-2 mb-4">
+        <div className="h-6 bg-gray-200 rounded-full w-24" />
+        <div className="h-6 bg-gray-200 rounded-full w-20" />
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="h-4 bg-gray-200 rounded w-24" />
+        <div className="h-8 bg-gray-200 rounded-lg w-24" />
+      </div>
+    </div>
+  );
+}
+
+interface PublicJobCardProps {
+  job: Job;
+  onBid: (job: Job) => void;
+  hasBid: boolean;
+  userRole: string | null;
+  isMounted: boolean;
+}
+
+function PublicJobCard({ job, onBid, hasBid, userRole, isMounted }: PublicJobCardProps) {
+  const isGuest = !isMounted || !userRole;
+  const isPoster = userRole === 'job_poster' || userRole === 'admin';
+  const isContractor = userRole === 'contractor';
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:border-brand-300 hover:shadow-card-hover transition-all duration-200 flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="font-semibold text-dark-900 text-sm leading-snug line-clamp-2 flex-1">
+          {job.title}
+        </h3>
+        <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-1 rounded-lg whitespace-nowrap flex-shrink-0">
+          {formatCurrency(job.budget, job.currency)}
+        </span>
+      </div>
+
+      {/* Description */}
+      <p className="text-dark-500 text-xs leading-relaxed line-clamp-2">{job.description}</p>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-1.5">
+        <span className="inline-flex items-center gap-1 text-[11px] bg-gray-100 text-dark-600 px-2 py-0.5 rounded-full">
+          {getCategoryEmoji(job.category as string)} {job.category}
+        </span>
+        {job.location && (
+          <span className="inline-flex items-center gap-1 text-[11px] bg-gray-100 text-dark-600 px-2 py-0.5 rounded-full">
+            <MapPin className="w-2.5 h-2.5" /> {job.location}
+          </span>
+        )}
+        {job.startDate && (
+          <span className="inline-flex items-center gap-1 text-[11px] bg-gray-100 text-dark-600 px-2 py-0.5 rounded-full">
+            <Clock className="w-2.5 h-2.5" /> {new Date(job.startDate).toLocaleDateString()}
+          </span>
+        )}
+      </div>
+
+      {/* Footer row */}
+      <div className="flex items-center justify-between mt-auto pt-1">
+        {/* Poster info */}
+        <div className="flex items-center gap-2 min-w-0">
+          <Avatar
+            src={job.poster?.profileImage}
+            firstName={job.poster?.firstName}
+            lastName={job.poster?.lastName}
+            size="xs"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-dark-700 truncate">
+              {job.poster?.firstName} {job.poster?.lastName}
+            </p>
+            <p className="text-[10px] text-dark-400">{timeAgo(job.createdAt)}</p>
+          </div>
+        </div>
+
+        {/* Action button */}
+        {isGuest ? (
+          <Link href={`${ROUTES.REGISTER}?type=contractor`}>
+            <Button size="xs" variant="outline">Bid Now</Button>
+          </Link>
+        ) : isContractor ? (
+          hasBid ? (
+            <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
+              <CheckCircle className="w-3.5 h-3.5" /> Bid Placed
+            </span>
+          ) : (
+            <Button size="xs" onClick={() => onBid(job)}>Bid Now</Button>
+          )
+        ) : isPoster ? (
+          <Link href={`${ROUTES.JOBS}/${job.id}`}>
+            <Button size="xs" variant="ghost">View Job</Button>
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+interface LandingBidModalProps {
+  job: Job | null;
+  open: boolean;
+  onClose: () => void;
+  onSuccess: (jobId: string) => void;
+}
+
+function LandingBidModal({ job, open, onClose, onSuccess }: LandingBidModalProps) {
+  const [amount, setAmount] = useState('');
+  const [days, setDays] = useState('');
+  const [proposal, setProposal] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setAmount(''); setDays(''); setProposal(''); }
+  }, [open]);
+
+  if (!job) return null;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!amount || !job) return;
+    setSubmitting(true);
+    try {
+      await bidsApi.create(job.id, {
+        amount: parseFloat(amount),
+        estimatedDays: days ? parseInt(days) : undefined,
+        proposal,
+      });
+      toast.success('Bid submitted successfully!');
+      onSuccess(job.id);
+      onClose();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Failed to submit bid');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${
+        open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+      }`}
+    >
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-base font-bold text-dark-900">Submit a Bid</h2>
+            <p className="text-xs text-dark-500 mt-0.5 line-clamp-1">{job.title}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-dark-400 hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <div className="bg-brand-50 rounded-lg p-3 flex items-center justify-between">
+            <span className="text-xs text-brand-700 font-medium">Client Budget</span>
+            <span className="text-sm font-bold text-brand-600">
+              {formatCurrency(job.budget, job.currency)}
+            </span>
+          </div>
+
+          <Input
+            label="Your Bid Amount *"
+            type="number"
+            min="1"
+            step="0.01"
+            placeholder="e.g. 4500"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+          />
+
+          <Input
+            label="Estimated Days to Complete"
+            type="number"
+            min="1"
+            placeholder="e.g. 14"
+            value={days}
+            onChange={(e) => setDays(e.target.value)}
+          />
+
+          <Textarea
+            label="Proposal / Cover Letter"
+            placeholder="Describe your approach, experience, and why you're the best fit…"
+            rows={4}
+            value={proposal}
+            onChange={(e) => setProposal(e.target.value)}
+          />
+
+          <div className="flex gap-3 pt-1">
+            <Button type="button" variant="outline" fullWidth onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" fullWidth loading={submitting} disabled={!amount}>
+              Submit Bid
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Static page data ─────────────────────────────────────────────────────────
 
 const stats = [
   { value: '12,000+', label: 'Active Contractors' },
@@ -115,12 +360,52 @@ const testimonials = [
 ];
 
 export default function LandingPage() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+
+  // ── Jobs state ──────────────────────────────────────────────────────────────
+  const [jobSearch, setJobSearch] = useState('');
+  const [jobCategory, setJobCategory] = useState('');
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobsTotal, setJobsTotal] = useState(0);
+  const [jobsPage, setJobsPage] = useState(1);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [bidJobIds, setBidJobIds] = useState<Set<string>>(new Set());
+  const [bidJob, setBidJob] = useState<Job | null>(null);
+
+  const userRole = mounted && user ? (user.role as string) : null;
+  const jobsTotalPages = Math.ceil(jobsTotal / JOBS_PER_PAGE);
+
+  const fetchJobs = useCallback(async (search: string, category: string, page: number) => {
+    setJobsLoading(true);
+    try {
+      const params: Record<string, string | number> = { page, limit: JOBS_PER_PAGE, status: 'open' };
+      if (search) params.search = search;
+      if (category) params.category = category;
+      const res = await jobsApi.list(params);
+      const data = res.data.data;          // { data: [...], pagination: {...} }
+      setJobs(data.data ?? []);
+      setJobsTotal(data.pagination?.total ?? 0);
+    } catch {
+      /* silent fail on public page */
+    } finally {
+      setJobsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch jobs on filter / page changes (400ms debounce for search input)
+  useEffect(() => {
+    let cancelled = false;
+    const delay = jobSearch ? 400 : 0;
+    const t = setTimeout(() => {
+      if (!cancelled) fetchJobs(jobSearch, jobCategory, jobsPage);
+    }, delay);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [jobSearch, jobCategory, jobsPage, fetchJobs]);
 
   const isLoggedIn = mounted && isAuthenticated;
 
@@ -208,6 +493,165 @@ export default function LandingPage() {
                 <p className="text-sm text-dark-400 mt-1">{stat.label}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Browse Open Jobs ─────────────────────────────────────────────────── */}
+      <section id="find-jobs" className="py-20 bg-gray-50 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Section header */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+            <div>
+              <div className="inline-flex items-center gap-2 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full px-3 py-1 mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                {jobsTotal > 0 ? `${jobsTotal} Open Jobs Available Right Now` : 'Live Job Board'}
+              </div>
+              <h2 className="text-3xl font-bold text-dark-900">Browse Open Jobs</h2>
+              <p className="text-dark-500 mt-2">
+                Real projects posted by homeowners and businesses — bid directly from here
+              </p>
+            </div>
+            {!isLoggedIn && (
+              <Link href={`${ROUTES.REGISTER}?type=contractor`} className="flex-shrink-0">
+                <Button rightIcon={<ArrowRight className="w-4 h-4" />}>
+                  Join as Contractor
+                </Button>
+              </Link>
+            )}
+          </div>
+
+          {/* Search + filter bar */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search jobs by title or keyword…"
+                value={jobSearch}
+                onChange={(e) => { setJobSearch(e.target.value); setJobsPage(1); }}
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white"
+              />
+            </div>
+            <select
+              value={jobCategory}
+              onChange={(e) => { setJobCategory(e.target.value); setJobsPage(1); }}
+              className="sm:w-52 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white text-dark-700"
+            >
+              <option value="">All Categories</option>
+              {JOB_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            {(jobSearch || jobCategory) && (
+              <button
+                onClick={() => { setJobSearch(''); setJobCategory(''); setJobsPage(1); }}
+                className="flex items-center gap-1.5 text-sm text-dark-500 hover:text-dark-800 border border-gray-200 rounded-xl px-3 py-2.5 bg-white transition-colors"
+              >
+                <X className="w-3.5 h-3.5" /> Clear
+              </button>
+            )}
+          </div>
+
+          {/* Results meta */}
+          {!jobsLoading && jobs.length > 0 && (
+            <p className="text-xs text-dark-400 mb-4">
+              {jobsTotal} job{jobsTotal !== 1 ? 's' : ''} found
+              {jobsTotalPages > 1 && ` · Page ${jobsPage} of ${jobsTotalPages}`}
+            </p>
+          )}
+
+          {/* Job grid */}
+          {jobsLoading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => <PublicSkeletonCard key={i} />)}
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="text-center py-16">
+              <Briefcase className="w-10 h-10 text-dark-300 mx-auto mb-3" />
+              <p className="text-dark-500 font-medium">No jobs found</p>
+              <p className="text-dark-400 text-sm mt-1">
+                {jobSearch || jobCategory
+                  ? 'Try adjusting your filters'
+                  : 'Check back soon — new jobs are posted daily!'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {jobs.map((job) => (
+                <PublicJobCard
+                  key={job.id}
+                  job={job}
+                  onBid={setBidJob}
+                  hasBid={bidJobIds.has(job.id)}
+                  userRole={userRole}
+                  isMounted={mounted}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {jobsTotalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <button
+                onClick={() => setJobsPage((p) => Math.max(1, p - 1))}
+                disabled={jobsPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-dark-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Prev
+              </button>
+              <span className="text-sm text-dark-500 px-2">
+                {jobsPage} / {jobsTotalPages}
+              </span>
+              <button
+                onClick={() => setJobsPage((p) => Math.min(jobsTotalPages, p + 1))}
+                disabled={jobsPage === jobsTotalPages}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-dark-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Bottom CTA */}
+          <div className="text-center mt-10">
+            {isLoggedIn && userRole === 'contractor' ? (
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <Link href={ROUTES.FIND_WORK}>
+                  <Button rightIcon={<ArrowRight className="w-4 h-4" />}>
+                    View All Jobs &amp; Start Bidding
+                  </Button>
+                </Link>
+                <Link href={ROUTES.OPEN_JOBS}>
+                  <Button variant="outline" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                    Browse Full Job Board
+                  </Button>
+                </Link>
+              </div>
+            ) : !isLoggedIn ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                  <Link href={`${ROUTES.REGISTER}?type=contractor`}>
+                    <Button rightIcon={<ArrowRight className="w-4 h-4" />}>
+                      Join as a Contractor — It&apos;s Free
+                    </Button>
+                  </Link>
+                  <Link href={ROUTES.OPEN_JOBS}>
+                    <Button variant="outline" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                      Browse All Jobs
+                    </Button>
+                  </Link>
+                </div>
+                <p className="text-dark-400 text-xs">Want to place bids? Create a free contractor account.</p>
+              </div>
+            ) : (
+              <Link href={ROUTES.OPEN_JOBS}>
+                <Button variant="outline" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                  Browse Full Job Board
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -537,6 +981,17 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Inline bid modal for logged-in contractors */}
+      <LandingBidModal
+        job={bidJob}
+        open={bidJob !== null}
+        onClose={() => setBidJob(null)}
+        onSuccess={(jobId) => {
+          setBidJobIds((prev) => { const s = new Set(prev); s.add(jobId); return s; });
+          setBidJob(null);
+        }}
+      />
 
       <Footer />
     </div>

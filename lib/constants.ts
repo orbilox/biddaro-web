@@ -98,4 +98,6 @@ export const ROUTES = {
   DISPUTES: '/disputes',
   PROFILE: '/profile',
   PUBLIC_PROFILE: (id: string) => `/profile/${id}`,
+  FIND_WORK: '/find-work',
+  OPEN_JOBS: '/open-jobs',
 } as const;

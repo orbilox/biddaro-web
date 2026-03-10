@@ -842,7 +842,7 @@ export default function ProfilePage() {
                               </div>
                               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => setCertModal({ open: true, item: c })} className="p-1.5 rounded-lg text-dark-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                                <button onClick={() => setCerts(cs => cs.filter(x => x.id !== c.id))} className="p-1.5 rounded-lg text-dark-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => { const updated = certifications.filter(x => x.id !== c.id); setCerts(updated); doSave({ certifications: updated }, setSavingCerts, 'Certifications'); }} className="p-1.5 rounded-lg text-dark-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                               </div>
                             </div>
                           ))}
@@ -898,7 +898,7 @@ export default function ProfilePage() {
                                   <button onClick={() => setPortfolioModal({ open: true, item: p })} className="p-2 bg-white rounded-full text-dark-700 hover:text-brand-600 shadow-lg transition-colors">
                                     <Edit2 className="w-4 h-4" />
                                   </button>
-                                  <button onClick={() => setPortfolio(ps => ps.filter(x => x.id !== p.id))} className="p-2 bg-white rounded-full text-dark-700 hover:text-red-600 shadow-lg transition-colors">
+                                  <button onClick={() => { const updated = portfolio.filter(x => x.id !== p.id); setPortfolio(updated); doSave({ portfolio: updated }, setSavingPortfolio, 'Portfolio'); }} className="p-2 bg-white rounded-full text-dark-700 hover:text-red-600 shadow-lg transition-colors">
                                     <Trash2 className="w-4 h-4" />
                                   </button>
                                 </div>
@@ -968,7 +968,7 @@ export default function ProfilePage() {
                                   </div>
                                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                                     <button onClick={() => setWorkModal({ open: true, item: w })} className="p-1.5 rounded-lg text-dark-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                                    <button onClick={() => setWorkHistory(wh => wh.filter(x => x.id !== w.id))} className="p-1.5 rounded-lg text-dark-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    <button onClick={() => { const updated = workHistory.filter(x => x.id !== w.id); setWorkHistory(updated); doSave({ workHistory: updated }, setSavingWork, 'Work history'); }} className="p-1.5 rounded-lg text-dark-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                                   </div>
                                 </div>
                                 {w.description && <p className="text-xs text-dark-500 mt-1.5 leading-relaxed">{w.description}</p>}
@@ -1026,8 +1026,12 @@ export default function ProfilePage() {
         item={portfolioModal.item}
         onClose={() => setPortfolioModal({ open: false })}
         onSave={item => {
-          setPortfolio(ps => portfolioModal.item ? ps.map(x => x.id === item.id ? item : x) : [...ps, item]);
+          const updated = portfolioModal.item
+            ? portfolio.map(x => x.id === item.id ? item : x)
+            : [...portfolio, item];
+          setPortfolio(updated);
           setPortfolioModal({ open: false });
+          doSave({ portfolio: updated }, setSavingPortfolio, 'Portfolio');
         }}
       />
       <CertModal
@@ -1035,8 +1039,12 @@ export default function ProfilePage() {
         item={certModal.item}
         onClose={() => setCertModal({ open: false })}
         onSave={item => {
-          setCerts(cs => certModal.item ? cs.map(x => x.id === item.id ? item : x) : [...cs, item]);
+          const updated = certModal.item
+            ? certifications.map(x => x.id === item.id ? item : x)
+            : [...certifications, item];
+          setCerts(updated);
           setCertModal({ open: false });
+          doSave({ certifications: updated }, setSavingCerts, 'Certifications');
         }}
       />
       <WorkModal
@@ -1044,8 +1052,12 @@ export default function ProfilePage() {
         item={workModal.item}
         onClose={() => setWorkModal({ open: false })}
         onSave={item => {
-          setWorkHistory(wh => workModal.item ? wh.map(x => x.id === item.id ? item : x) : [...wh, item]);
+          const updated = workModal.item
+            ? workHistory.map(x => x.id === item.id ? item : x)
+            : [...workHistory, item];
+          setWorkHistory(updated);
           setWorkModal({ open: false });
+          doSave({ workHistory: updated }, setSavingWork, 'Work history');
         }}
       />
     </div>

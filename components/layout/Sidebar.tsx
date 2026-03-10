@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
-  AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight,
+  AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -32,7 +32,7 @@ const posterNavItems: NavItem[] = [
 
 const contractorNavItems: NavItem[] = [
   { href: ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-  { href: ROUTES.JOBS, label: 'Browse Jobs', icon: Briefcase },
+  { href: ROUTES.FIND_WORK, label: 'Find Work', icon: Search },
   { href: ROUTES.BIDS, label: 'My Bids', icon: HardHat },
   { href: ROUTES.CONTRACTS, label: 'Contracts', icon: FileText },
   { href: ROUTES.MESSAGES, label: 'Messages', icon: MessageSquare },

@@ -23,6 +23,7 @@ export function Navbar() {
   const navLinks = [
     { href: '#features', label: 'Features' },
     { href: '#how-it-works', label: 'How It Works' },
+    { href: ROUTES.OPEN_JOBS, label: 'Find Jobs' },
     { href: ROUTES.AI_ASSISTANT, label: 'AI Assistant', isNew: true, icon: Sparkles },
     { href: ROUTES.AI_IMAGE, label: 'AI Image', isNew: true, icon: Wand2 },
   ];
