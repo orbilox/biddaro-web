@@ -6,7 +6,7 @@ import {
   ArrowLeft, CheckCircle, Clock, ChevronRight,
   MessageCircle, Flag, Upload, Loader2, Lock, Unlock,
   Play, FileCheck, DollarSign, ExternalLink, FileText,
-  ShieldCheck, BadgeCheck, Star, Award,
+  ShieldCheck, BadgeCheck, Star, Award, HelpCircle, Send, ChevronDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -15,10 +15,10 @@ import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Input';
 import { formatCurrency, getStatusLabel } from '@/lib/utils';
 import { ROUTES } from '@/lib/constants';
-import { contractsApi, disputesApi, uploadApi, reviewsApi } from '@/lib/api';
+import { contractsApi, disputesApi, uploadApi, reviewsApi, clarificationsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
-import type { Contract, Milestone } from '@/types';
+import type { Contract, Milestone, ClarificationRequest } from '@/types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -246,6 +246,263 @@ function MilestoneCard({
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Business-days helper ─────────────────────────────────────────────────────
+
+function businessDaysUntil(target: Date): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(target);
+  end.setHours(0, 0, 0, 0);
+  if (today >= end) return 0;
+  let count = 0;
+  const cur = new Date(today);
+  while (cur < end) {
+    cur.setDate(cur.getDate() + 1);
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) count++;
+  }
+  return count;
+}
+
+function fmtDateTime(iso: string) {
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  });
+}
+
+// ─── Clarification Section ────────────────────────────────────────────────────
+
+function ClarificationSection({
+  contractId,
+  isPoster,
+  isContractor,
+  endDate,
+}: {
+  contractId: string;
+  isPoster: boolean;
+  isContractor: boolean;
+  endDate?: string;
+}) {
+  const [items, setItems]               = React.useState<ClarificationRequest[]>([]);
+  const [loadingList, setLoadingList]   = React.useState(true);
+  const [question, setQuestion]         = React.useState('');
+  const [submitting, setSubmitting]     = React.useState(false);
+  const [answerMap, setAnswerMap]       = React.useState<Record<string, string>>({});
+  const [answeringId, setAnsweringId]   = React.useState<string | null>(null);
+  const [expanded, setExpanded]         = React.useState(true);
+
+  // Business-days check for contractor
+  const daysLeft   = endDate ? businessDaysUntil(new Date(endDate)) : Infinity;
+  const tooLate    = daysLeft < 5;
+  const canAsk     = isContractor && !tooLate;
+  const warningMsg = tooLate && endDate
+    ? `Only ${daysLeft} business day${daysLeft === 1 ? '' : 's'} left — clarifications must be submitted ≥ 5 business days before the project end date.`
+    : null;
+
+  React.useEffect(() => {
+    clarificationsApi
+      .list(contractId)
+      .then((r) => setItems(r.data.data ?? []))
+      .catch(() => {})
+      .finally(() => setLoadingList(false));
+  }, [contractId]);
+
+  async function handleAsk() {
+    if (!question.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const r = await clarificationsApi.create(contractId, question.trim());
+      setItems((prev) => [r.data.data, ...prev]);
+      setQuestion('');
+      toast.success('Clarification submitted ✅', 'The client will be notified.');
+    } catch (err: any) {
+      toast.error('Failed to submit', err?.response?.data?.message || 'Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleAnswer(id: string) {
+    const ans = answerMap[id]?.trim();
+    if (!ans) return;
+    setAnsweringId(id);
+    try {
+      const r = await clarificationsApi.answer(contractId, id, ans);
+      setItems((prev) => prev.map((c) => (c.id === id ? r.data.data : c)));
+      setAnswerMap((m) => { const n = { ...m }; delete n[id]; return n; });
+      toast.success('Answer submitted ✅', 'The contractor has been notified.');
+    } catch (err: any) {
+      toast.error('Failed to answer', err?.response?.data?.message || 'Please try again.');
+    } finally {
+      setAnsweringId(null);
+    }
+  }
+
+  const pendingCount = items.filter((c) => c.status === 'pending').length;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Header */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 px-6 py-4 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <HelpCircle className="w-5 h-5 text-brand-500" />
+          <h2 className="font-semibold text-dark-900 text-sm">Clarification Requests</h2>
+          {pendingCount > 0 && (
+            <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-brand-500 text-white text-[10px] font-bold">
+              {pendingCount}
+            </span>
+          )}
+        </div>
+        <ChevronDown className={`w-4 h-4 text-dark-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-100 divide-y divide-gray-100">
+
+          {/* Contractor: ask form */}
+          {isContractor && (
+            <div className="px-6 py-4 bg-gray-50">
+              {warningMsg ? (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
+                  <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  {warningMsg}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-dark-400 font-medium">
+                    Ask a clarification{' '}
+                    {endDate && daysLeft !== Infinity && (
+                      <span className="text-green-600 font-semibold">
+                        ({daysLeft} business day{daysLeft === 1 ? '' : 's'} remaining)
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex gap-2">
+                    <textarea
+                      rows={2}
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
+                      disabled={!canAsk || submitting}
+                      placeholder="Type your question for the client…"
+                      className="flex-1 resize-none rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-dark-800 placeholder-dark-300 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent disabled:opacity-50"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAsk(); }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAsk}
+                      disabled={!question.trim() || !canAsk || submitting}
+                      className="self-end flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {submitting
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Send className="w-4 h-4" />}
+                      Send
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-dark-400">Press Enter to send · Shift+Enter for newline</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* List */}
+          {loadingList ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 text-brand-400 animate-spin" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-2 text-dark-300">
+              <HelpCircle className="w-9 h-9" />
+              <p className="text-sm">No clarification requests yet.</p>
+              {isContractor && canAsk && (
+                <p className="text-xs text-dark-400">Use the form above to ask the client a question.</p>
+              )}
+            </div>
+          ) : (
+            items.map((item) => (
+              <div key={item.id} className="px-6 py-4 space-y-3">
+                {/* Question bubble */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-brand-100 border border-brand-200 flex items-center justify-center text-[10px] font-bold text-brand-700 flex-shrink-0">
+                      {item.askedBy.firstName?.[0]}{item.askedBy.lastName?.[0]}
+                    </div>
+                    <span className="text-xs font-semibold text-dark-700">
+                      {item.askedBy.firstName} {item.askedBy.lastName}
+                    </span>
+                    <span className="text-[11px] text-dark-300">{fmtDateTime(item.createdAt)}</span>
+                    <span className={`ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                      item.status === 'answered'
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      {item.status}
+                    </span>
+                  </div>
+                  <div className="ml-8 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-dark-800">
+                    {item.question}
+                  </div>
+                </div>
+
+                {/* Answer bubble */}
+                {item.answer && item.answeredBy && (
+                  <div className="ml-8 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-green-100 border border-green-200 flex items-center justify-center text-[10px] font-bold text-green-700 flex-shrink-0">
+                        {item.answeredBy.firstName?.[0]}{item.answeredBy.lastName?.[0]}
+                      </div>
+                      <span className="text-xs font-semibold text-dark-700">
+                        {item.answeredBy.firstName} {item.answeredBy.lastName}
+                      </span>
+                      {item.answeredAt && (
+                        <span className="text-[11px] text-dark-300">{fmtDateTime(item.answeredAt)}</span>
+                      )}
+                    </div>
+                    <div className="ml-8 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm text-dark-800">
+                      {item.answer}
+                    </div>
+                  </div>
+                )}
+
+                {/* Poster: answer form for pending items */}
+                {isPoster && item.status === 'pending' && (
+                  <div className="ml-8 flex gap-2">
+                    <textarea
+                      rows={2}
+                      value={answerMap[item.id] ?? ''}
+                      onChange={(e) => setAnswerMap((m) => ({ ...m, [item.id]: e.target.value }))}
+                      placeholder="Type your answer…"
+                      className="flex-1 resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-dark-800 placeholder-dark-300 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAnswer(item.id)}
+                      disabled={!answerMap[item.id]?.trim() || answeringId === item.id}
+                      className="self-end flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {answeringId === item.id
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Send className="w-3.5 h-3.5" />}
+                      Answer
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -643,6 +900,15 @@ export default function ContractDetailPage() {
                 </Button>
               </div>
             )
+          )}
+          {/* Clarification Requests (active contracts only) */}
+          {contract.status === 'active' && (
+            <ClarificationSection
+              contractId={contract.id}
+              isPoster={isPoster}
+              isContractor={isContractor}
+              endDate={contract.job?.endDate ?? undefined}
+            />
           )}
         </div>
 

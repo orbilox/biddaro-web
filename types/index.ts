@@ -195,6 +195,32 @@ export interface NocCertificate {
   review?: { rating: number; comment?: string } | null;
 }
 
+// ─── Clarification Types ──────────────────────────────────────────────────────
+
+export type ClarificationStatus = 'pending' | 'answered' | 'closed';
+
+export interface ClarificationParty {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImage?: string;
+}
+
+export interface ClarificationRequest {
+  id: string;
+  contractId: string;
+  askedById: string;
+  askedBy: ClarificationParty;
+  question: string;
+  answer?: string;
+  answeredById?: string;
+  answeredBy?: ClarificationParty;
+  status: ClarificationStatus;
+  answeredAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Wallet Types ─────────────────────────────────────────────────────────────
 
 export interface Wallet {

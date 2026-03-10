@@ -97,6 +97,17 @@ export const contractsApi = {
   getNoc: (id: string) => api.get(`/contracts/${id}/noc`),
 };
 
+// ─── Clarifications ───────────────────────────────────────────────────────────
+
+export const clarificationsApi = {
+  list:   (contractId: string) =>
+    api.get(`/contracts/${contractId}/clarifications`),
+  create: (contractId: string, question: string) =>
+    api.post(`/contracts/${contractId}/clarifications`, { question }),
+  answer: (contractId: string, clarificationId: string, answer: string) =>
+    api.put(`/contracts/${contractId}/clarifications/${clarificationId}/answer`, { answer }),
+};
+
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
 export const messagesApi = {
