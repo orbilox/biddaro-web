@@ -6,7 +6,7 @@ import {
   ArrowLeft, CheckCircle, Clock, ChevronRight,
   MessageCircle, Flag, Upload, Loader2, Lock, Unlock,
   Play, FileCheck, DollarSign, ExternalLink, FileText,
-  ShieldCheck, BadgeCheck,
+  ShieldCheck, BadgeCheck, Star,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -15,7 +15,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Input';
 import { formatCurrency, getStatusLabel } from '@/lib/utils';
 import { ROUTES } from '@/lib/constants';
-import { contractsApi, disputesApi, uploadApi } from '@/lib/api';
+import { contractsApi, disputesApi, uploadApi, reviewsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import type { Contract, Milestone } from '@/types';
@@ -39,6 +39,43 @@ const MS_CFG: Record<
   completed:   { label: 'Under Review',variant: 'warning',  icon: FileCheck,    bg: 'bg-amber-50 border-amber-200'},
   approved:    { label: 'Paid ✓',      variant: 'success',  icon: BadgeCheck,   bg: 'bg-green-50 border-green-200'},
 };
+
+// ─── Star Rating ──────────────────────────────────────────────────────────────
+
+function StarRating({
+  value,
+  onChange,
+  readonly = false,
+}: {
+  value: number;
+  onChange?: (v: number) => void;
+  readonly?: boolean;
+}) {
+  const [hovered, setHovered] = React.useState(0);
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          disabled={readonly}
+          onClick={() => !readonly && onChange?.(star)}
+          onMouseEnter={() => !readonly && setHovered(star)}
+          onMouseLeave={() => !readonly && setHovered(0)}
+          className={`p-0.5 transition-transform ${!readonly ? 'hover:scale-110 cursor-pointer' : 'cursor-default'}`}
+        >
+          <Star
+            className={`w-7 h-7 transition-colors ${
+              star <= (hovered || value)
+                ? 'text-amber-400 fill-amber-400'
+                : 'text-gray-300'
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ─── Escrow Banner ────────────────────────────────────────────────────────────
 
@@ -243,12 +280,30 @@ export default function ContractDetailPage() {
   const [disputeDesc, setDisputeDesc] = useState('');
   const [submittingDispute, setSubmittingDispute] = useState(false);
 
+  // Review modal
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+
   useEffect(() => {
     if (!contractId) return;
-    contractsApi.get(contractId)
-      .then((res) => setContract(res.data.data))
-      .catch(() => toast.error('Failed to load contract', 'Please try again.'))
-      .finally(() => setLoading(false));
+    Promise.allSettled([
+      contractsApi.get(contractId),
+      reviewsApi.myReviews(),
+    ]).then(([contractRes, reviewsRes]) => {
+      if (contractRes.status === 'fulfilled') {
+        setContract(contractRes.value.data.data);
+      } else {
+        toast.error('Failed to load contract', 'Please try again.');
+      }
+      if (reviewsRes.status === 'fulfilled') {
+        const raw = reviewsRes.value.data.data;
+        const reviews: any[] = raw?.data ?? (Array.isArray(raw) ? raw : []);
+        setAlreadyReviewed(reviews.some((r: any) => r.contractId === contractId));
+      }
+    }).finally(() => setLoading(false));
   }, [contractId]);
 
   const milestones: Milestone[] = contract?.milestones ?? [];
@@ -361,6 +416,37 @@ export default function ContractDetailPage() {
       toast.error('Failed to open dispute', err?.response?.data?.message || 'Please try again.');
     } finally {
       setSubmittingDispute(false);
+    }
+  }
+
+  // ── Review ─────────────────────────────────────────────────────────────────
+
+  function openReviewModal() {
+    setReviewRating(5);
+    setReviewComment('');
+    setReviewOpen(true);
+  }
+
+  async function handleSubmitReview() {
+    if (!contract || !user) return;
+    const revieweeId = isPoster ? contract.contractorId : contract.posterId;
+    if (!revieweeId) return;
+
+    setSubmittingReview(true);
+    try {
+      await reviewsApi.create({
+        contractId: contract.id,
+        revieweeId,
+        rating: reviewRating,
+        comment: reviewComment.trim() || undefined,
+      });
+      setAlreadyReviewed(true);
+      setReviewOpen(false);
+      toast.success('Review submitted! ⭐', 'Thank you for your feedback.');
+    } catch (err: any) {
+      toast.error('Failed to submit review', err?.response?.data?.message || 'Please try again.');
+    } finally {
+      setSubmittingReview(false);
     }
   }
 
@@ -616,6 +702,34 @@ export default function ContractDetailPage() {
               </Button>
             </div>
           )}
+
+          {/* Leave a Review (completed contracts only) */}
+          {contract.status === 'completed' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-dark-900 mb-1 text-sm flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                {alreadyReviewed ? 'Review Submitted' : 'Leave a Review'}
+              </h3>
+              {alreadyReviewed ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-3 py-1">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    You&apos;ve reviewed this contract
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-dark-400 mb-3">
+                    Share your experience to help build trust in the community.
+                  </p>
+                  <Button size="sm" fullWidth onClick={openReviewModal}>
+                    <Star className="w-3.5 h-3.5 mr-2" />
+                    Write a Review
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -787,6 +901,61 @@ export default function ContractDetailPage() {
             value={disputeDesc}
             onChange={(e) => setDisputeDesc(e.target.value)}
           />
+        </div>
+      </Modal>
+
+      {/* ── Review Modal ─────────────────────────────────────────────────────── */}
+      <Modal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        title="Leave a Review"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => setReviewOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleSubmitReview}
+              loading={submittingReview}
+              disabled={reviewRating === 0}
+            >
+              <Star className="w-4 h-4 mr-2" />
+              Submit Review
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <p className="text-sm text-dark-600">
+            How was your experience working with{' '}
+            <span className="font-semibold text-dark-900">
+              {isPoster
+                ? `${contract?.contractor?.firstName} ${contract?.contractor?.lastName}`
+                : `${contract?.poster?.firstName} ${contract?.poster?.lastName}`}
+            </span>{' '}
+            on{' '}
+            <span className="font-semibold text-dark-900">{contract?.job?.title}</span>?
+          </p>
+
+          {/* Star rating */}
+          <div>
+            <p className="text-sm font-medium text-dark-700 mb-2">Rating *</p>
+            <StarRating value={reviewRating} onChange={setReviewRating} />
+            <p className="text-xs text-dark-400 mt-1.5 font-medium">
+              {['', 'Poor', 'Below Average', 'Average', 'Good', 'Excellent'][reviewRating]}
+            </p>
+          </div>
+
+          {/* Comment */}
+          <Textarea
+            label="Comment (optional)"
+            placeholder="Share details about your experience — quality of work, communication, timeliness…"
+            rows={3}
+            value={reviewComment}
+            onChange={(e) => setReviewComment(e.target.value)}
+          />
+
+          <p className="text-xs text-dark-400">
+            Reviews are public and help build trust in the Biddaro community.
+          </p>
         </div>
       </Modal>
     </div>

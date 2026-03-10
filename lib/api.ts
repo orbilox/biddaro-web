@@ -142,7 +142,7 @@ export const reviewsApi = {
   myReviews: () => api.get('/reviews/my'),
   forUser: (userId: string) => api.get(`/reviews/user/${userId}`),
   forJob: (jobId: string) => api.get(`/reviews/job/${jobId}`),
-  create: (data: { contractId: string; revieweeId: string; rating: number; comment: string }) =>
+  create: (data: { contractId: string; revieweeId: string; rating: number; comment?: string }) =>
     api.post('/reviews', data),
   delete: (id: string) => api.delete(`/reviews/${id}`),
 };
