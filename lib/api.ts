@@ -218,8 +218,15 @@ export const uploadApi = {
 
 // ─── AI Assistant ─────────────────────────────────────────────────────────────
 
+export type AiTextPart = { type: 'text'; text: string };
+export type AiImagePart = {
+  type: 'image_url';
+  image_url: { url: string; detail?: 'auto' | 'low' | 'high' };
+};
+export type AiContentPart = AiTextPart | AiImagePart;
+
 export const aiApi = {
-  chat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
+  chat: (messages: Array<{ role: 'user' | 'assistant'; content: string | AiContentPart[] }>) =>
     api.post('/ai/chat', { messages }),
 };
 
