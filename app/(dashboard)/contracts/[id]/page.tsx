@@ -6,7 +6,7 @@ import {
   ArrowLeft, CheckCircle, Clock, ChevronRight,
   MessageCircle, Flag, Upload, Loader2, Lock, Unlock,
   Play, FileCheck, DollarSign, ExternalLink, FileText,
-  ShieldCheck, BadgeCheck, Star,
+  ShieldCheck, BadgeCheck, Star, Award,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -287,6 +287,12 @@ export default function ContractDetailPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
 
+  // NOC state
+  const [issueNocWithReview, setIssueNocWithReview] = useState(true);
+  const [nocNote, setNocNote] = useState('');
+  const [submittingNoc, setSubmittingNoc] = useState(false);
+  const [nocModalOpen, setNocModalOpen] = useState(false);
+
   useEffect(() => {
     if (!contractId) return;
     Promise.allSettled([
@@ -441,12 +447,46 @@ export default function ContractDetailPage() {
         comment: reviewComment.trim() || undefined,
       });
       setAlreadyReviewed(true);
+
+      // If poster opted to also issue NOC, do it now
+      if (isPoster && issueNocWithReview && !contract.nocIssuedAt) {
+        try {
+          await contractsApi.issueNoc(contract.id, nocNote.trim() || undefined);
+          const res = await contractsApi.get(contract.id);
+          setContract(res.data.data);
+          setReviewOpen(false);
+          toast.success('Review + NOC issued! 🏆', 'Certificate has been sent to the contractor.');
+          return;
+        } catch {
+          // NOC failed but review succeeded — still close and notify
+        }
+      }
+
       setReviewOpen(false);
       toast.success('Review submitted! ⭐', 'Thank you for your feedback.');
     } catch (err: any) {
       toast.error('Failed to submit review', err?.response?.data?.message || 'Please try again.');
     } finally {
       setSubmittingReview(false);
+    }
+  }
+
+  // ── Standalone NOC issuance ────────────────────────────────────────────────
+
+  async function handleIssueNoc() {
+    if (!contract) return;
+    setSubmittingNoc(true);
+    try {
+      await contractsApi.issueNoc(contract.id, nocNote.trim() || undefined);
+      const res = await contractsApi.get(contract.id);
+      setContract(res.data.data);
+      setNocModalOpen(false);
+      setNocNote('');
+      toast.success('NOC Certificate Issued! 🏆', 'The contractor has been notified.');
+    } catch (err: any) {
+      toast.error('Failed to issue NOC', err?.response?.data?.message || 'Please try again.');
+    } finally {
+      setSubmittingNoc(false);
     }
   }
 
@@ -730,6 +770,81 @@ export default function ContractDetailPage() {
               )}
             </div>
           )}
+
+          {/* NOC Certificate Card (completed contracts only) */}
+          {contract.status === 'completed' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-dark-900 mb-1 text-sm flex items-center gap-2">
+                <Award className="w-4 h-4 text-brand-500" />
+                NOC Certificate
+              </h3>
+
+              {/* ── Poster view ───────────────────────────── */}
+              {isPoster && (
+                contract.nocIssuedAt ? (
+                  <div className="mt-2 space-y-3">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-3 py-1">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Issued {new Date(contract.nocIssuedAt).toLocaleDateString()}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      fullWidth
+                      onClick={() => window.open(`/certificate/noc/${contract.id}`, '_blank')}
+                    >
+                      <Award className="w-3.5 h-3.5 mr-2" />
+                      View Certificate
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-dark-400 mb-3">
+                      Issue a No Objection Certificate to formally recognise the contractor&apos;s work.
+                    </p>
+                    <Button
+                      size="sm"
+                      fullWidth
+                      onClick={() => { setNocNote(''); setNocModalOpen(true); }}
+                    >
+                      <Award className="w-3.5 h-3.5 mr-2" />
+                      Issue NOC Certificate
+                    </Button>
+                  </>
+                )
+              )}
+
+              {/* ── Contractor view ───────────────────────── */}
+              {isContractor && (
+                contract.nocIssuedAt ? (
+                  <div className="mt-2 space-y-3">
+                    <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl">
+                      <p className="text-xs font-semibold text-amber-800 flex items-center gap-1.5 mb-0.5">
+                        <Award className="w-3.5 h-3.5" />
+                        NOC Certificate Received! 🏆
+                      </p>
+                      <p className="text-xs text-amber-600">
+                        Issued {new Date(contract.nocIssuedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      fullWidth
+                      onClick={() => window.open(`/certificate/noc/${contract.id}`, '_blank')}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                      View &amp; Download →
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-dark-400 mt-2">
+                    The client has not issued a NOC certificate yet.
+                  </p>
+                )
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -904,6 +1019,53 @@ export default function ContractDetailPage() {
         </div>
       </Modal>
 
+      {/* ── NOC Certificate Modal ────────────────────────────────────────────── */}
+      <Modal
+        open={nocModalOpen}
+        onClose={() => setNocModalOpen(false)}
+        title="Issue NOC Certificate"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => setNocModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleIssueNoc} loading={submittingNoc}>
+              <Award className="w-4 h-4 mr-2" />
+              Issue Certificate
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-4 bg-brand-50 border border-brand-200 rounded-xl">
+            <Award className="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-dark-900">No Objection Certificate</p>
+              <p className="text-sm text-dark-500 mt-1">
+                Issued to{' '}
+                <span className="font-medium">
+                  {contract?.contractor?.firstName} {contract?.contractor?.lastName}
+                </span>{' '}
+                for completing{' '}
+                <span className="font-medium">{contract?.job?.title}</span>.
+                This certificate serves as a formal acknowledgement and professional reference.
+              </p>
+            </div>
+          </div>
+
+          <Textarea
+            label="Note (optional)"
+            placeholder="Add a note for the certificate, e.g. 'Excellent work, delivered on time and within budget.'"
+            rows={3}
+            value={nocNote}
+            onChange={(e) => setNocNote(e.target.value)}
+          />
+
+          <p className="text-xs text-dark-400">
+            Once issued, the contractor will be notified and can view or download the certificate.
+            This action cannot be undone.
+          </p>
+        </div>
+      </Modal>
+
       {/* ── Review Modal ─────────────────────────────────────────────────────── */}
       <Modal
         open={reviewOpen}
@@ -952,6 +1114,38 @@ export default function ContractDetailPage() {
             value={reviewComment}
             onChange={(e) => setReviewComment(e.target.value)}
           />
+
+          {/* NOC option — poster only, not yet issued */}
+          {isPoster && !contract?.nocIssuedAt && (
+            <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={issueNocWithReview}
+                  onChange={(e) => setIssueNocWithReview(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-brand-300 text-brand-500 focus:ring-brand-500"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-brand-800 flex items-center gap-1.5">
+                    <Award className="w-4 h-4" />
+                    Also issue a NOC Certificate
+                  </p>
+                  <p className="text-xs text-brand-600 mt-0.5">
+                    A No Objection Certificate formally recognises the contractor&apos;s successful
+                    completion and serves as a professional reference they can share with future clients.
+                  </p>
+                </div>
+              </label>
+              {issueNocWithReview && (
+                <Textarea
+                  placeholder="Optional note for the certificate (e.g. 'Excellent work, delivered on time')"
+                  rows={2}
+                  value={nocNote}
+                  onChange={(e) => setNocNote(e.target.value)}
+                />
+              )}
+            </div>
+          )}
 
           <p className="text-xs text-dark-400">
             Reviews are public and help build trust in the Biddaro community.

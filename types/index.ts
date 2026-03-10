@@ -172,8 +172,27 @@ export interface Contract {
   startDate?: string;
   endDate?: string;
   milestones?: Milestone[];   // parsed from JSON
+  completedAt?: string;
+  nocIssuedAt?: string;
+  nocIssuerNote?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── NOC Certificate ──────────────────────────────────────────────────────────
+
+export interface NocCertificate {
+  certificateNumber: string;
+  contractId: string;
+  nocIssuedAt: string;
+  nocIssuerNote?: string;
+  job: { id: string; title: string; category: string; location: string };
+  contractor: { id: string; firstName: string; lastName: string; profileImage?: string };
+  poster: { id: string; firstName: string; lastName: string; profileImage?: string };
+  totalAmount: number;
+  currency: string;
+  completedAt?: string;
+  review?: { rating: number; comment?: string } | null;
 }
 
 // ─── Wallet Types ─────────────────────────────────────────────────────────────

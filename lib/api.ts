@@ -92,6 +92,9 @@ export const contractsApi = {
   // ── Contract lifecycle ──────────────────────────────────────────────────────
   complete: (id: string) => api.post(`/contracts/${id}/complete`),
   cancel: (id: string) => api.post(`/contracts/${id}/cancel`),
+  // ── NOC Certificate ─────────────────────────────────────────────────────────
+  issueNoc: (id: string, note?: string) => api.post(`/contracts/${id}/noc`, { note }),
+  getNoc: (id: string) => api.get(`/contracts/${id}/noc`),
 };
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
