@@ -7,6 +7,7 @@ import {
   MessageCircle, Flag, Upload, Loader2, Lock, Unlock,
   Play, FileCheck, DollarSign, ExternalLink, FileText,
   ShieldCheck, BadgeCheck, Star, Award, HelpCircle, Send, ChevronDown,
+  AlertTriangle, RefreshCw, WifiOff, ServerCrash,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -507,6 +508,114 @@ function ClarificationSection({
   );
 }
 
+// ─── Skeleton loader ──────────────────────────────────────────────────────────
+
+function Pulse({ className = '' }: { className?: string }) {
+  return <div className={`bg-gray-200 rounded-lg animate-pulse ${className}`} />;
+}
+
+function ContractSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-3">
+        <Pulse className="w-28 h-8 rounded-xl" />
+        <Pulse className="w-4 h-4 rounded" />
+        <Pulse className="w-48 h-4" />
+      </div>
+
+      {/* Banner placeholder */}
+      <Pulse className="w-full h-14 rounded-xl" />
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Main column */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Header card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2 flex-1">
+                <Pulse className="h-6 w-2/3" />
+                <Pulse className="h-4 w-1/3" />
+              </div>
+              <Pulse className="h-6 w-20 rounded-full" />
+            </div>
+            {/* Progress bar */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Pulse className="h-4 w-32" />
+                <Pulse className="h-4 w-10" />
+              </div>
+              <Pulse className="h-2.5 w-full rounded-full" />
+              <Pulse className="h-3 w-40" />
+            </div>
+            {/* Financials row */}
+            <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-1.5">
+                  <Pulse className="h-3 w-20" />
+                  <Pulse className="h-5 w-16" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Milestones card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+            <Pulse className="h-5 w-28 mb-4" />
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-xl border border-gray-100 p-4 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Pulse className="w-7 h-7 rounded-full flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex justify-between">
+                      <Pulse className="h-4 w-40" />
+                      <Pulse className="h-5 w-24 rounded-full" />
+                    </div>
+                    <Pulse className="h-3 w-56" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-5">
+          {/* Participant card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+            <Pulse className="h-4 w-24" />
+            <div className="flex items-center gap-3">
+              <Pulse className="w-10 h-10 rounded-full flex-shrink-0" />
+              <div className="space-y-1.5 flex-1">
+                <Pulse className="h-4 w-32" />
+                <Pulse className="h-3 w-20" />
+              </div>
+            </div>
+            <Pulse className="h-9 w-full rounded-xl" />
+          </div>
+
+          {/* Status card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+            <Pulse className="h-4 w-28" />
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex justify-between">
+                <Pulse className="h-3 w-24" />
+                <Pulse className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+
+          {/* Actions card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+            <Pulse className="h-4 w-20" />
+            <Pulse className="h-9 w-full rounded-xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ContractDetailPage() {
@@ -516,6 +625,8 @@ export default function ContractDetailPage() {
 
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<{ message: string; icon: 'network' | 'notfound' | 'auth' | 'server' } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [funding, setFunding] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -552,22 +663,65 @@ export default function ContractDetailPage() {
 
   useEffect(() => {
     if (!contractId) return;
+    setLoading(true);
+    setLoadError(null);
+    setContract(null);
+
     Promise.allSettled([
       contractsApi.get(contractId),
       reviewsApi.myReviews(),
     ]).then(([contractRes, reviewsRes]) => {
       if (contractRes.status === 'fulfilled') {
         setContract(contractRes.value.data.data);
+        setLoadError(null);
       } else {
-        toast.error('Failed to load contract', 'Please try again.');
+        const err = contractRes.reason as any;
+        const status: number | undefined = err?.response?.status;
+        const serverMsg: string = err?.response?.data?.message || err?.response?.data?.error || '';
+
+        if (!err?.response) {
+          // No response at all → network / CORS / backend down
+          setLoadError({
+            icon: 'network',
+            message: 'Could not reach the server. Check your internet connection or make sure the API is running, then try again.',
+          });
+        } else if (status === 401) {
+          setLoadError({
+            icon: 'auth',
+            message: 'Your session has expired. Please log in again.',
+          });
+        } else if (status === 403) {
+          setLoadError({
+            icon: 'auth',
+            message: 'You do not have permission to view this contract.',
+          });
+        } else if (status === 404) {
+          setLoadError({
+            icon: 'notfound',
+            message: serverMsg || 'This contract could not be found. It may have been removed or the link is invalid.',
+          });
+        } else if (status && status >= 500) {
+          setLoadError({
+            icon: 'server',
+            message: serverMsg
+              ? `Server error: ${serverMsg}`
+              : `Server returned an error (${status}). Please wait a moment and try again.`,
+          });
+        } else {
+          setLoadError({
+            icon: 'server',
+            message: serverMsg || `Unexpected error${status ? ` (${status})` : ''}. Please try again.`,
+          });
+        }
       }
+
       if (reviewsRes.status === 'fulfilled') {
         const raw = reviewsRes.value.data.data;
         const reviews: any[] = raw?.data ?? (Array.isArray(raw) ? raw : []);
         setAlreadyReviewed(reviews.some((r: any) => r.contractId === contractId));
       }
     }).finally(() => setLoading(false));
-  }, [contractId]);
+  }, [contractId, retryCount]);
 
   const milestones: Milestone[] = contract?.milestones ?? [];
   const approvedCount = milestones.filter((m) => m.status === 'approved').length;
@@ -749,10 +903,64 @@ export default function ContractDetailPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  if (loading) {
+  if (loading) return <ContractSkeleton />;
+
+  if (loadError) {
+    const ErrorIcon =
+      loadError.icon === 'network'   ? WifiOff :
+      loadError.icon === 'notfound'  ? AlertTriangle :
+      loadError.icon === 'auth'      ? AlertTriangle :
+      ServerCrash;
+
+    const iconColor =
+      loadError.icon === 'network'  ? 'text-amber-400' :
+      loadError.icon === 'notfound' ? 'text-gray-400'  :
+      loadError.icon === 'auth'     ? 'text-red-400'   :
+      'text-red-400';
+
+    const canRetry = loadError.icon !== 'notfound' && loadError.icon !== 'auth';
+
     return (
-      <div className="flex justify-center items-center py-20">
-        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+      <div className="space-y-6">
+        {/* Breadcrumb kept so user can navigate back */}
+        <div className="flex items-center gap-3">
+          <Link href={ROUTES.CONTRACTS}>
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Contracts
+            </Button>
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 p-10 flex flex-col items-center text-center gap-5 max-w-lg mx-auto">
+          <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+            <ErrorIcon className={`w-8 h-8 ${iconColor}`} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-dark-900 mb-2">
+              {loadError.icon === 'network'  ? 'Connection Problem'       :
+               loadError.icon === 'notfound' ? 'Contract Not Found'       :
+               loadError.icon === 'auth'     ? 'Access Denied'            :
+               'Something Went Wrong'}
+            </h2>
+            <p className="text-sm text-dark-500 leading-relaxed max-w-sm">{loadError.message}</p>
+          </div>
+
+          <div className="flex gap-3 flex-wrap justify-center">
+            {canRetry && (
+              <Button onClick={() => setRetryCount((c) => c + 1)}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+            )}
+            <Link href={ROUTES.CONTRACTS}>
+              <Button variant="outline">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Contracts
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
