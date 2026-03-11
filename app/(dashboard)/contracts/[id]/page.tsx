@@ -83,17 +83,13 @@ function StarRating({
 function EscrowBanner({
   contract,
   isPoster,
-  onFund,
-  funding,
+  onOpenFundModal,
 }: {
   contract: Contract;
   isPoster: boolean;
-  onFund: () => void;
-  funding: boolean;
+  onOpenFundModal: () => void;
 }) {
-  // Only show escrow banner for milestone-based contracts
-  const hasMilestones = contract.milestones && contract.milestones.length > 0;
-  if (contract.status !== 'active' || !hasMilestones) return null;
+  if (contract.status !== 'active') return null;
 
   if (contract.escrowFunded) {
     const remaining = Number(contract.escrowAmount) - Number(contract.releasedAmount);
@@ -101,9 +97,9 @@ function EscrowBanner({
       <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-5 py-3">
         <Lock className="w-5 h-5 text-green-600 flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-green-800">Escrow Funded</p>
+          <p className="text-sm font-semibold text-green-800">Escrow Funded ✓</p>
           <p className="text-xs text-green-600">
-            {formatCurrency(remaining)} held in escrow · {formatCurrency(Number(contract.releasedAmount))} released
+            {formatCurrency(remaining)} securely held · {formatCurrency(Number(contract.releasedAmount))} released so far
           </p>
         </div>
         <ShieldCheck className="w-5 h-5 text-green-500" />
@@ -111,21 +107,24 @@ function EscrowBanner({
     );
   }
 
+  // Not yet funded
   return (
-    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
-      <Unlock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+    <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center">
+        <Unlock className="w-5 h-5 text-amber-600" />
+      </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-amber-800">Escrow Not Funded</p>
-        <p className="text-xs text-amber-600 mt-0.5">
+        <p className="text-sm font-semibold text-amber-800">Payment Pending — Fund Escrow to Begin</p>
+        <p className="text-xs text-amber-600 mt-0.5 leading-relaxed">
           {isPoster
-            ? 'Fund the escrow to allow the contractor to start work.'
-            : 'Waiting for the client to fund the escrow before work can begin.'}
+            ? `Lock ${formatCurrency(contract.totalAmount)} in escrow so the contractor can safely start work. Funds are only released when you approve milestones.`
+            : 'The client needs to fund the escrow before work can begin. You will be notified as soon as the funds are secured.'}
         </p>
       </div>
       {isPoster && (
-        <Button size="sm" onClick={onFund} loading={funding} className="flex-shrink-0">
+        <Button size="sm" onClick={onOpenFundModal} className="flex-shrink-0 self-center">
           <Lock className="w-3.5 h-3.5 mr-1.5" />
-          Fund {formatCurrency(contract.totalAmount)}
+          Fund Escrow
         </Button>
       )}
     </div>
@@ -628,6 +627,7 @@ export default function ContractDetailPage() {
   const [loadError, setLoadError] = useState<{ message: string; icon: 'network' | 'notfound' | 'auth' | 'server' } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [funding, setFunding] = useState(false);
+  const [fundModalOpen, setFundModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Proof upload modal
@@ -741,7 +741,11 @@ export default function ContractDetailPage() {
       await contractsApi.fundEscrow(contract.id);
       const res = await contractsApi.get(contract.id);
       setContract(res.data.data);
-      toast.success('Escrow Funded! 🔒', `$${Number(contract.totalAmount).toFixed(2)} is now held securely.`);
+      setFundModalOpen(false);
+      toast.success(
+        'Escrow Funded! 🔒',
+        `${formatCurrency(contract.totalAmount)} is now held securely. The contractor has been notified and can start work.`
+      );
     } catch (err: any) {
       toast.error('Failed to fund escrow', err?.response?.data?.message || 'Please try again.');
     } finally {
@@ -998,8 +1002,7 @@ export default function ContractDetailPage() {
       <EscrowBanner
         contract={contract}
         isPoster={isPoster}
-        onFund={handleFundEscrow}
-        funding={funding}
+        onOpenFundModal={() => setFundModalOpen(true)}
       />
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -1321,6 +1324,61 @@ export default function ContractDetailPage() {
           )}
         </div>
       </div>
+
+      {/* ── Fund Escrow Modal ────────────────────────────────────────────────── */}
+      <Modal
+        open={fundModalOpen}
+        onClose={() => { if (!funding) setFundModalOpen(false); }}
+        title="Fund Escrow"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => setFundModalOpen(false)} disabled={funding}>
+              Cancel
+            </Button>
+            <Button onClick={handleFundEscrow} loading={funding}>
+              <Lock className="w-4 h-4 mr-2" />
+              Confirm &amp; Fund {formatCurrency(contract.totalAmount)}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          {/* Amount highlight */}
+          <div className="flex items-center justify-between bg-brand-50 border border-brand-100 rounded-xl px-5 py-4">
+            <div>
+              <p className="text-xs text-brand-500 font-medium uppercase tracking-wide">Amount to Lock</p>
+              <p className="text-2xl font-bold text-dark-900 mt-0.5">{formatCurrency(contract.totalAmount)}</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-brand-100 flex items-center justify-center">
+              <Lock className="w-6 h-6 text-brand-600" />
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div className="space-y-2.5">
+            {[
+              { icon: Lock,        text: 'Funds are held securely in escrow — not paid to the contractor yet.' },
+              { icon: CheckCircle, text: 'Payment is only released when you approve each completed milestone.' },
+              { icon: ShieldCheck, text: 'If there is a dispute, your funds are protected until it is resolved.' },
+            ].map(({ icon: Icon, text }, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center">
+                  <Icon className="w-3.5 h-3.5 text-green-600" />
+                </div>
+                <p className="text-sm text-dark-600 leading-snug">{text}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Contractor notice */}
+          <div className="flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
+            <ShieldCheck className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-blue-700 leading-relaxed">
+              <span className="font-semibold">The contractor will be notified instantly</span> once funds are secured and can begin work right away.
+            </p>
+          </div>
+        </div>
+      </Modal>
 
       {/* ── Proof Upload Modal ───────────────────────────────────────────────── */}
       <Modal

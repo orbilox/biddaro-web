@@ -63,6 +63,33 @@ export interface User {
   updatedAt: string;
 }
 
+// ─── Notification Types ───────────────────────────────────────────────────────
+
+export type NotificationType =
+  | 'escrow_funded'
+  | 'milestone_started'
+  | 'milestone_completed'
+  | 'milestone_approved'
+  | 'contract_completed'
+  | 'contract_cancelled'
+  | 'noc_issued'
+  | 'clarification_asked'
+  | 'clarification_answered'
+  | 'dispute_opened'
+  | string;
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  isRead: boolean;
+  data?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Job Types ────────────────────────────────────────────────────────────────
 
 export type JobStatus = 'open' | 'in_progress' | 'completed' | 'closed' | 'cancelled';
@@ -317,28 +344,6 @@ export interface Review {
   createdAt: string;
 }
 
-// ─── Notification Types ───────────────────────────────────────────────────────
-
-export type NotificationType =
-  | 'new_bid'
-  | 'bid_accepted'
-  | 'bid_declined'
-  | 'contract_signed'
-  | 'payment_received'
-  | 'new_message'
-  | 'dispute_opened'
-  | 'review_received';
-
-export interface Notification {
-  id: string;
-  userId: string;
-  type: NotificationType;
-  title: string;
-  body: string;
-  isRead: boolean;
-  link?: string;
-  createdAt: string;
-}
 
 // ─── API Types ────────────────────────────────────────────────────────────────
 

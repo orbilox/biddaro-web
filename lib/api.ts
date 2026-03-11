@@ -108,6 +108,15 @@ export const clarificationsApi = {
     api.put(`/contracts/${contractId}/clarifications/${clarificationId}/answer`, { answer }),
 };
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export const notificationsApi = {
+  list:        (params?: Record<string, string | number>) => api.get('/notifications', { params }),
+  unreadCount: ()        => api.get('/notifications/unread-count'),
+  markRead:    (id: string) => api.post(`/notifications/${id}/read`),
+  markAllRead: ()        => api.post('/notifications/read-all'),
+};
+
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
 export const messagesApi = {
@@ -261,15 +270,6 @@ export const imageGenApi = {
       150_000 // 2.5 min — model can take time to warm up
     );
   },
-};
-
-// ─── Notifications ────────────────────────────────────────────────────────────
-
-export const notificationsApi = {
-  list: (params?: Record<string, string | number>) => api.get('/notifications', { params }),
-  unreadCount: () => api.get('/notifications/unread-count'),
-  markRead: (id: string) => api.post(`/notifications/${id}/read`),
-  markAllRead: () => api.post('/notifications/read-all'),
 };
 
 export default api;
