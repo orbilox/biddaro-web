@@ -8,18 +8,10 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
 
-  /**
-   * Becomes `true` once Zustand has finished reading the persisted state
-   * from localStorage. Until this is true, `isAuthenticated` may still be
-   * the initial `false` default — do NOT redirect to login before then.
-   */
-  _hasHydrated: boolean;
-
-  setUser:        (user: User, token: string) => void;
-  updateUser:     (data: Partial<User>) => void;
-  logout:         () => void;
-  setLoading:     (loading: boolean) => void;
-  setHasHydrated: (val: boolean) => void;
+  setUser:    (user: User, token: string) => void;
+  updateUser: (data: Partial<User>) => void;
+  logout:     () => void;
+  setLoading: (loading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -29,9 +21,6 @@ export const useAuthStore = create<AuthState>()(
       token:           null,
       isAuthenticated: false,
       isLoading:       false,
-      _hasHydrated:    false,
-
-      setHasHydrated: (val) => set({ _hasHydrated: val }),
 
       setUser: (user, token) => {
         if (typeof window !== 'undefined') {
@@ -56,17 +45,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'biddaro-auth',
-      // Only persist the essential fields — _hasHydrated must NOT be persisted
-      // so it always starts as false and gets set to true by onRehydrateStorage.
       partialize: (state) => ({
         user:            state.user,
         token:           state.token,
         isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => (state) => {
-        // Called once localStorage → store rehydration is complete
-        state?.setHasHydrated(true);
-      },
     }
   )
 );
