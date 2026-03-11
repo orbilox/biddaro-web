@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { HardHat, Menu, X, LayoutDashboard, Sparkles, Wand2 } from 'lucide-react';
+import { HardHat, Menu, X, LayoutDashboard, Sparkles, Wand2, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
@@ -24,6 +24,7 @@ export function Navbar() {
     { href: '#features', label: 'Features' },
     { href: '#how-it-works', label: 'How It Works' },
     { href: ROUTES.OPEN_JOBS, label: 'Find Jobs' },
+    { href: ROUTES.HIRE, label: 'Find Contractors', isNew: false, icon: MapPin, isLocation: true },
     { href: ROUTES.AI_ASSISTANT, label: 'AI Assistant', isNew: true, icon: Sparkles },
     { href: ROUTES.AI_IMAGE, label: 'AI Image', isNew: true, icon: Wand2 },
   ];
@@ -62,7 +63,12 @@ export function Navbar() {
                     scrolled ? 'text-dark-600 hover:text-dark-900' : 'text-white/80 hover:text-white'
                   )}
                 >
-                  {link.isNew && NavIcon && <NavIcon className="w-3.5 h-3.5 text-brand-400" />}
+                  {'isLocation' in link && link.isLocation && NavIcon && (
+                    <NavIcon className="w-3.5 h-3.5 text-brand-400" />
+                  )}
+                  {link.isNew && NavIcon && !('isLocation' in link && link.isLocation) && (
+                    <NavIcon className="w-3.5 h-3.5 text-brand-400" />
+                  )}
                   {link.label}
                   {link.isNew && (
                     <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
@@ -128,7 +134,12 @@ export function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className="px-3 py-2.5 text-sm font-medium text-dark-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
                 >
-                  {link.isNew && NavIcon && <NavIcon className="w-3.5 h-3.5 text-brand-400" />}
+                  {'isLocation' in link && link.isLocation && NavIcon && (
+                    <NavIcon className="w-3.5 h-3.5 text-brand-400" />
+                  )}
+                  {link.isNew && NavIcon && !('isLocation' in link && link.isLocation) && (
+                    <NavIcon className="w-3.5 h-3.5 text-brand-400" />
+                  )}
                   {link.label}
                   {link.isNew && (
                     <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">

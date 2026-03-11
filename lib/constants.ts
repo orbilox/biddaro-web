@@ -100,4 +100,9 @@ export const ROUTES = {
   PUBLIC_PROFILE: (id: string) => `/profile/${id}`,
   FIND_WORK: '/find-work',
   OPEN_JOBS: '/open-jobs',
+  // Programmatic SEO – hire pages
+  HIRE: '/hire',
+  HIRE_CATEGORY: (category: string) => `/hire/${category}`,
+  HIRE_STATE: (category: string, state: string) => `/hire/${category}/${state}`,
+  HIRE_CITY: (category: string, state: string, city: string) => `/hire/${category}/${state}/${city}`,
 } as const;
