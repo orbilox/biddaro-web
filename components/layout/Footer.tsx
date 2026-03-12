@@ -7,9 +7,10 @@ export function Footer() {
   return (
     <footer className="bg-dark-900 text-dark-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+
           {/* Brand */}
-          <div className="col-span-2 md:col-span-1">
+          <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
                 <HardHat className="w-5 h-5 text-white" />
@@ -25,9 +26,32 @@ export function Footer() {
           <div>
             <h4 className="text-white font-semibold text-sm mb-4">Platform</h4>
             <ul className="space-y-2">
-              {['How It Works', 'Browse Jobs', 'Post a Job', 'Pricing'].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-sm hover:text-white transition-colors">{item}</a>
+              {[
+                { label: 'How It Works', href: '#' },
+                { label: 'Browse Jobs',  href: '#' },
+                { label: 'Post a Job',   href: '#' },
+                { label: 'Pricing',      href: '#' },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* AI Answers */}
+          <div>
+            <h4 className="text-white font-semibold text-sm mb-4">AI Answers</h4>
+            <ul className="space-y-2">
+              {[
+                { label: 'All Q&A',              href: '/ask' },
+                { label: 'Construction Costs',   href: '/ask#cost' },
+                { label: 'Materials Guide',      href: '/ask#materials' },
+                { label: 'Vastu Tips',           href: '/ask#vastu' },
+                { label: 'Hiring Contractors',   href: '/ask#hiring' },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
                 </li>
               ))}
             </ul>
@@ -37,9 +61,14 @@ export function Footer() {
           <div>
             <h4 className="text-white font-semibold text-sm mb-4">Company</h4>
             <ul className="space-y-2">
-              {['About Us', 'Blog', 'Careers', 'Contact'].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-sm hover:text-white transition-colors">{item}</a>
+              {[
+                { label: 'About Us', href: '#' },
+                { label: 'Blog',     href: '#' },
+                { label: 'Careers',  href: '#' },
+                { label: 'Contact',  href: '#' },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
                 </li>
               ))}
             </ul>
@@ -49,20 +78,31 @@ export function Footer() {
           <div>
             <h4 className="text-white font-semibold text-sm mb-4">Legal</h4>
             <ul className="space-y-2">
-              {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-sm hover:text-white transition-colors">{item}</a>
+              {[
+                { label: 'Privacy Policy',   href: '#' },
+                { label: 'Terms of Service', href: '#' },
+                { label: 'Cookie Policy',    href: '#' },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 pt-8 border-t border-dark-700 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm">&copy; {currentYear} Biddaro, Inc. All rights reserved.</p>
-          <p className="text-sm">Built with ❤️ for the construction industry</p>
+        {/* Bottom bar */}
+        <div className="border-t border-dark-700 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+          <p>© {currentYear} Biddaro. All rights reserved.</p>
+          <div className="flex items-center gap-4 text-xs text-dark-400">
+            <Link href="/ask" className="hover:text-white transition-colors">🤖 AI Answers</Link>
+            <Link href="/hire" className="hover:text-white transition-colors">👷 Find Contractors</Link>
+            <Link href="/ai-assistant" className="hover:text-white transition-colors">💬 AI Assistant</Link>
+          </div>
         </div>
       </div>
     </footer>
   );
 }
+
+export default Footer;

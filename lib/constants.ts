@@ -105,4 +105,7 @@ export const ROUTES = {
   HIRE_CATEGORY: (category: string) => `/hire/${category}`,
   HIRE_STATE: (category: string, state: string) => `/hire/${category}/${state}`,
   HIRE_CITY: (category: string, state: string, city: string) => `/hire/${category}/${state}/${city}`,
+  // Programmatic SEO – AI answer pages
+  ASK: '/ask',
+  ASK_QUESTION: (slug: string) => `/ask/${slug}`,
 } as const;
