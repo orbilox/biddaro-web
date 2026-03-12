@@ -1,3 +1,5 @@
+// Server Component layout — no 'use client' so generateMetadata works in children
+import React from 'react';
 import type { Metadata } from 'next';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -39,10 +41,13 @@ export const metadata: Metadata = {
 
 export default function AskLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
-      <main className="min-h-screen bg-white">{children}</main>
+      {/* pt-16 accounts for the fixed Navbar height (h-16 = 64px) */}
+      <main className="flex-1 pt-16">
+        {children}
+      </main>
       <Footer />
-    </>
+    </div>
   );
 }
