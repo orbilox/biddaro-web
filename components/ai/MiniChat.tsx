@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
 import { aiApi } from '@/lib/api';
 
-interface Message {
+export interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
@@ -14,6 +14,7 @@ interface MiniChatProps {
   suggestedPrompts: string[];
   placeholder?: string;
   greeting?: string;
+  onMessagesChange?: (messages: Message[]) => void;
 }
 
 export function MiniChat({
@@ -21,6 +22,7 @@ export function MiniChat({
   suggestedPrompts,
   placeholder = 'Ask your question...',
   greeting,
+  onMessagesChange,
 }: MiniChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -44,6 +46,7 @@ export function MiniChat({
     setInput('');
     setLoading(true);
     setHasStarted(true);
+    onMessagesChange?.(updatedMessages);
 
     try {
       // Prepend system prompt as a hidden context user message
@@ -60,18 +63,18 @@ export function MiniChat({
         data?.data?.content ||
         'I couldn\'t generate a response. Please try again.';
 
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: assistantContent },
-      ]);
+      const assistantMsg: Message = { role: 'assistant', content: assistantContent };
+      const finalMessages = [...updatedMessages, assistantMsg];
+      setMessages(finalMessages);
+      onMessagesChange?.(finalMessages);
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'Sorry, I encountered an error. Please try again.',
-        },
-      ]);
+      const errMsg: Message = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+      };
+      const errMessages = [...updatedMessages, errMsg];
+      setMessages(errMessages);
+      onMessagesChange?.(errMessages);
     } finally {
       setLoading(false);
       inputRef.current?.focus();

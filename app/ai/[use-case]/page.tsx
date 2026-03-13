@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, ChevronDown } from 'lucide-react';
 import { AI_USE_CASES, AI_USE_CASE_SLUGS, getUseCase } from '@/lib/ai-use-cases-data';
-import { MiniChat } from '@/components/ai/MiniChat';
+import { AiChatSection } from '@/components/ai/AiChatSection';
 
 // ─── Static Params ────────────────────────────────────────────────────────────
 
@@ -230,7 +230,7 @@ export default async function AiUseCasePage({
         </div>
       </section>
 
-      {/* ── Live AI Chat ────────────────────────────────────────────────────── */}
+      {/* ── Live AI Chat + Aggressive CTA ───────────────────────────────────── */}
       <section id="chat" className="bg-white py-16 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-8">
@@ -241,15 +241,16 @@ export default async function AiUseCasePage({
               Get a detailed, personalised answer for your specific project
             </p>
           </div>
-          <MiniChat
+
+          {/* AiChatSection handles MiniChat + the dynamic contractor CTA */}
+          <AiChatSection
             systemPrompt={useCase.systemPrompt}
             suggestedPrompts={useCase.suggestedPrompts}
             placeholder={`Ask about ${useCase.title.toLowerCase()}...`}
             greeting={useCase.greeting}
+            toolSlug={useCase.slug}
+            toolName={useCase.title}
           />
-          <p className="text-center text-xs text-gray-400 mt-3">
-            AI responses are for guidance only. Verify critical decisions with a local professional.
-          </p>
         </div>
       </section>
 
@@ -275,19 +276,22 @@ export default async function AiUseCasePage({
               </ul>
             </div>
             <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-              <p className="text-slate-400 text-sm mb-3 font-medium uppercase tracking-wider">
+              <p className="text-slate-400 text-sm mb-1 font-medium uppercase tracking-wider">
                 Pro tip
               </p>
-              <p className="text-slate-200 leading-relaxed text-sm">
-                Use the AI to get ballpark estimates and understand your options first. Then post your
-                project on Biddaro to get competing quotes from verified local contractors — and you&apos;ll
-                know if the quotes are fair.
+              <p className="text-2xl font-bold text-white mb-3">
+                AI estimates. Human execution.
+              </p>
+              <p className="text-slate-300 text-sm leading-relaxed mb-4">
+                Use the AI to get ballpark estimates and understand your options first.
+                Then post your project on Biddaro — you&apos;ll get 3 competing quotes from
+                verified local contractors, and you&apos;ll know instantly if they&apos;re fair.
               </p>
               <Link
-                href="/hire"
-                className="inline-flex items-center gap-2 mt-4 text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors"
+                href="/register?source=why-ai-cta"
+                className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors"
               >
-                Post Your Project
+                Post My Project Free
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -325,30 +329,37 @@ export default async function AiUseCasePage({
         </section>
       )}
 
-      {/* ── CTA ────────────────────────────────────────────────────────────── */}
-      <section className="bg-orange-500 py-12 px-4">
+      {/* ── Final CTA ────────────────────────────────────────────────────────── */}
+      <section className="bg-orange-500 py-14 px-4">
         <div className="max-w-3xl mx-auto text-center text-white">
-          <h2 className="text-2xl font-bold mb-3">
-            Ready to Start Your Project?
+          <p className="text-orange-200 text-sm font-medium mb-2 uppercase tracking-wider">
+            You have the estimate. Now make it real.
+          </p>
+          <h2 className="text-3xl font-bold mb-4">
+            Get 3 Contractor Quotes in 24 Hours
           </h2>
-          <p className="text-orange-100 mb-6 text-sm">
-            You&apos;ve got the knowledge. Now find the right contractor to execute it.
+          <p className="text-orange-100 mb-8 text-sm max-w-xl mx-auto leading-relaxed">
+            Post your project free on Biddaro. 500+ verified contractors will compete
+            for your job — so you always get a fair price. No middlemen. No commission.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             <Link
-              href="/hire"
-              className="inline-flex items-center gap-2 bg-white text-orange-600 hover:bg-orange-50 font-semibold px-6 py-3 rounded-xl transition-colors"
+              href="/register?source=ai-bottom-cta"
+              className="inline-flex items-center gap-2 bg-white text-orange-600 hover:bg-orange-50 font-bold px-8 py-3.5 rounded-xl transition-colors shadow-lg text-base"
             >
-              Find Verified Contractors
+              Post My Project Free
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/ai"
-              className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-3 rounded-xl border border-orange-400 transition-colors"
+              className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-medium px-8 py-3.5 rounded-xl border border-orange-400 transition-colors text-base"
             >
               Explore All AI Tools
             </Link>
           </div>
+          <p className="mt-5 text-orange-200 text-xs">
+            ✓ Free to post &nbsp;·&nbsp; ✓ No sign-up required &nbsp;·&nbsp; ✓ Quotes in 24 hours
+          </p>
         </div>
       </section>
     </>
