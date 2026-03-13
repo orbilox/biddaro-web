@@ -7,7 +7,7 @@ export function Footer() {
   return (
     <footer className="bg-dark-900 text-dark-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
 
           {/* Brand */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
@@ -44,11 +44,33 @@ export function Footer() {
             <h4 className="text-white font-semibold text-sm mb-4">AI Answers</h4>
             <ul className="space-y-2">
               {[
-                { label: 'All Q&A',              href: '/ask' },
-                { label: 'Construction Costs',   href: '/ask#cost' },
-                { label: 'Materials Guide',      href: '/ask#materials' },
-                { label: 'Vastu Tips',           href: '/ask#vastu' },
-                { label: 'Hiring Contractors',   href: '/ask#hiring' },
+                { label: 'All Q&A',            href: '/ask' },
+                { label: 'Construction Costs', href: '/ask#cost' },
+                { label: 'Materials Guide',    href: '/ask#materials' },
+                { label: 'Vastu Tips',         href: '/ask#vastu' },
+                { label: 'Hiring Contractors', href: '/ask#hiring' },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* AI Tools */}
+          <div>
+            <h4 className="text-white font-semibold text-sm mb-4">AI Tools</h4>
+            <ul className="space-y-2">
+              {[
+                { label: 'All AI Tools',       href: '/ai' },
+                { label: 'Cost Estimator',     href: '/ai/construction-cost-estimator' },
+                { label: 'Vastu Consultant',   href: '/ai/vastu-consultant' },
+                { label: 'Renovation Planner', href: '/ai/renovation-planner' },
+                { label: 'Contractor Finder',  href: '/ai/contractor-finder' },
+                { label: 'Material Calculator',href: '/ai/material-calculator' },
+                { label: 'House Plan Advisor', href: '/ai/house-plan-advisor' },
+                { label: 'Budget Planner',     href: '/ai/budget-planner' },
+                { label: 'Permits Guide',      href: '/ai/permits-guide-india' },
               ].map(({ label, href }) => (
                 <li key={label}>
                   <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
@@ -63,7 +85,7 @@ export function Footer() {
             <ul className="space-y-2">
               {[
                 { label: 'About Us', href: '#' },
-                { label: 'Blog',     href: '#' },
+                { label: 'Blog',     href: '/blog' },
                 { label: 'Careers',  href: '#' },
                 { label: 'Contact',  href: '#' },
               ].map(({ label, href }) => (
@@ -96,8 +118,9 @@ export function Footer() {
           <p>© {currentYear} Biddaro. All rights reserved.</p>
           <div className="flex items-center gap-4 text-xs text-dark-400">
             <Link href="/ask" className="hover:text-white transition-colors">🤖 AI Answers</Link>
+            <Link href="/ai" className="hover:text-white transition-colors">⚡ AI Tools</Link>
+            <Link href="/blog" className="hover:text-white transition-colors">📝 Blog</Link>
             <Link href="/hire" className="hover:text-white transition-colors">👷 Find Contractors</Link>
-            <Link href="/ai-assistant" className="hover:text-white transition-colors">💬 AI Assistant</Link>
           </div>
         </div>
       </div>
