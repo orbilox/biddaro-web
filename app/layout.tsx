@@ -10,6 +10,15 @@ export const metadata: Metadata = {
   description: 'Connect with skilled contractors and post construction jobs on Biddaro – the leading construction marketplace.',
   keywords: ['construction', 'contractors', 'bidding', 'marketplace', 'home improvement'],
   authors: [{ name: 'Biddaro' }],
+  icons: {
+    icon: [
+      { url: '/icon', type: 'image/png', sizes: '32x32' },
+    ],
+    apple: [
+      { url: '/apple-icon', type: 'image/png', sizes: '180x180' },
+    ],
+    shortcut: '/icon',
+  },
   openGraph: {
     title: 'Biddaro – Construction Marketplace',
     description: 'Connect with skilled contractors and post construction jobs.',

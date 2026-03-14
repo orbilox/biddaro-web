@@ -97,8 +97,11 @@ function ContractCard({
   const other = isPoster ? contract.contractor : contract.poster;
 
   const hasMilestones = contract.milestones && contract.milestones.length > 0;
-  const needsFunding = contract.status === 'active' && hasMilestones && !contract.escrowFunded && isPoster;
   const escrowFunded = contract.escrowFunded;
+  // Per-milestone escrow: full escrowFunded stays false but individual milestones carry escrowFunded: true
+  const anyMilestoneFunded = contract.milestones?.some((m) => m.escrowFunded) ?? false;
+  // "Fund Escrow" CTA only shows when NO escrow method has been started yet
+  const needsFunding = contract.status === 'active' && hasMilestones && !escrowFunded && !anyMilestoneFunded && isPoster;
 
   return (
     <div
@@ -127,6 +130,10 @@ function ContractCard({
             escrowFunded ? (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
                 <Lock className="w-3 h-3" /> Escrow Funded
+              </span>
+            ) : anyMilestoneFunded ? (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
+                <Lock className="w-3 h-3" /> Per-Milestone Escrow
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
