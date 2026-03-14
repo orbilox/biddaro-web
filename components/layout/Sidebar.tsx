@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
+  ShieldCheck, BanknoteIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -41,12 +42,23 @@ const contractorNavItems: NavItem[] = [
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];
 
+const adminNavItems: NavItem[] = [
+  { href: ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/deposits', label: 'Deposit Requests', icon: BanknoteIcon },
+  { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
+  { href: ROUTES.PROFILE, label: 'Profile', icon: User },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
   const { sidebarOpen, setSidebar } = useUIStore();
 
-  const navItems = user?.role === 'contractor' ? contractorNavItems : posterNavItems;
+  const navItems = user?.role === 'admin'
+    ? adminNavItems
+    : user?.role === 'contractor'
+      ? contractorNavItems
+      : posterNavItems;
 
   return (
     <>

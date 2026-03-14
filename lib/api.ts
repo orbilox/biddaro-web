@@ -151,6 +151,31 @@ export const walletApi = {
   withdraw: (amount: number) => api.post('/wallet/withdraw', { amount }),
 };
 
+// ─── Deposit Requests (Bank Transfer) ────────────────────────────────────────
+
+export const depositRequestsApi = {
+  /** User: submit a bank transfer proof */
+  create: (data: {
+    amount: number;
+    transactionId: string;
+    screenshotUrl: string;
+    senderName?: string;
+    senderBank?: string;
+  }) => api.post('/deposit-requests', data),
+
+  /** User: list my deposit requests */
+  myRequests: (params?: { page?: number; limit?: number }) =>
+    api.get('/deposit-requests/my', { params }),
+
+  /** Admin: list all deposit requests */
+  adminList: (params?: { page?: number; limit?: number; status?: string }) =>
+    api.get('/deposit-requests/admin', { params }),
+
+  /** Admin: approve or reject a deposit request */
+  adminReview: (id: string, data: { action: 'approve' | 'reject'; adminNote?: string }) =>
+    api.post(`/deposit-requests/admin/${id}/review`, data),
+};
+
 // ─── Disputes ─────────────────────────────────────────────────────────────────
 
 export const disputesApi = {

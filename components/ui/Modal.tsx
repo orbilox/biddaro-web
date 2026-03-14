@@ -43,35 +43,35 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
       {/* Dialog */}
       <div
         className={cn(
-          'relative w-full bg-white rounded-2xl shadow-2xl animate-slide-up overflow-hidden',
+          'relative w-full bg-white rounded-2xl shadow-2xl animate-slide-up flex flex-col max-h-[92vh]',
           sizeStyles[size]
         )}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         {(title || description) && (
-          <div className="flex items-start justify-between px-6 pt-6 pb-4">
+          <div className="flex items-start justify-between px-6 pt-5 pb-4 flex-shrink-0 border-b border-gray-100">
             <div>
-              {title && <h2 className="text-lg font-semibold text-dark-900">{title}</h2>}
-              {description && <p className="mt-1 text-sm text-dark-500">{description}</p>}
+              {title && <h2 className="text-base font-semibold text-dark-900">{title}</h2>}
+              {description && <p className="mt-0.5 text-sm text-dark-500">{description}</p>}
             </div>
             <button
               onClick={onClose}
-              className="ml-4 p-1.5 rounded-lg text-dark-400 hover:text-dark-700 hover:bg-gray-100 transition-colors"
+              className="ml-4 p-1.5 rounded-lg text-dark-400 hover:text-dark-700 hover:bg-gray-100 transition-colors flex-shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* Content */}
-        <div className={cn('px-6', !title && 'pt-6', !footer && 'pb-6')}>
+        {/* Content — scrollable */}
+        <div className={cn('px-6 overflow-y-auto flex-1', !title && 'pt-6', footer ? 'py-5' : 'pb-6')}>
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-3">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-3 flex-shrink-0">
             {footer}
           </div>
         )}
