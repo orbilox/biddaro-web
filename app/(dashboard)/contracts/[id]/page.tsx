@@ -1446,23 +1446,41 @@ export default function ContractDetailPage() {
         }
       >
         {/* Mode toggle tabs */}
-        {milestones.length > 0 && (
-          <div className="flex gap-2 mb-5 p-1 bg-gray-100 rounded-xl">
-            {(['full', 'per-milestone'] as const).map((m) => (
+        {milestones.length > 0 && (() => {
+          const isFullUpfrontActive = contract.escrowFunded;
+          const isPerMilestoneActive = !contract.escrowFunded && milestones.some((ms) => ms.escrowFunded);
+          return (
+            <div className="flex gap-2 mb-5 p-1 bg-gray-100 rounded-xl">
+              {/* Fund All Upfront tab */}
               <button
-                key={m}
-                onClick={() => setFundMode(m)}
-                className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
-                  fundMode === m
-                    ? 'bg-white shadow-sm text-dark-900'
-                    : 'text-dark-400 hover:text-dark-600'
+                onClick={() => { if (!isPerMilestoneActive) setFundMode('full'); }}
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center ${
+                  isPerMilestoneActive
+                    ? 'text-dark-300 cursor-not-allowed'
+                    : fundMode === 'full'
+                      ? 'bg-white shadow-sm text-dark-900'
+                      : 'text-dark-400 hover:text-dark-600'
                 }`}
               >
-                {m === 'full' ? '🔒 Fund All Upfront' : '📋 Fund Per Milestone'}
+                {isPerMilestoneActive ? '⚠️ You are using the 2nd method' : '🔒 Fund All Upfront'}
               </button>
-            ))}
-          </div>
-        )}
+
+              {/* Fund Per Milestone tab */}
+              <button
+                onClick={() => { if (!isFullUpfrontActive) setFundMode('per-milestone'); }}
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center ${
+                  isFullUpfrontActive
+                    ? 'text-dark-300 cursor-not-allowed'
+                    : fundMode === 'per-milestone'
+                      ? 'bg-white shadow-sm text-dark-900'
+                      : 'text-dark-400 hover:text-dark-600'
+                }`}
+              >
+                {isFullUpfrontActive ? '⚠️ You are using the 1st method' : '📋 Fund Per Milestone'}
+              </button>
+            </div>
+          );
+        })()}
 
         {fundMode === 'full' ? (
           <div className="space-y-5">
