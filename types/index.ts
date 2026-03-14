@@ -173,6 +173,7 @@ export interface Milestone {
   description?: string;
   amount: number;
   status: 'pending' | 'in_progress' | 'completed' | 'approved';
+  escrowFunded?: boolean;      // true when this milestone's escrow was individually funded (per-milestone mode)
   dueDate?: string;
   proofDocuments?: string[];   // URLs of proof files uploaded by contractor
   startedAt?: string;

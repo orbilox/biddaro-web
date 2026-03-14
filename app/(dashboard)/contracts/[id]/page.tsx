@@ -87,7 +87,7 @@ function EscrowBanner({
 }: {
   contract: Contract;
   isPoster: boolean;
-  onOpenFundModal: () => void;
+  onOpenFundModal: (mode?: 'full' | 'per-milestone') => void;
 }) {
   if (contract.status !== 'active') return null;
 
@@ -97,7 +97,7 @@ function EscrowBanner({
       <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-5 py-3">
         <Lock className="w-5 h-5 text-green-600 flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-green-800">Escrow Funded ✓</p>
+          <p className="text-sm font-semibold text-green-800">Full Escrow Funded ✓</p>
           <p className="text-xs text-green-600">
             {formatCurrency(remaining)} securely held · {formatCurrency(Number(contract.releasedAmount))} released so far
           </p>
@@ -107,7 +107,41 @@ function EscrowBanner({
     );
   }
 
-  // Not yet funded
+  // Partial per-milestone escrow funded
+  const milestones: Array<{ escrowFunded?: boolean }> = (() => {
+    try { return Array.isArray(contract.milestones) ? contract.milestones : []; }
+    catch { return []; }
+  })();
+  const anyMilestoneFunded = milestones.some((m) => m.escrowFunded);
+  const fundedCount = milestones.filter((m) => m.escrowFunded).length;
+
+  if (anyMilestoneFunded) {
+    return (
+      <div className="flex items-start gap-4 bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center">
+          <Lock className="w-5 h-5 text-blue-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-blue-800">
+            Per-Milestone Escrow Active — {fundedCount} of {milestones.length} funded
+          </p>
+          <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">
+            {isPoster
+              ? 'Fund each milestone before the contractor starts it. Remaining milestones show a "Fund Milestone Escrow" button below.'
+              : 'Escrow is being funded per milestone. You will be notified before each milestone starts.'}
+          </p>
+        </div>
+        {isPoster && (
+          <Button size="sm" variant="outline" onClick={() => onOpenFundModal('per-milestone')} className="flex-shrink-0 self-center whitespace-nowrap border-blue-300 text-blue-700 hover:bg-blue-50">
+            <Lock className="w-3.5 h-3.5 mr-1.5" />
+            Manage Escrow
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Not yet funded at all
   return (
     <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
       <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center">
@@ -117,15 +151,23 @@ function EscrowBanner({
         <p className="text-sm font-semibold text-amber-800">Payment Pending — Fund Escrow to Begin</p>
         <p className="text-xs text-amber-600 mt-0.5 leading-relaxed">
           {isPoster
-            ? `Lock ${formatCurrency(contract.totalAmount)} in escrow so the contractor can safely start work. Funds are only released when you approve milestones.`
-            : 'The client needs to fund the escrow before work can begin. You will be notified as soon as the funds are secured.'}
+            ? `Lock funds in escrow so the contractor can safely start work. Choose to fund all upfront or per milestone.`
+            : 'The client needs to fund the escrow before work can begin. You will be notified as soon as funds are secured.'}
         </p>
       </div>
       {isPoster && (
-        <Button size="sm" onClick={onOpenFundModal} className="flex-shrink-0 self-center">
-          <Lock className="w-3.5 h-3.5 mr-1.5" />
-          Fund Escrow
-        </Button>
+        <div className="flex flex-col gap-1.5 flex-shrink-0 self-center">
+          <Button size="sm" onClick={() => onOpenFundModal('full')} className="whitespace-nowrap">
+            <Lock className="w-3.5 h-3.5 mr-1.5" />
+            Fund All Now
+          </Button>
+          <button
+            onClick={() => onOpenFundModal('per-milestone')}
+            className="text-xs text-amber-700 underline hover:text-amber-900 text-center"
+          >
+            Fund per milestone
+          </button>
+        </div>
       )}
     </div>
   );
@@ -142,6 +184,8 @@ function MilestoneCard({
   onStart,
   onSubmit,
   onApprove,
+  onFundMilestone,
+  fundingMilestone,
   actionLoading,
 }: {
   milestone: Milestone;
@@ -152,10 +196,14 @@ function MilestoneCard({
   onStart: (idx: number) => void;
   onSubmit: (idx: number) => void;
   onApprove: (idx: number) => void;
+  onFundMilestone: (idx: number) => void;
+  fundingMilestone: boolean;
   actionLoading: boolean;
 }) {
   const cfg = MS_CFG[milestone.status] ?? MS_CFG.pending;
   const Icon = cfg.icon;
+  // Milestone can be started if full escrow is funded OR this milestone's own escrow is funded
+  const thisEscrowFunded = escrowFunded || milestone.escrowFunded === true;
 
   return (
     <div className={`rounded-xl border p-4 ${cfg.bg} transition-all`}>
@@ -209,8 +257,8 @@ function MilestoneCard({
 
       {/* Action buttons */}
       <div className="mt-3 pt-3 border-t border-current border-opacity-10 flex flex-wrap gap-2">
-        {/* Contractor: start pending */}
-        {isContractor && milestone.status === 'pending' && escrowFunded && (
+        {/* Contractor: start pending (full or per-milestone escrow funded) */}
+        {isContractor && milestone.status === 'pending' && thisEscrowFunded && (
           <Button size="xs" variant="outline" onClick={() => onStart(index - 1)} loading={actionLoading}>
             <Play className="w-3 h-3 mr-1" />
             Start Milestone
@@ -218,7 +266,7 @@ function MilestoneCard({
         )}
 
         {/* Contractor: pending but escrow not funded */}
-        {isContractor && milestone.status === 'pending' && !escrowFunded && (
+        {isContractor && milestone.status === 'pending' && !thisEscrowFunded && (
           <p className="text-xs text-amber-600 italic">Waiting for escrow to be funded…</p>
         )}
 
@@ -228,6 +276,28 @@ function MilestoneCard({
             <Upload className="w-3 h-3 mr-1" />
             Upload Proof & Submit
           </Button>
+        )}
+
+        {/* Poster: fund this milestone's escrow (per-milestone mode — not yet funded, not approved) */}
+        {isPoster && !escrowFunded && !milestone.escrowFunded && milestone.status !== 'approved' && (
+          <Button
+            size="xs"
+            variant="outline"
+            className="border-amber-300 text-amber-700 hover:bg-amber-50"
+            onClick={() => onFundMilestone(index - 1)}
+            loading={fundingMilestone}
+          >
+            <Lock className="w-3 h-3 mr-1" />
+            Fund Milestone Escrow
+          </Button>
+        )}
+
+        {/* Poster: per-milestone escrow funded indicator */}
+        {isPoster && !escrowFunded && milestone.escrowFunded && milestone.status !== 'approved' && (
+          <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+            <Lock className="w-3 h-3" />
+            Milestone Escrow Funded ✓
+          </span>
         )}
 
         {/* Poster: release payment when completed */}
@@ -628,6 +698,8 @@ export default function ContractDetailPage() {
   const [retryCount, setRetryCount] = useState(0);
   const [funding, setFunding] = useState(false);
   const [fundModalOpen, setFundModalOpen] = useState(false);
+  const [fundMode, setFundMode] = useState<'full' | 'per-milestone'>('full');
+  const [fundingMilestone, setFundingMilestone] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Proof upload modal
@@ -750,6 +822,27 @@ export default function ContractDetailPage() {
       toast.error('Failed to fund escrow', err?.response?.data?.message || 'Please try again.');
     } finally {
       setFunding(false);
+    }
+  }
+
+  // ── Fund Milestone Escrow (per-milestone mode) ──────────────────────────────
+
+  async function handleFundMilestoneEscrow(milestoneIndex: number) {
+    if (!contract) return;
+    setFundingMilestone(true);
+    try {
+      await contractsApi.fundMilestoneEscrow(contract.id, milestoneIndex);
+      const res = await contractsApi.get(contract.id);
+      setContract(res.data.data);
+      const ms = (contract.milestones ?? [])[milestoneIndex];
+      toast.success(
+        'Milestone Escrow Funded 🔒',
+        `${ms ? formatCurrency(ms.amount) : 'Funds'} locked for "${ms?.title ?? `Milestone ${milestoneIndex + 1}`}". The contractor can now start this milestone.`
+      );
+    } catch (err: any) {
+      toast.error('Failed to fund milestone escrow', err?.response?.data?.message || 'Please try again.');
+    } finally {
+      setFundingMilestone(false);
     }
   }
 
@@ -1002,7 +1095,7 @@ export default function ContractDetailPage() {
       <EscrowBanner
         contract={contract}
         isPoster={isPoster}
-        onOpenFundModal={() => setFundModalOpen(true)}
+        onOpenFundModal={(mode) => { setFundMode(mode ?? 'full'); setFundModalOpen(true); }}
       />
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -1076,6 +1169,8 @@ export default function ContractDetailPage() {
                     onStart={handleStart}
                     onSubmit={openProofModal}
                     onApprove={openApproveModal}
+                    onFundMilestone={handleFundMilestoneEscrow}
+                    fundingMilestone={fundingMilestone}
                     actionLoading={actionLoading}
                   />
                 ))}
@@ -1328,56 +1423,153 @@ export default function ContractDetailPage() {
       {/* ── Fund Escrow Modal ────────────────────────────────────────────────── */}
       <Modal
         open={fundModalOpen}
-        onClose={() => { if (!funding) setFundModalOpen(false); }}
-        title="Fund Escrow"
+        onClose={() => { if (!funding && !fundingMilestone) setFundModalOpen(false); }}
+        title={fundMode === 'per-milestone' ? 'Fund Escrow — Per Milestone' : 'Fund Escrow'}
         footer={
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={() => setFundModalOpen(false)} disabled={funding}>
-              Cancel
-            </Button>
-            <Button onClick={handleFundEscrow} loading={funding}>
-              <Lock className="w-4 h-4 mr-2" />
-              Confirm &amp; Fund {formatCurrency(contract.totalAmount)}
-            </Button>
-          </div>
+          fundMode === 'full' ? (
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setFundModalOpen(false)} disabled={funding}>
+                Cancel
+              </Button>
+              <Button onClick={handleFundEscrow} loading={funding}>
+                <Lock className="w-4 h-4 mr-2" />
+                Confirm &amp; Fund {formatCurrency(contract.totalAmount)}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setFundModalOpen(false)} disabled={fundingMilestone}>
+                Close
+              </Button>
+            </div>
+          )
         }
       >
-        <div className="space-y-5">
-          {/* Amount highlight */}
-          <div className="flex items-center justify-between bg-brand-50 border border-brand-100 rounded-xl px-5 py-4">
-            <div>
-              <p className="text-xs text-brand-500 font-medium uppercase tracking-wide">Amount to Lock</p>
-              <p className="text-2xl font-bold text-dark-900 mt-0.5">{formatCurrency(contract.totalAmount)}</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-brand-100 flex items-center justify-center">
-              <Lock className="w-6 h-6 text-brand-600" />
-            </div>
-          </div>
-
-          {/* How it works */}
-          <div className="space-y-2.5">
-            {[
-              { icon: Lock,        text: 'Funds are held securely in escrow — not paid to the contractor yet.' },
-              { icon: CheckCircle, text: 'Payment is only released when you approve each completed milestone.' },
-              { icon: ShieldCheck, text: 'If there is a dispute, your funds are protected until it is resolved.' },
-            ].map(({ icon: Icon, text }, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center">
-                  <Icon className="w-3.5 h-3.5 text-green-600" />
-                </div>
-                <p className="text-sm text-dark-600 leading-snug">{text}</p>
-              </div>
+        {/* Mode toggle tabs */}
+        {milestones.length > 0 && (
+          <div className="flex gap-2 mb-5 p-1 bg-gray-100 rounded-xl">
+            {(['full', 'per-milestone'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setFundMode(m)}
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                  fundMode === m
+                    ? 'bg-white shadow-sm text-dark-900'
+                    : 'text-dark-400 hover:text-dark-600'
+                }`}
+              >
+                {m === 'full' ? '🔒 Fund All Upfront' : '📋 Fund Per Milestone'}
+              </button>
             ))}
           </div>
+        )}
 
-          {/* Contractor notice */}
-          <div className="flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
-            <ShieldCheck className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-blue-700 leading-relaxed">
-              <span className="font-semibold">The contractor will be notified instantly</span> once funds are secured and can begin work right away.
-            </p>
+        {fundMode === 'full' ? (
+          <div className="space-y-5">
+            {/* Amount highlight */}
+            <div className="flex items-center justify-between bg-brand-50 border border-brand-100 rounded-xl px-5 py-4">
+              <div>
+                <p className="text-xs text-brand-500 font-medium uppercase tracking-wide">Amount to Lock</p>
+                <p className="text-2xl font-bold text-dark-900 mt-0.5">{formatCurrency(contract.totalAmount)}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-brand-100 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-brand-600" />
+              </div>
+            </div>
+
+            {/* How it works */}
+            <div className="space-y-2.5">
+              {[
+                { icon: Lock,        text: 'Entire contract value is held securely in escrow upfront.' },
+                { icon: CheckCircle, text: 'Payment is only released when you approve each completed milestone.' },
+                { icon: ShieldCheck, text: 'If there is a dispute, your funds are protected until it is resolved.' },
+              ].map(({ icon: Icon, text }, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center">
+                    <Icon className="w-3.5 h-3.5 text-green-600" />
+                  </div>
+                  <p className="text-sm text-dark-600 leading-snug">{text}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Contractor notice */}
+            <div className="flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
+              <ShieldCheck className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700 leading-relaxed">
+                <span className="font-semibold">The contractor will be notified instantly</span> once funds are secured and can begin work right away.
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-dark-500">
+              Fund each milestone individually before the contractor starts it. You only lock funds when needed.
+            </p>
+
+            {milestones.length === 0 ? (
+              <p className="text-xs text-dark-400 italic">No milestones defined for this contract.</p>
+            ) : (
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                {milestones.map((ms, i) => {
+                  const alreadyFunded = contract.escrowFunded || ms.escrowFunded;
+                  const isApproved = ms.status === 'approved';
+                  return (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-3 p-3 rounded-xl border ${
+                        isApproved
+                          ? 'bg-green-50 border-green-200'
+                          : alreadyFunded
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xs font-bold text-dark-500">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-dark-900 truncate">{ms.title}</p>
+                        <p className="text-xs text-dark-400">{formatCurrency(ms.amount)}</p>
+                      </div>
+                      {isApproved ? (
+                        <span className="text-xs text-green-600 font-medium flex items-center gap-1 flex-shrink-0">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Paid
+                        </span>
+                      ) : alreadyFunded ? (
+                        <span className="text-xs text-blue-600 font-medium flex items-center gap-1 flex-shrink-0">
+                          <Lock className="w-3.5 h-3.5" />
+                          Funded ✓
+                        </span>
+                      ) : (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          className="border-amber-300 text-amber-700 hover:bg-amber-50 flex-shrink-0"
+                          loading={fundingMilestone}
+                          onClick={async () => {
+                            await handleFundMilestoneEscrow(i);
+                          }}
+                        >
+                          <Lock className="w-3 h-3 mr-1" />
+                          Fund
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
+              <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700 leading-relaxed">
+                <span className="font-semibold">Fund each milestone before the contractor starts it.</span> The contractor will be notified each time you fund a milestone.
+              </p>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* ── Proof Upload Modal ───────────────────────────────────────────────── */}

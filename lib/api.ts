@@ -81,7 +81,11 @@ export const contractsApi = {
   updateMilestones: (id: string, milestones: unknown[]) =>
     api.put(`/contracts/${id}/milestones`, { milestones }),
   // ── Escrow ──────────────────────────────────────────────────────────────────
+  // Full upfront: locks entire contract amount
   fundEscrow: (id: string) => api.post(`/contracts/${id}/fund`),
+  // Per-milestone: locks only one milestone's amount at a time
+  fundMilestoneEscrow: (id: string, milestoneIndex: number) =>
+    api.post(`/contracts/${id}/fund-milestone`, { milestoneIndex }),
   // ── Milestone lifecycle ─────────────────────────────────────────────────────
   startMilestone: (id: string, milestoneIndex: number) =>
     api.post(`/contracts/${id}/milestones/start`, { milestoneIndex }),
