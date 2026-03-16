@@ -267,6 +267,7 @@ export interface WalletStats {
   totalEarned: number;
   thisMonthEarnings: number;
   thisMonthFees: number;
+  pendingTransactions?: number;
 }
 
 export type TransactionType = 'credit' | 'debit' | 'withdrawal' | 'fee' | 'refund';

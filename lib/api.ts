@@ -268,6 +268,48 @@ export const uploadApi = {
   },
 };
 
+// ─── Super Admin API ──────────────────────────────────────────────────────────
+
+export const adminApi = {
+  // Analytics
+  stats: () => api.get('/admin/stats'),
+  revenueChart: () => api.get('/admin/revenue-chart'),
+  userGrowthChart: () => api.get('/admin/user-growth-chart'),
+  recentActivity: (limit?: number) => api.get('/admin/activity', { params: limit ? { limit } : undefined }),
+
+  // User Management
+  listUsers: (params?: Record<string, string | number | boolean>) => api.get('/admin/users', { params }),
+  getUser: (id: string) => api.get(`/admin/users/${id}`),
+  updateUser: (id: string, data: Record<string, unknown>) => api.patch(`/admin/users/${id}`, data),
+  deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
+  adjustWallet: (id: string, data: { amount: number; type: 'credit' | 'debit'; description?: string }) =>
+    api.post(`/admin/users/${id}/wallet-adjust`, data),
+
+  // Job Management
+  listJobs: (params?: Record<string, string | number>) => api.get('/admin/jobs', { params }),
+  getJob: (id: string) => api.get(`/admin/jobs/${id}`),
+  updateJob: (id: string, data: Record<string, unknown>) => api.patch(`/admin/jobs/${id}`, data),
+  deleteJob: (id: string) => api.delete(`/admin/jobs/${id}`),
+
+  // Contract Management
+  listContracts: (params?: Record<string, string | number>) => api.get('/admin/contracts', { params }),
+  getContract: (id: string) => api.get(`/admin/contracts/${id}`),
+
+  // Transaction Management
+  listTransactions: (params?: Record<string, string | number>) => api.get('/admin/transactions', { params }),
+
+  // Dispute Management
+  listDisputes: (params?: Record<string, string | number>) => api.get('/admin/disputes', { params }),
+
+  // Review Management
+  listReviews: (params?: Record<string, string | number>) => api.get('/admin/reviews', { params }),
+  deleteReview: (id: string) => api.delete(`/admin/reviews/${id}`),
+
+  // Broadcast Notification
+  broadcast: (data: { title: string; message: string; targetRole?: string; type?: string }) =>
+    api.post('/admin/broadcast', data),
+};
+
 // ─── AI Assistant ─────────────────────────────────────────────────────────────
 
 export type AiTextPart = { type: 'text'; text: string };

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
-  ShieldCheck, BanknoteIcon,
+  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -42,12 +42,46 @@ const contractorNavItems: NavItem[] = [
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];
 
-const adminNavItems: NavItem[] = [
-  { href: ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/deposits', label: 'Deposit Requests', icon: BanknoteIcon },
-  { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
-  { href: ROUTES.PROFILE, label: 'Profile', icon: User },
+// ── Admin nav section type ────────────────────────────────────────────────────
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+const adminNavSections: NavSection[] = [
+  {
+    label: 'Overview',
+    items: [
+      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/admin/analytics', label: 'Analytics', icon: BarChart2 },
+    ],
+  },
+  {
+    label: 'Manage',
+    items: [
+      { href: '/admin/users', label: 'Users', icon: Users },
+      { href: '/admin/jobs', label: 'Jobs', icon: Briefcase },
+      { href: '/admin/contracts', label: 'Contracts', icon: FileText },
+      { href: '/admin/transactions', label: 'Transactions', icon: DollarSign },
+    ],
+  },
+  {
+    label: 'Actions',
+    items: [
+      { href: '/admin/deposits', label: 'Deposit Requests', icon: BanknoteIcon },
+      { href: '/admin/disputes', label: 'Disputes', icon: AlertCircle },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { href: ROUTES.PROFILE, label: 'Profile', icon: User },
+    ],
+  },
 ];
+
+// Flat list for backwards compat (used in navItems selector)
+const adminNavItems: NavItem[] = adminNavSections.flatMap(s => s.items);
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -94,42 +128,81 @@ export function Sidebar() {
 
         {/* User type badge */}
         <div className="px-5 py-3 border-b border-dark-700">
-          <span className="text-xs font-medium text-brand-400 uppercase tracking-wider">
-            {user?.role === 'contractor' ? '⚡ Contractor' : '📋 Job Poster'}
+          <span className="text-xs font-medium text-brand-400 uppercase tracking-wider flex items-center gap-1.5">
+            {user?.role === 'admin'
+              ? <><Shield className="w-3.5 h-3.5" /> Super Admin</>
+              : user?.role === 'contractor'
+                ? '⚡ Contractor'
+                : '📋 Job Poster'}
           </span>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 py-4 px-3 overflow-y-auto">
-          <ul className="space-y-0.5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setSidebar(false)}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150',
-                      isActive
-                        ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
-                        : 'text-dark-300 hover:text-white hover:bg-dark-700'
-                    )}
-                  >
-                    <Icon className={cn('w-5 h-5 flex-shrink-0', isActive ? 'text-brand-400' : '')} />
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-brand-500 text-white text-xs font-semibold">
-                        {item.badge}
-                      </span>
-                    )}
-                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-brand-400" />}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          {user?.role === 'admin' ? (
+            // ── Admin: sectioned nav ──────────────────────────────────────
+            <div className="space-y-5">
+              {adminNavSections.map((section) => (
+                <div key={section.label}>
+                  <p className="px-3 mb-1 text-[10px] font-semibold text-dark-500 uppercase tracking-widest">
+                    {section.label}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+                      return (
+                        <li key={item.href}>
+                          <Link href={item.href} onClick={() => setSidebar(false)}
+                            className={cn(
+                              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150',
+                              isActive
+                                ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
+                                : 'text-dark-300 hover:text-white hover:bg-dark-700'
+                            )}>
+                            <Icon className={cn('w-4 h-4 flex-shrink-0', isActive ? 'text-brand-400' : '')} />
+                            <span className="flex-1">{item.label}</span>
+                            {isActive && <ChevronRight className="w-3 h-3 text-brand-400" />}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // ── Regular user: flat nav ────────────────────────────────────
+            <ul className="space-y-0.5">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setSidebar(false)}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150',
+                        isActive
+                          ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
+                          : 'text-dark-300 hover:text-white hover:bg-dark-700'
+                      )}
+                    >
+                      <Icon className={cn('w-5 h-5 flex-shrink-0', isActive ? 'text-brand-400' : '')} />
+                      <span className="flex-1">{item.label}</span>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-brand-500 text-white text-xs font-semibold">
+                          {item.badge}
+                        </span>
+                      )}
+                      {isActive && <ChevronRight className="w-3.5 h-3.5 text-brand-400" />}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </nav>
 
         {/* User section */}
