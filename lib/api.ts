@@ -343,4 +343,40 @@ export const imageGenApi = {
   },
 };
 
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  accountHolderName: string;
+  accountNumber: string;
+  routingNumber?: string;
+  ifscCode?: string;
+  swiftCode?: string;
+  branch?: string;
+  bankAddress?: string;
+  paymentInstructions?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const bankSettingsApi = {
+  /** Authenticated users: get active bank accounts for deposit page */
+  getAll: () => api.get<{ banks: BankAccount[] }>('/bank-settings'),
+
+  /** Admin: get all bank accounts (including inactive) */
+  adminGetAll: () => api.get<{ banks: BankAccount[] }>('/bank-settings/admin'),
+
+  /** Admin: create a new bank account */
+  adminCreate: (data: Omit<BankAccount, 'id'>) =>
+    api.post<{ bank: BankAccount }>('/bank-settings/admin', data),
+
+  /** Admin: update a bank account */
+  adminUpdate: (id: string, data: Partial<Omit<BankAccount, 'id'>>) =>
+    api.put<{ bank: BankAccount }>(`/bank-settings/admin/${id}`, data),
+
+  /** Admin: delete a bank account */
+  adminDelete: (id: string) => api.delete(`/bank-settings/admin/${id}`),
+};
+
 export default api;

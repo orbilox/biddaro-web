@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
-  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield,
+  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -70,6 +70,12 @@ const adminNavSections: NavSection[] = [
     items: [
       { href: '/admin/deposits', label: 'Deposit Requests', icon: BanknoteIcon },
       { href: '/admin/disputes', label: 'Disputes', icon: AlertCircle },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { href: '/admin/bank-settings', label: 'Bank Settings', icon: Building2 },
     ],
   },
   {

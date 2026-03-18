@@ -11,30 +11,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { toast } from '@/store/uiStore';
-import { walletApi, depositRequestsApi, uploadApi } from '@/lib/api';
+import { walletApi, depositRequestsApi, uploadApi, bankSettingsApi, BankAccount } from '@/lib/api';
 import type { Transaction, Wallet as WalletType, WalletStats } from '@/types';
-
-// ─── Bank account details shown to users ─────────────────────────────────────
-const BANK_ACCOUNTS = [
-  {
-    id: 'chase',
-    bankName: 'Chase Bank',
-    accountHolder: 'Biddaro Inc.',
-    accountNumber: '****  ****  4892',
-    routingNumber: '021000021',
-    swift: 'CHASUS33',
-    type: 'Checking',
-  },
-  {
-    id: 'wells',
-    bankName: 'Wells Fargo',
-    accountHolder: 'Biddaro Inc.',
-    accountNumber: '****  ****  7314',
-    routingNumber: '121042882',
-    swift: 'WFBIUS6S',
-    type: 'Checking',
-  },
-];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface DepositRequest {
@@ -156,7 +134,8 @@ export default function WalletPage() {
   // ── Add Funds / Bank Transfer modal ──
   const [depositOpen, setDepositOpen] = useState(false);
   const [depositStep, setDepositStep] = useState<1 | 2>(1);
-  const [selectedBank, setSelectedBank] = useState(BANK_ACCOUNTS[0]);
+  const [banks, setBanks] = useState<BankAccount[]>([]);
+  const [selectedBank, setSelectedBank] = useState<BankAccount | null>(null);
 
   // Step 2 fields
   const [txAmount, setTxAmount]     = useState('');
@@ -173,11 +152,12 @@ export default function WalletPage() {
   const loadWallet = async () => {
     setLoading(true);
     try {
-      const [walletRes, txRes, statsRes, depRes] = await Promise.allSettled([
+      const [walletRes, txRes, statsRes, depRes, banksRes] = await Promise.allSettled([
         walletApi.get(),
         walletApi.transactions({ limit: 20 }),
         walletApi.stats(),
         depositRequestsApi.myRequests({ limit: 20 }),
+        bankSettingsApi.getAll(),
       ]);
       if (walletRes.status === 'fulfilled') setWallet(walletRes.value.data.data);
       if (txRes.status === 'fulfilled') {
@@ -188,6 +168,12 @@ export default function WalletPage() {
       if (depRes.status === 'fulfilled') {
         const d = depRes.value.data.data;
         setDepositReqs(d.data || (Array.isArray(d) ? d : []));
+      }
+      if (banksRes.status === 'fulfilled') {
+        const d = banksRes.value.data as any;
+        const loaded: BankAccount[] = d?.data?.banks ?? d?.banks ?? [];
+        setBanks(loaded);
+        if (loaded.length > 0) setSelectedBank(loaded[0]);
       }
     } finally {
       setLoading(false);
@@ -218,7 +204,7 @@ export default function WalletPage() {
   // ── Open deposit modal (reset) ──
   const openDeposit = () => {
     setDepositStep(1);
-    setSelectedBank(BANK_ACCOUNTS[0]);
+    setSelectedBank(banks[0] ?? null);
     setTxAmount('');
     setTxId('');
     setSenderName('');
@@ -416,7 +402,7 @@ export default function WalletPage() {
             ) : (
               <>
                 <Button variant="outline" onClick={() => setDepositOpen(false)}>Cancel</Button>
-                <Button onClick={() => setDepositStep(2)}>
+                <Button onClick={() => setDepositStep(2)} disabled={!selectedBank}>
                   I&apos;ve Made the Transfer
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -464,44 +450,60 @@ export default function WalletPage() {
             {/* Bank selector tabs */}
             <div>
               <p className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-2">Select Destination Bank</p>
-              <div className="flex gap-2">
-                {BANK_ACCOUNTS.map((bank) => (
-                  <button
-                    key={bank.id}
-                    onClick={() => setSelectedBank(bank)}
-                    className={`flex-1 flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 transition-all text-left ${
-                      selectedBank.id === bank.id
-                        ? 'border-brand-500 bg-brand-50'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      selectedBank.id === bank.id ? 'bg-brand-500' : 'bg-gray-100'
-                    }`}>
-                      <Building2 className={`w-4 h-4 ${selectedBank.id === bank.id ? 'text-white' : 'text-dark-400'}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-dark-900 truncate">{bank.bankName}</p>
-                      <p className="text-xs text-dark-400">{bank.type}</p>
-                    </div>
-                    {selectedBank.id === bank.id && <CheckCircle className="w-3.5 h-3.5 text-brand-500 ml-auto flex-shrink-0" />}
-                  </button>
-                ))}
-              </div>
+              {banks.length === 0 ? (
+                <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-xl text-sm text-dark-400">
+                  No bank accounts configured. Please contact admin.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {banks.map((bank) => (
+                    <button
+                      key={bank.id}
+                      onClick={() => setSelectedBank(bank)}
+                      className={`flex-1 min-w-[160px] flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 transition-all text-left ${
+                        selectedBank?.id === bank.id
+                          ? 'border-brand-500 bg-brand-50'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        selectedBank?.id === bank.id ? 'bg-brand-500' : 'bg-gray-100'
+                      }`}>
+                        <Building2 className={`w-4 h-4 ${selectedBank?.id === bank.id ? 'text-white' : 'text-dark-400'}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-dark-900 truncate">{bank.bankName}</p>
+                        <p className="text-xs text-dark-400 truncate">
+                          {bank.branch || bank.ifscCode || bank.swiftCode || 'Bank Transfer'}
+                        </p>
+                      </div>
+                      {selectedBank?.id === bank.id && <CheckCircle className="w-3.5 h-3.5 text-brand-500 ml-auto flex-shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Account details — 2-col grid */}
-            <div>
-              <p className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-2">Account Details</p>
-              <div className="grid grid-cols-2 gap-2">
-                <CopyField label="Account Holder" value={selectedBank.accountHolder} />
-                <CopyField label="Account Type"   value={selectedBank.type} />
-                <CopyField label="Account Number" value={selectedBank.accountNumber} />
-                <CopyField label="Routing Number" value={selectedBank.routingNumber} />
-                <CopyField label="SWIFT / BIC"    value={selectedBank.swift} />
-                <CopyField label="Currency"       value="USD" />
+            {selectedBank && (
+              <div>
+                <p className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-2">Account Details</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <CopyField label="Account Holder" value={selectedBank.accountHolderName} />
+                  <CopyField label="Account Number" value={selectedBank.accountNumber} />
+                  {selectedBank.ifscCode && <CopyField label="IFSC Code" value={selectedBank.ifscCode} />}
+                  {selectedBank.routingNumber && <CopyField label="Routing Number" value={selectedBank.routingNumber} />}
+                  {selectedBank.swiftCode && <CopyField label="SWIFT / BIC" value={selectedBank.swiftCode} />}
+                  {selectedBank.branch && <CopyField label="Branch" value={selectedBank.branch} />}
+                </div>
+                {selectedBank.paymentInstructions && (
+                  <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 text-xs text-blue-700 leading-relaxed flex gap-2">
+                    <span className="flex-shrink-0">📋</span>
+                    <span>{selectedBank.paymentInstructions}</span>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-100 rounded-xl px-3 py-2.5 text-xs text-yellow-700">
               <span className="flex-shrink-0 mt-px">⚠️</span>
@@ -518,7 +520,7 @@ export default function WalletPage() {
               </div>
               <div>
                 <p className="text-xs text-dark-400">Depositing to</p>
-                <p className="text-sm font-semibold text-dark-900">{selectedBank.bankName} · {selectedBank.accountHolder}</p>
+                <p className="text-sm font-semibold text-dark-900">{selectedBank?.bankName} · {selectedBank?.accountHolderName}</p>
               </div>
             </div>
 
