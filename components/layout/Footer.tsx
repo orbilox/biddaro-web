@@ -101,9 +101,10 @@ export function Footer() {
             <h4 className="text-white font-semibold text-sm mb-4">Legal</h4>
             <ul className="space-y-2">
               {[
-                { label: 'Privacy Policy',   href: '#' },
-                { label: 'Terms of Service', href: '#' },
+                { label: 'Privacy Policy',   href: '/privacy-policy' },
+                { label: 'Terms of Service', href: '/terms' },
                 { label: 'Cookie Policy',    href: '#' },
+                { label: 'Site Map',         href: '/html-sitemap' },
               ].map(({ label, href }) => (
                 <li key={label}>
                   <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
@@ -121,6 +122,7 @@ export function Footer() {
             <Link href="/ai" className="hover:text-white transition-colors">⚡ AI Tools</Link>
             <Link href="/blog" className="hover:text-white transition-colors">📝 Blog</Link>
             <Link href="/hire" className="hover:text-white transition-colors">👷 Find Contractors</Link>
+            <Link href="/html-sitemap" className="hover:text-white transition-colors">🗺️ Site Map</Link>
           </div>
         </div>
       </div>
