@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
-  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2,
+  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -38,6 +38,7 @@ const contractorNavItems: NavItem[] = [
   { href: ROUTES.CONTRACTS, label: 'Contracts', icon: FileText },
   { href: ROUTES.MESSAGES, label: 'Messages', icon: MessageSquare },
   { href: ROUTES.WALLET, label: 'Wallet', icon: Wallet },
+  { href: '/subscription', label: 'Premium', icon: Crown },
   { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];
@@ -63,6 +64,7 @@ const adminNavSections: NavSection[] = [
       { href: '/admin/jobs', label: 'Jobs', icon: Briefcase },
       { href: '/admin/contracts', label: 'Contracts', icon: FileText },
       { href: '/admin/transactions', label: 'Transactions', icon: DollarSign },
+      { href: '/admin/premium', label: 'Premium', icon: Crown },
     ],
   },
   {
@@ -195,8 +197,13 @@ export function Sidebar() {
                           : 'text-dark-300 hover:text-white hover:bg-dark-700'
                       )}
                     >
-                      <Icon className={cn('w-5 h-5 flex-shrink-0', isActive ? 'text-brand-400' : '')} />
+                      <Icon className={cn('w-5 h-5 flex-shrink-0', isActive ? 'text-brand-400' : '', item.label === 'Premium' && !isActive ? 'text-amber-500' : '')} />
                       <span className="flex-1">{item.label}</span>
+                      {item.label === 'Premium' && (
+                        <span className="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                          PRO
+                        </span>
+                      )}
                       {item.badge !== undefined && item.badge > 0 && (
                         <span className="px-1.5 py-0.5 rounded-full bg-brand-500 text-white text-xs font-semibold">
                           {item.badge}

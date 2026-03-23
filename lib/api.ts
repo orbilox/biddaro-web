@@ -379,4 +379,64 @@ export const bankSettingsApi = {
   adminDelete: (id: string) => api.delete(`/bank-settings/admin/${id}`),
 };
 
+// ─── Premium Subscriptions ────────────────────────────────────────────────────
+
+export type PremiumPlan = 'monthly' | 'quarterly' | 'annual';
+export type PremiumStatus = 'active' | 'cancelled' | 'expired';
+
+export interface PremiumSubscription {
+  id: string;
+  plan: PremiumPlan;
+  amount: number;
+  status: PremiumStatus;
+  startDate: string;
+  expiresAt: string;
+  autoRenew: boolean;
+  createdAt: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    profileImage?: string;
+    rating?: number;
+  };
+}
+
+export interface ContractorPremiumStatus {
+  isPremium: boolean;
+  plan?: PremiumPlan;
+  expiresAt?: string;
+  subscribedAt?: string;
+  autoRenew?: boolean;
+  daysRemaining?: number;
+}
+
+export const premiumApi = {
+  // ── Contractor-facing ──────────────────────────────────────────────────────
+  /** Get current premium status for logged-in contractor */
+  getStatus: () => api.get<{ data: ContractorPremiumStatus }>('/premium/status'),
+
+  /** Subscribe or upgrade to a plan (debits wallet) */
+  subscribe: (plan: PremiumPlan) =>
+    api.post<{ data: PremiumSubscription }>('/premium/subscribe', { plan }),
+
+  /** Cancel auto-renewal (stays active until expiry) */
+  cancel: () => api.post('/premium/cancel'),
+
+  /** Subscription history for the contractor */
+  getHistory: () => api.get<{ data: PremiumSubscription[] }>('/premium/history'),
+
+  // ── Admin ──────────────────────────────────────────────────────────────────
+  /** Overall premium revenue stats */
+  adminStats: () => api.get('/admin/premium/stats'),
+
+  /** Paginated list of all premium subscriptions */
+  adminList: (params?: Record<string, string | number>) =>
+    api.get('/admin/premium/subscriptions', { params }),
+
+  /** Monthly revenue breakdown for charts */
+  adminRevenue: () => api.get('/admin/premium/revenue'),
+};
+
 export default api;

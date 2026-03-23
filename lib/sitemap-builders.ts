@@ -10,7 +10,7 @@
  *  Sitemap breakdown:
  *   ID  Path            Contents                              ~URLs
  *   ──  ──────────────  ────────────────────────────────────  ──────
- *   0   /sitemap/0      Static & core pages                      14
+ *   0   /sitemap/0      Static & core pages                      15
  *   1   /sitemap/1      /hire/[cat] + /hire/[cat]/[state]       640
  *   2   /sitemap/2      /hire cities — states  0–10           2,360
  *   3   /sitemap/3      /hire cities — states 11–20           2,160
@@ -82,6 +82,7 @@ function buildStaticSitemap(): SitemapEntry[] {
     entry('/login',          0.6,  'monthly'),
     entry('/about',          0.7,  'monthly'),
     entry('/pricing',        0.8,  'monthly'),
+    entry('/premium',        0.85, 'monthly'),
     entry('/contact',        0.6,  'monthly'),
     entry('/html-sitemap',   0.5,  'monthly'),
     entry('/privacy-policy', 0.3,  'yearly'),

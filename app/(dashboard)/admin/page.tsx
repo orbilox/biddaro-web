@@ -7,7 +7,7 @@ import { toast } from '@/store/uiStore';
 import {
   Users, Briefcase, FileText, DollarSign, AlertTriangle,
   TrendingUp, TrendingDown, Clock, CheckCircle, XCircle,
-  ArrowUpRight, Star, BanknoteIcon, Activity, Shield,
+  ArrowUpRight, Star, BanknoteIcon, Activity, Shield, Crown,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -315,6 +315,7 @@ export default function AdminDashboardPage() {
             { href: '/admin/deposits', icon: BanknoteIcon, label: 'Deposits', color: 'bg-brand-50 text-brand-600' },
             { href: '/admin/disputes', icon: AlertTriangle, label: 'Disputes', color: 'bg-red-50 text-red-500' },
             { href: '/admin/analytics', icon: TrendingUp, label: 'Analytics', color: 'bg-amber-50 text-amber-600' },
+            { href: '/admin/premium', icon: Crown, label: 'Premium', color: 'bg-amber-50 text-amber-600' },
           ].map(({ href, icon: Icon, label, color }) => (
             <Link key={href} href={href}
               className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-100 hover:border-brand-200 hover:bg-brand-50 transition-all group">

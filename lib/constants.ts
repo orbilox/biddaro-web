@@ -100,6 +100,7 @@ export const ROUTES = {
   PUBLIC_PROFILE: (id: string) => `/profile/${id}`,
   FIND_WORK: '/find-work',
   OPEN_JOBS: '/open-jobs',
+  PREMIUM: '/premium',
   // Programmatic SEO – hire pages
   HIRE: '/hire',
   HIRE_CATEGORY: (category: string) => `/hire/${category}`,

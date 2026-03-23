@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HardHat, Menu, X, LayoutDashboard, Sparkles, Wand2, MapPin } from 'lucide-react';
+import { HardHat, Menu, X, LayoutDashboard, Sparkles, Wand2, MapPin, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
@@ -32,6 +32,7 @@ export function Navbar() {
     { href: '#how-it-works',       label: 'How It Works' },
     { href: ROUTES.OPEN_JOBS,      label: 'Find Jobs' },
     { href: ROUTES.HIRE,           label: 'Find Contractors', isNew: false, icon: MapPin, isLocation: true },
+    { href: ROUTES.PREMIUM,        label: 'Premium',         isNew: false, icon: Crown, isPro: true },
     { href: ROUTES.AI_ASSISTANT,   label: 'AI Assistant',    isNew: true,  icon: Sparkles },
     { href: ROUTES.AI_IMAGE,       label: 'AI Image',        isNew: true,  icon: Wand2 },
   ];
@@ -77,10 +78,18 @@ export function Navbar() {
                   {'isLocation' in link && link.isLocation && NavIcon && (
                     <NavIcon className="w-3.5 h-3.5 text-brand-400" />
                   )}
-                  {link.isNew && NavIcon && !('isLocation' in link && link.isLocation) && (
+                  {'isPro' in link && link.isPro && NavIcon && (
+                    <NavIcon className="w-3.5 h-3.5 text-amber-500" />
+                  )}
+                  {link.isNew && NavIcon && !('isLocation' in link && link.isLocation) && !('isPro' in link && link.isPro) && (
                     <NavIcon className="w-3.5 h-3.5 text-brand-400" />
                   )}
                   {link.label}
+                  {'isPro' in link && link.isPro && (
+                    <span className="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                      PRO
+                    </span>
+                  )}
                   {link.isNew && (
                     <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
                       FREE
@@ -148,10 +157,18 @@ export function Navbar() {
                   {'isLocation' in link && link.isLocation && NavIcon && (
                     <NavIcon className="w-3.5 h-3.5 text-brand-400" />
                   )}
-                  {link.isNew && NavIcon && !('isLocation' in link && link.isLocation) && (
+                  {'isPro' in link && link.isPro && NavIcon && (
+                    <NavIcon className="w-3.5 h-3.5 text-amber-500" />
+                  )}
+                  {link.isNew && NavIcon && !('isLocation' in link && link.isLocation) && !('isPro' in link && link.isPro) && (
                     <NavIcon className="w-3.5 h-3.5 text-brand-400" />
                   )}
                   {link.label}
+                  {'isPro' in link && link.isPro && (
+                    <span className="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                      PRO
+                    </span>
+                  )}
                   {link.isNew && (
                     <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
                       FREE

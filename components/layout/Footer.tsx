@@ -30,6 +30,7 @@ export function Footer() {
                 { label: 'How It Works', href: '#' },
                 { label: 'Browse Jobs',  href: '#' },
                 { label: 'Post a Job',   href: '#' },
+                { label: 'Premium',      href: '/premium' },
                 { label: 'Pricing',      href: '#' },
               ].map(({ label, href }) => (
                 <li key={label}>
