@@ -539,9 +539,65 @@ export default function FindWorkPage() {
   };
 
   // ── Premium jobs (gov/corp) ────────────────────────────────────────────────
-  const premiumJobs = jobs.filter(
+  // Real gov/corp jobs from the API
+  const realPremiumJobs = jobs.filter(
     j => j.projectType === 'government' || j.projectType === 'corporate'
   );
+
+  // Demo premium jobs — always visible so non-premium users see locked cards
+  const demoPremiumJobs: Job[] = [
+    {
+      id: 'demo-gov-1',
+      title: 'City Hall HVAC System Upgrade — Municipal Government Contract',
+      description: 'Complete replacement and upgrade of the HVAC system for the city hall building. Requires licensed HVAC contractors with government project experience.',
+      category: 'HVAC',
+      budget: 125000,
+      currency: 'USD',
+      location: 'Dallas, TX',
+      status: 'open' as const,
+      projectType: 'government' as const,
+      bidCount: 5,
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      posterId: '',
+      poster: { id: '', firstName: 'Gov', lastName: 'Procurement', email: '', role: 'job_poster' as const, isVerified: true, createdAt: '', updatedAt: '' },
+    },
+    {
+      id: 'demo-corp-1',
+      title: 'Corporate Office Renovation — Fortune 500 Headquarters',
+      description: 'Full interior renovation of 3 floors of corporate office space. Premium finishes, modern open-plan design, and AV system integration required.',
+      category: 'Renovation',
+      budget: 280000,
+      currency: 'USD',
+      location: 'Austin, TX',
+      status: 'open' as const,
+      projectType: 'corporate' as const,
+      bidCount: 8,
+      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      posterId: '',
+      poster: { id: '', firstName: 'Enterprise', lastName: 'Facilities', email: '', role: 'job_poster' as const, isVerified: true, createdAt: '', updatedAt: '' },
+    },
+    {
+      id: 'demo-gov-2',
+      title: 'Public School Electrical Rewiring — State Education Board',
+      description: 'Complete electrical system rewiring for a public school built in 1965. Must comply with all state codes and ADA requirements.',
+      category: 'Electrical',
+      budget: 95000,
+      currency: 'USD',
+      location: 'Houston, TX',
+      status: 'open' as const,
+      projectType: 'government' as const,
+      bidCount: 3,
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      posterId: '',
+      poster: { id: '', firstName: 'State', lastName: 'Education', email: '', role: 'job_poster' as const, isVerified: true, createdAt: '', updatedAt: '' },
+    },
+  ];
+
+  // Combine real + demo — demo jobs only appear in Premium tab
+  const premiumJobs = [...realPremiumJobs, ...demoPremiumJobs];
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
