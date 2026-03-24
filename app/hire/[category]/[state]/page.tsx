@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   MapPin, Star, CheckCircle, ArrowRight, ChevronRight,
-  Shield, Zap, DollarSign, Clock, Users, Award,
+  Shield, Zap, DollarSign, Clock, Users, Award, Crown,
 } from 'lucide-react';
 import {
   JOB_CATEGORY_META, INDIA_LOCATIONS,
@@ -128,6 +128,7 @@ function getDummyContractors(cat: NonNullable<ReturnType<typeof getCategory>>, l
     reviews: 18 + i * 23,
     jobs: 32 + i * 41,
     verified: i < 5,
+    isPremium: i < 2,
     specialty: cat.skills[i % cat.skills.length],
     memberSince: `${2019 + (i % 5)}`,
   }));
@@ -136,17 +137,24 @@ function getDummyContractors(cat: NonNullable<ReturnType<typeof getCategory>>, l
 // ── Contractor Card ────────────────────────────────────────────────────────────
 function ContractorCard({ c }: { c: ReturnType<typeof getDummyContractors>[0] }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md hover:border-brand-200 transition-all group">
+    <div className={`bg-white border rounded-xl p-5 hover:shadow-md transition-all group ${c.isPremium ? 'border-amber-300 ring-1 ring-amber-100 hover:border-amber-400' : 'border-gray-200 hover:border-brand-200'}`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-lg flex-shrink-0">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0 ${c.isPremium ? 'bg-amber-100 text-amber-600' : 'bg-brand-100 text-brand-600'}`}>
           {c.name.charAt(0)}
         </div>
-        {c.verified && (
-          <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-medium">
-            <CheckCircle className="w-3 h-3" /> Verified
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {c.isPremium && (
+            <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          )}
+          {c.verified && (
+            <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-medium">
+              <CheckCircle className="w-3 h-3" /> Verified
+            </span>
+          )}
+        </div>
       </div>
 
       <h3 className="font-semibold text-dark-800 group-hover:text-brand-700 transition-colors mb-1 text-sm">

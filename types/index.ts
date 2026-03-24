@@ -48,6 +48,8 @@ export interface User {
   licenseNumber?: string;
   yearsExperience?: number;
   isVerified: boolean;
+  isPremium?: boolean;
+  premiumPlan?: string;
   rating?: number;
   isActive?: boolean;
   // ── Extended contractor profile ──────────────────────────────────────────

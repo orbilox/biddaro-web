@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   MapPin, Phone, Globe, Star, Briefcase, Award, CheckCircle,
   ArrowLeft, MessageSquare, Clock, DollarSign, Calendar,
-  Languages, Shield, ExternalLink, Loader2, AlertCircle, LogIn,
+  Languages, Shield, ExternalLink, Loader2, AlertCircle, LogIn, Crown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -223,6 +223,7 @@ export default function PublicProfilePage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -233,7 +234,23 @@ export default function PublicProfilePage() {
           reviewsApi.forUser(id),
         ]);
         if (profileRes.status === 'fulfilled') {
-          setContractor(profileRes.value.data.data as User);
+          const profile = profileRes.value.data.data as User;
+          setContractor(profile);
+
+          // Check premium status – backend field first, localStorage simulation fallback
+          if (profile.isPremium) {
+            setIsPremiumUser(true);
+          } else if (typeof window !== 'undefined') {
+            try {
+              const lsRaw = localStorage.getItem(`biddaro_premium_sub_${profile.id}`);
+              if (lsRaw) {
+                const lsData = JSON.parse(lsRaw);
+                if (lsData?.isPremium && lsData?.expiresAt && new Date(lsData.expiresAt) > new Date()) {
+                  setIsPremiumUser(true);
+                }
+              }
+            } catch { /* ignore parse errors */ }
+          }
         } else {
           setError('Contractor profile not found.');
         }
@@ -293,9 +310,9 @@ export default function PublicProfilePage() {
         <div className="space-y-4 lg:sticky lg:top-24">
 
           {/* Profile card */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className={`bg-white rounded-xl border overflow-hidden ${isPremiumUser ? 'border-amber-300 ring-1 ring-amber-200' : 'border-gray-200'}`}>
             {/* Cover */}
-            <div className="h-20 bg-gradient-to-br from-brand-500 via-brand-600 to-blue-600" />
+            <div className={`h-20 ${isPremiumUser ? 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500' : 'bg-gradient-to-br from-brand-500 via-brand-600 to-blue-600'}`} />
 
             <div className="px-5 pb-5">
               {/* Avatar */}
@@ -330,6 +347,11 @@ export default function PublicProfilePage() {
                   <h1 className="text-lg font-bold text-dark-900">
                     {contractor.firstName} {contractor.lastName}
                   </h1>
+                  {isPremiumUser && (
+                    <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
+                      <Crown className="w-2.5 h-2.5" />PRO
+                    </span>
+                  )}
                   {contractor.isVerified && (
                     <span className="text-xs bg-brand-50 text-brand-700 border border-brand-200 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
                       <Shield className="w-2.5 h-2.5" />Verified
