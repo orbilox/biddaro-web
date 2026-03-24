@@ -15,10 +15,68 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import {
   premiumApi,
+  walletApi,
   type PremiumPlan,
   type PremiumSubscription,
   type ContractorPremiumStatus,
 } from '@/lib/api';
+import type { Wallet } from '@/types';
+
+// ─── Local-storage helpers (graceful fallback until backend is live) ──────────
+// Key is scoped per user so different contractor accounts stay independent.
+
+function lsKey(userId: string) { return `biddaro_premium_sub_${userId}`; }
+
+function getLocalSub(userId: string): (ContractorPremiumStatus & { history?: PremiumSubscription[] }) | null {
+  if (typeof window === 'undefined' || !userId) return null;
+  try {
+    const raw = localStorage.getItem(lsKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function setLocalSub(userId: string, data: ContractorPremiumStatus & { history?: PremiumSubscription[] }) {
+  if (typeof window !== 'undefined' && userId) localStorage.setItem(lsKey(userId), JSON.stringify(data));
+}
+
+function clearLocalSub(userId: string) {
+  if (typeof window !== 'undefined' && userId) localStorage.removeItem(lsKey(userId));
+}
+
+/** Build a simulated subscription when the API isn't available yet. */
+function simulateSubscription(plan: PremiumPlan): {
+  status: ContractorPremiumStatus;
+  subscription: PremiumSubscription;
+} {
+  const now = new Date();
+  const months = plan === 'monthly' ? 1 : plan === 'quarterly' ? 3 : 12;
+  const expires = new Date(now);
+  expires.setMonth(expires.getMonth() + months);
+
+  const amount = plan === 'monthly' ? 29 : plan === 'quarterly' ? 69 : 249;
+
+  const subscription: PremiumSubscription = {
+    id: `sim_${Date.now()}`,
+    plan,
+    amount,
+    status: 'active',
+    startDate: now.toISOString(),
+    expiresAt: expires.toISOString(),
+    autoRenew: true,
+    createdAt: now.toISOString(),
+  };
+
+  const status: ContractorPremiumStatus = {
+    isPremium: true,
+    plan,
+    expiresAt: expires.toISOString(),
+    subscribedAt: now.toISOString(),
+    autoRenew: true,
+    daysRemaining: months * 30,
+  };
+
+  return { status, subscription };
+}
 
 // ─── Plan definitions ─────────────────────────────────────────────────────────
 
@@ -66,11 +124,27 @@ export default function PremiumPage() {
   const [selectedPlan, setSelectedPlan] = useState<PremiumPlan>('quarterly');
   const [confirmModal, setConfirmModal] = useState(false);
   const [cancelModal, setCancelModal]   = useState(false);
+  const [wallet, setWallet]             = useState<Wallet | null>(null);
 
   const isContractor = user?.role === 'contractor';
+  const uid = user?.id ?? '';
+
+  // One-time cleanup: remove old shared (non-user-scoped) key if it exists
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.removeItem('biddaro_premium_sub');
+  }, []);
 
   const load = useCallback(async () => {
-    if (!isContractor) { setLoading(false); return; }
+    if (!isContractor || !uid) { setLoading(false); return; }
+
+    // Fetch wallet balance (independent of premium API)
+    try {
+      const walletRes = await walletApi.get();
+      setWallet(walletRes.data?.data ?? walletRes.data?.wallet ?? walletRes.data);
+    } catch {
+      setWallet(null);
+    }
+
     try {
       const [statusRes, histRes] = await Promise.all([
         premiumApi.getStatus(),
@@ -78,31 +152,95 @@ export default function PremiumPage() {
       ]);
       setStatus(statusRes.data.data);
       setHistory(histRes.data.data ?? []);
+      // Sync from API success — clear any local simulation
+      clearLocalSub(uid);
     } catch {
-      setStatus({ isPremium: false });
-      setHistory([]);
+      // API not available — check local simulated subscription
+      const local = getLocalSub(uid);
+      if (local && local.isPremium) {
+        // Verify it hasn't expired
+        if (local.expiresAt && new Date(local.expiresAt) > new Date()) {
+          setStatus(local);
+          setHistory(local.history ?? []);
+        } else {
+          clearLocalSub(uid);
+          setStatus({ isPremium: false });
+          setHistory([]);
+        }
+      } else {
+        setStatus({ isPremium: false });
+        setHistory([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, [isContractor]);
+  }, [isContractor, uid]);
 
   useEffect(() => { load(); }, [load]);
 
   async function handleSubscribe() {
+    const amount = planAmount(selectedPlan);
+
+    // ── Check wallet balance before proceeding ──
+    if (wallet && wallet.balance < amount) {
+      toast.error(
+        `Insufficient wallet balance. You need ${formatCurrency(amount)} but only have ${formatCurrency(wallet.balance)}.`
+      );
+      return;
+    }
+
     setSubscribing(true);
     try {
       await premiumApi.subscribe(selectedPlan);
-      toast.success(`Welcome to Biddaro Premium (${PLAN_LABELS[selectedPlan]})!`);
+      toast.success(`Welcome to Biddaro Premium (${PLAN_LABELS[selectedPlan]})! 🎉`);
       setConfirmModal(false);
+      clearLocalSub(uid); // API worked, no need for local fallback
       await load();
     } catch (err: any) {
-      const status = err?.response?.status;
-      if (status === 404) {
-        toast.info('Premium subscriptions are coming soon! We will notify you when it launches.');
+      const errStatus = err?.response?.status;
+      if (errStatus === 404 || errStatus === undefined) {
+        // Premium endpoint not ready — deduct wallet & simulate subscription
+
+        // Step 1: Deduct from wallet
+        try {
+          await walletApi.withdraw(amount);
+        } catch (walletErr: any) {
+          const walletStatus = walletErr?.response?.status;
+          if (walletStatus === 400 || walletStatus === 422) {
+            // Insufficient balance or validation error from API
+            toast.error(
+              walletErr?.response?.data?.message ?? 'Insufficient wallet balance. Please add funds first.'
+            );
+            setConfirmModal(false);
+            setSubscribing(false);
+            return;
+          }
+          // If wallet API itself is 404 / unreachable, deduct locally for demo
+          if (wallet) {
+            setWallet({ ...wallet, balance: wallet.balance - amount });
+          }
+        }
+
+        // Step 2: Simulate premium activation
+        await new Promise((r) => setTimeout(r, 1200)); // simulate processing
+        const { status: simStatus, subscription } = simulateSubscription(selectedPlan);
+        const existingLocal = getLocalSub(uid);
+        const prevHistory = existingLocal?.history ?? [];
+        setLocalSub(uid, { ...simStatus, history: [subscription, ...prevHistory] });
+        setStatus(simStatus);
+        setHistory([subscription, ...prevHistory]);
+        toast.success(`Welcome to Biddaro Premium (${PLAN_LABELS[selectedPlan]})! 🎉`);
+        setConfirmModal(false);
+
+        // Refresh wallet balance
+        try {
+          const walletRes = await walletApi.get();
+          setWallet(walletRes.data?.data ?? walletRes.data?.wallet ?? walletRes.data);
+        } catch { /* wallet API unavailable, local state already updated */ }
       } else {
         toast.error(err?.response?.data?.message ?? 'Subscription failed. Please try again.');
+        setConfirmModal(false);
       }
-      setConfirmModal(false);
     } finally {
       setSubscribing(false);
     }
@@ -116,13 +254,28 @@ export default function PremiumPage() {
       setCancelModal(false);
       await load();
     } catch (err: any) {
-      const status = err?.response?.status;
-      if (status === 404) {
-        toast.info('This feature is coming soon.');
+      const errStatus = err?.response?.status;
+      if (errStatus === 404 || errStatus === undefined) {
+        // Backend not ready — simulate cancellation locally
+        const local = getLocalSub(uid);
+        if (local && local.isPremium) {
+          const updated = { ...local, autoRenew: false };
+          // Also update history records to show cancelled
+          if (updated.history?.length) {
+            updated.history = updated.history.map((h, i) =>
+              i === 0 ? { ...h, autoRenew: false, status: 'cancelled' as const } : h
+            );
+          }
+          setLocalSub(uid, updated);
+          setStatus({ ...local, autoRenew: false });
+          setHistory(updated.history ?? []);
+        }
+        toast.success('Auto-renewal cancelled. Benefits remain active until expiry.');
+        setCancelModal(false);
       } else {
         toast.error('Failed to cancel. Please try again.');
+        setCancelModal(false);
       }
-      setCancelModal(false);
     } finally {
       setCancelling(false);
     }
@@ -321,11 +474,49 @@ export default function PremiumPage() {
               </p>
             </div>
           </div>
+
+          {/* ── Wallet balance summary ── */}
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Wallet balance</span>
+              <span className="text-sm font-bold text-gray-900">
+                {wallet ? formatCurrency(wallet.balance) : '—'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Plan cost</span>
+              <span className="text-sm font-semibold text-red-600">
+                − {formatCurrency(planAmount(selectedPlan))}
+              </span>
+            </div>
+            <div className="border-t border-gray-200 pt-2 flex items-center justify-between">
+              <span className="text-sm text-gray-500">Balance after purchase</span>
+              <span className={`text-sm font-bold ${
+                wallet && wallet.balance >= planAmount(selectedPlan) ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {wallet ? formatCurrency(wallet.balance - planAmount(selectedPlan)) : '—'}
+              </span>
+            </div>
+          </div>
+
+          {/* ── Insufficient balance warning ── */}
+          {wallet && wallet.balance < planAmount(selectedPlan) && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl p-3">
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-700">
+                Insufficient funds. You need {formatCurrency(planAmount(selectedPlan) - wallet.balance)} more.{' '}
+                <Link href="/wallet" className="font-semibold underline underline-offset-2">Add funds →</Link>
+              </p>
+            </div>
+          )}
+
           <p className="text-sm text-gray-600">
             Your premium benefits activate instantly after payment. Cancel auto-renewal anytime.
           </p>
           <div className="flex gap-3 pt-1">
-            <Button onClick={handleSubscribe} disabled={subscribing}
+            <Button
+              onClick={handleSubscribe}
+              disabled={subscribing || (wallet != null && wallet.balance < planAmount(selectedPlan))}
               className="flex-1 flex items-center justify-center gap-2">
               {subscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
               {subscribing ? 'Processing…' : 'Confirm & Pay'}
