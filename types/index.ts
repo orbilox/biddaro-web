@@ -95,6 +95,7 @@ export interface Notification {
 // ─── Job Types ────────────────────────────────────────────────────────────────
 
 export type JobStatus = 'open' | 'in_progress' | 'completed' | 'closed' | 'cancelled';
+export type ProjectType = 'standard' | 'government' | 'corporate';
 
 export type JobCategory =
   | 'General Construction'
@@ -128,6 +129,7 @@ export interface Job {
   longitude?: number;
   skills?: string | string[];
   status: JobStatus;
+  projectType?: ProjectType;
   images?: string | string[];
   bidCount?: number;
   createdAt: string;
@@ -158,6 +160,7 @@ export interface Bid {
   documents?: string[];           // uploaded file URLs
   milestones?: BidMilestone[];    // proposed payment milestones
   status: BidStatus;
+  isPriority?: boolean;           // true when premium contractor bids on gov/corp job
   createdAt: string;
   updatedAt: string;
 }
@@ -378,6 +381,7 @@ export interface JobFilters {
   minBudget?: number;
   maxBudget?: number;
   location?: string;
+  projectType?: ProjectType;
   skills?: string[];
   sortBy?: 'createdAt' | 'budget' | 'bidCount';
   sortOrder?: 'asc' | 'desc';

@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, MapPin, Clock, DollarSign, Users, Calendar,
   CheckCircle, Send, MessageSquare, Loader2, Upload, FileText,
-  Plus, Trash2, ExternalLink,
+  Plus, Trash2, ExternalLink, Zap, Building2, Crown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -18,6 +18,7 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { jobsApi, bidsApi, uploadApi } from '@/lib/api';
 import { ROUTES } from '@/lib/constants';
+import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import type { Job, Bid, BidMilestone } from '@/types';
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -71,6 +72,7 @@ export default function JobDetailPage() {
 
   const isContractor = user?.role === 'contractor';
   const isPoster = user?.role === 'job_poster' && user.id === job?.posterId;
+  const isPremium = usePremiumStatus();
 
   // ─── Load job + bids ──────────────────────────────────────────────────────
 
@@ -183,6 +185,7 @@ export default function JobDetailPage() {
       }));
 
     // 3. Create the bid
+    const isGovCorp = job?.projectType === 'government' || job?.projectType === 'corporate';
     try {
       await bidsApi.create(jobId, {
         amount: parseFloat(bidAmount),
@@ -190,6 +193,7 @@ export default function JobDetailPage() {
         proposal: bidProposal.trim(),
         documents: docUrls,
         milestones: parsedMilestones,
+        ...(isPremium && isGovCorp ? { isPriority: true } : {}),
       });
       resetBidModal();
       toast.success('Bid submitted!', 'Your bid has been sent to the job poster.');
@@ -269,6 +273,14 @@ export default function JobDetailPage() {
                     {getStatusLabel(job.status)}
                   </span>
                 </div>
+                {(job.projectType === 'government' || job.projectType === 'corporate') && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold">
+                      {job.projectType === 'government' ? <Building2 className="w-3.5 h-3.5" /> : <Crown className="w-3.5 h-3.5" />}
+                      {job.projectType === 'government' ? '🏛️ Government Project' : '🏢 Corporate Project'}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center flex-wrap gap-3 mt-2 text-xs text-dark-400">
                   <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {job.location}</span>
                   <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Posted {timeAgo(job.createdAt)}</span>
@@ -332,12 +344,17 @@ export default function JobDetailPage() {
                           {/* Contractor info + amount */}
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <p className="font-semibold text-dark-900">
                                   {bid.contractor?.firstName} {bid.contractor?.lastName}
                                 </p>
                                 {bid.contractor?.isVerified && (
                                   <CheckCircle className="w-4 h-4 text-brand-500" />
+                                )}
+                                {bid.isPriority && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold uppercase tracking-wider">
+                                    <Zap className="w-3 h-3" /> Priority Bid
+                                  </span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 mt-0.5">

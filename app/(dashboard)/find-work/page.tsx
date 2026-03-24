@@ -5,6 +5,7 @@ import {
   Search, MapPin, DollarSign, Users, Clock, X,
   Briefcase, Loader2, SlidersHorizontal, CheckCircle,
   AlertCircle, Calendar, TrendingUp, Zap, RefreshCw,
+  Crown, Lock, Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
@@ -16,6 +17,8 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { JOB_CATEGORIES, BUDGET_RANGES, SORT_OPTIONS, ROUTES } from '@/lib/constants';
+import { Tabs, TabList, Tab, TabPanel } from '@/components/ui/Tabs';
+import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import type { Job } from '@/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -127,6 +130,11 @@ function FindWorkJobCard({ job, onBid, hasBid }: JobCardProps) {
             </Link>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               <Badge variant="default" size="sm">{job.category}</Badge>
+              {(job.projectType === 'government' || job.projectType === 'corporate') && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-semibold uppercase tracking-wider">
+                  {job.projectType === 'government' ? '🏛️ Gov' : '🏢 Corp'}
+                </span>
+              )}
               {job.poster?.isVerified && (
                 <span className="text-xs text-brand-600 font-medium flex items-center gap-0.5">
                   <CheckCircle className="w-3 h-3" /> Verified
@@ -220,9 +228,10 @@ interface BidModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: (jobId: string) => void;
+  isPremium?: boolean;
 }
 
-function BidModal({ job, open, onClose, onSuccess }: BidModalProps) {
+function BidModal({ job, open, onClose, onSuccess, isPremium }: BidModalProps) {
   const [amount, setAmount] = useState('');
   const [proposal, setProposal] = useState('');
   const [days, setDays] = useState('');
@@ -244,10 +253,12 @@ function BidModal({ job, open, onClose, onSuccess }: BidModalProps) {
     if (!job || !valid) return;
     setSaving(true);
     try {
+      const isGovCorp = job.projectType === 'government' || job.projectType === 'corporate';
       await bidsApi.create(job.id, {
         amount: parseFloat(amount),
         proposal: proposal.trim(),
         ...(days ? { estimatedDays: parseInt(days, 10) } : {}),
+        ...(isPremium && isGovCorp ? { isPriority: true } : {}),
       });
       toast.success('Bid submitted!', `Your bid of ${formatCurrency(parseFloat(amount))} has been sent to the client.`);
       onSuccess(job.id);
@@ -355,6 +366,70 @@ function BidModal({ job, open, onClose, onSuccess }: BidModalProps) {
   );
 }
 
+// ─── Locked job card (non-premium view of gov/corp jobs) ─────────────────────
+
+function LockedJobCard({ job }: { job: Job }) {
+  return (
+    <div className="relative bg-white rounded-xl border-2 border-amber-200 ring-1 ring-amber-100 overflow-hidden flex flex-col">
+      {/* Project-type ribbon */}
+      <div className="bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 flex items-center gap-2">
+        <Crown className="w-4 h-4 text-white" />
+        <span className="text-xs font-bold text-white uppercase tracking-wider">
+          {job.projectType === 'government' ? '🏛️ Government Project' : '🏢 Corporate Project'}
+        </span>
+      </div>
+
+      <div className="p-5 flex-1">
+        {/* Title — always visible */}
+        <h3 className="font-semibold text-dark-900 text-sm leading-snug line-clamp-2 mb-3">
+          {job.title}
+        </h3>
+
+        {/* Blurred placeholder — uses static text, NOT real data */}
+        <div className="relative select-none">
+          <div className="blur-[6px] pointer-events-none space-y-3">
+            <p className="text-sm text-dark-400 leading-relaxed">
+              Premium project details are available exclusively to subscribed contractors. Upgrade to view full scope.
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs text-dark-300">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5" /> Location hidden
+              </span>
+              <span className="flex items-center gap-1.5">
+                <DollarSign className="w-3.5 h-3.5" /> Budget hidden
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" /> Bid count hidden
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" /> Posted recently
+              </span>
+            </div>
+          </div>
+
+          {/* Lock overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mb-2">
+              <Lock className="w-5 h-5 text-amber-600" />
+            </div>
+            <p className="text-xs text-dark-500 font-medium text-center">Premium access required</p>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="px-5 pb-4">
+        <Link href="/subscription">
+          <Button size="sm" className="w-full bg-amber-500 hover:bg-amber-600 border-amber-500 text-white">
+            <Crown className="w-4 h-4 mr-1.5" />
+            Upgrade to Premium to Bid
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // ─── Active filter chip ───────────────────────────────────────────────────────
 
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
@@ -375,7 +450,9 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 
 export default function FindWorkPage() {
   const { user } = useAuthStore();
+  const isPremium = usePremiumStatus();
 
+  const [activeTab, setActiveTab]     = useState<'all' | 'premium'>('all');
   const [filters, setFilters]         = useState<Filters>(DEFAULT_FILTERS);
   const [jobs, setJobs]               = useState<Job[]>([]);
   const [total, setTotal]             = useState(0);
@@ -460,6 +537,11 @@ export default function FindWorkPage() {
     if (page >= totalPages - 2) return [totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
     return [page - 2, page - 1, page, page + 1, page + 2];
   };
+
+  // ── Premium jobs (gov/corp) ────────────────────────────────────────────────
+  const premiumJobs = jobs.filter(
+    j => j.projectType === 'government' || j.projectType === 'corporate'
+  );
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -583,6 +665,18 @@ export default function FindWorkPage() {
         )}
       </div>
 
+      {/* ── All / Premium tabs ──────────────────────────────────────────────── */}
+      <Tabs defaultValue="all" onChange={(val) => setActiveTab(val as 'all' | 'premium')}>
+        <TabList>
+          <Tab value="all" icon={<Briefcase className="w-4 h-4" />} count={total}>
+            All Jobs
+          </Tab>
+          <Tab value="premium" icon={<Crown className="w-4 h-4 text-amber-500" />} count={premiumJobs.length}>
+            Premium Jobs
+          </Tab>
+        </TabList>
+      </Tabs>
+
       {/* ── Results count bar ────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between min-h-[24px]">
         <p className="text-sm text-dark-500">
@@ -612,7 +706,36 @@ export default function FindWorkPage() {
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
+      ) : activeTab === 'premium' ? (
+        /* ── Premium Jobs tab ──────────────────────────────────────────────── */
+        premiumJobs.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-16 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
+              <Crown className="w-7 h-7 text-amber-400" />
+            </div>
+            <p className="font-semibold text-dark-800 mb-1">No premium jobs available</p>
+            <p className="text-sm text-dark-400 mb-5">
+              Government and corporate projects will appear here when posted. Check back soon!
+            </p>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {premiumJobs.map(job =>
+              isPremium ? (
+                <FindWorkJobCard
+                  key={job.id}
+                  job={job}
+                  onBid={j => setBidJob(j)}
+                  hasBid={bidJobIds.has(job.id)}
+                />
+              ) : (
+                <LockedJobCard key={job.id} job={job} />
+              )
+            )}
+          </div>
+        )
       ) : jobs.length === 0 ? (
+        /* ── All Jobs tab — empty state ────────────────────────────────────── */
         <div className="bg-white rounded-xl border border-gray-200 p-16 text-center">
           <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <Briefcase className="w-7 h-7 text-gray-400" />
@@ -630,6 +753,7 @@ export default function FindWorkPage() {
           )}
         </div>
       ) : (
+        /* ── All Jobs tab — results ────────────────────────────────────────── */
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {jobs.map(job => (
             <FindWorkJobCard
@@ -697,6 +821,7 @@ export default function FindWorkPage() {
         open={!!bidJob}
         onClose={() => setBidJob(null)}
         onSuccess={jobId => setBidJobIds(s => { const n = new Set(s); n.add(jobId); return n; })}
+        isPremium={isPremium}
       />
 
     </div>

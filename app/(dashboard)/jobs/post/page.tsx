@@ -3,12 +3,13 @@ import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Upload, DollarSign, Calendar, MapPin, Wand2, X, FileText,
+  Briefcase, Building2, Building,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea, Select } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
-import { JOB_CATEGORIES, TIMELINE_OPTIONS, SKILLS, ROUTES } from '@/lib/constants';
+import { JOB_CATEGORIES, TIMELINE_OPTIONS, SKILLS, PROJECT_TYPES, ROUTES } from '@/lib/constants';
 import { toast } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
 import { jobsApi, uploadApi } from '@/lib/api';
@@ -16,6 +17,7 @@ import { jobsApi, uploadApi } from '@/lib/api';
 interface PostJobForm {
   title: string;
   category: string;
+  projectType: string;
   description: string;
   budget: number;
   timeline: string;
@@ -52,7 +54,7 @@ export default function PostJobPage() {
   const {
     register, handleSubmit, watch, setValue,
     formState: { errors },
-  } = useForm<PostJobForm>();
+  } = useForm<PostJobForm>({ defaultValues: { projectType: 'standard' } });
 
   const values = watch();
 
@@ -150,6 +152,7 @@ export default function PostJobPage() {
         title: data.title,
         description: data.description,
         category: data.category,
+        projectType: data.projectType || 'standard',
         budget: Number(data.budget),
         location: data.location,
         startDate: data.startDate || undefined,
@@ -239,6 +242,40 @@ export default function PostJobPage() {
                 error={errors.category?.message}
                 {...register('category', { required: 'Category is required' })}
               />
+
+              {/* Project Type */}
+              <div>
+                <label className="block text-sm font-medium text-dark-700 mb-1.5">Project Type</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {PROJECT_TYPES.map((pt) => {
+                    const Icon = pt.value === 'government' ? Building2 : pt.value === 'corporate' ? Building : Briefcase;
+                    const isSelected = values.projectType === pt.value;
+                    return (
+                      <button
+                        key={pt.value}
+                        type="button"
+                        onClick={() => setValue('projectType', pt.value)}
+                        className={cn(
+                          'flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-sm font-medium transition-all duration-150',
+                          isSelected
+                            ? pt.value === 'standard'
+                              ? 'border-brand-500 bg-brand-50 text-brand-700'
+                              : 'border-amber-500 bg-amber-50 text-amber-700'
+                            : 'border-gray-200 text-dark-500 hover:border-gray-300 hover:bg-gray-50'
+                        )}
+                      >
+                        <Icon className={cn('w-5 h-5', isSelected ? (pt.value === 'standard' ? 'text-brand-500' : 'text-amber-500') : 'text-dark-400')} />
+                        {pt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {(values.projectType === 'government' || values.projectType === 'corporate') && (
+                  <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                    ⭐ Premium contractors get priority access and their bids are highlighted
+                  </p>
+                )}
+              </div>
 
               <Textarea
                 label="Job Description"
@@ -488,6 +525,15 @@ export default function PostJobPage() {
                   <p className="text-xs text-dark-400 uppercase tracking-wider font-medium mb-1">Category</p>
                   <p className="text-dark-800">{values.category || '—'}</p>
                 </div>
+                {values.projectType && values.projectType !== 'standard' && (
+                  <div>
+                    <p className="text-xs text-dark-400 uppercase tracking-wider font-medium mb-1">Project Type</p>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium">
+                      {values.projectType === 'government' ? <Building2 className="w-3.5 h-3.5" /> : <Building className="w-3.5 h-3.5" />}
+                      {values.projectType === 'government' ? 'Government' : 'Corporate'}
+                    </span>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-dark-400 uppercase tracking-wider font-medium mb-1">Description</p>
                   <p className="text-dark-700 text-sm leading-relaxed">{values.description || '—'}</p>

@@ -78,6 +78,12 @@ export const SORT_OPTIONS = [
   { label: 'Most Bids', value: 'bidCount:desc' },
 ] as const;
 
+export const PROJECT_TYPES = [
+  { label: 'Standard',   value: 'standard'   },
+  { label: 'Government', value: 'government' },
+  { label: 'Corporate',  value: 'corporate'  },
+] as const;
+
 export const ROUTES = {
   HOME: '/',
   AI_ASSISTANT: '/ai-assistant',
