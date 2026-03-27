@@ -2,14 +2,14 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Mail, Lock, User, HardHat } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, HardHat, Globe } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { Input } from '@/components/ui/Input';
+import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES, SUPPORTED_COUNTRIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 interface RegisterForm {
@@ -18,6 +18,7 @@ interface RegisterForm {
   email: string;
   password: string;
   confirmPassword: string;
+  country: string;
 }
 
 export default function RegisterPage() {
@@ -46,6 +47,7 @@ export default function RegisterPage() {
         firstName: data.firstName,
         lastName: data.lastName,
         role,
+        country: data.country,
       });
       const { user, accessToken } = res.data.data;
       setUser(user, accessToken);
@@ -136,6 +138,14 @@ export default function RegisterPage() {
               required: 'Email is required',
               pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email' },
             })}
+          />
+
+          <Select
+            label="Country"
+            placeholder="Select your country"
+            options={SUPPORTED_COUNTRIES.map((c) => ({ label: `${c.label}`, value: c.value }))}
+            error={errors.country?.message}
+            {...register('country', { required: 'Country is required' })}
           />
 
           <Input

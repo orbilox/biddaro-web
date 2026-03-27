@@ -16,7 +16,7 @@ import { jobsApi, bidsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { formatCurrency, timeAgo } from '@/lib/utils';
-import { JOB_CATEGORIES, BUDGET_RANGES, SORT_OPTIONS, ROUTES } from '@/lib/constants';
+import { JOB_CATEGORIES, BUDGET_RANGES, SORT_OPTIONS, ROUTES, UAE_LOCATIONS, SINGAPORE_LOCATIONS } from '@/lib/constants';
 import { Tabs, TabList, Tab, TabPanel } from '@/components/ui/Tabs';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import type { Job } from '@/types';
@@ -688,11 +688,20 @@ export default function FindWorkPage() {
           />
 
           {/* Location */}
-          <Input
-            placeholder="Location…"
-            leftIcon={<MapPin className="w-4 h-4" />}
+          <Select
+            placeholder="All Locations"
             value={filters.location}
             onChange={e => patch({ location: e.target.value })}
+            options={[
+              { label: '── UAE ──', value: '', disabled: true },
+              ...UAE_LOCATIONS.flatMap(e =>
+                e.cities.map(city => ({ label: `${city}, ${e.emirate}`, value: `${city}, ${e.emirate}` }))
+              ),
+              { label: '── Singapore ──', value: '', disabled: true },
+              ...SINGAPORE_LOCATIONS.flatMap(r =>
+                r.districts.map(d => ({ label: `${d}, ${r.region} Region`, value: `${d}, ${r.region} Region` }))
+              ),
+            ]}
           />
 
           {/* Sort */}

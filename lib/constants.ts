@@ -27,6 +27,20 @@ export const JOB_CATEGORIES = [
   'Other',
 ] as const;
 
+export const SUPPORTED_COUNTRIES = [
+  { label: 'India', value: 'IN', currency: 'INR', symbol: '₹', locale: 'en_IN' },
+  { label: 'United Arab Emirates', value: 'AE', currency: 'AED', symbol: 'د.إ', locale: 'en_AE' },
+  { label: 'Singapore', value: 'SG', currency: 'SGD', symbol: 'S$', locale: 'en_SG' },
+  { label: 'United States', value: 'US', currency: 'USD', symbol: '$', locale: 'en_US' },
+] as const;
+
+export const CURRENCIES = [
+  { label: 'USD ($)', value: 'USD', symbol: '$' },
+  { label: 'AED (د.إ)', value: 'AED', symbol: 'د.إ' },
+  { label: 'SGD (S$)', value: 'SGD', symbol: 'S$' },
+  { label: 'INR (₹)', value: 'INR', symbol: '₹' },
+] as const;
+
 export const BUDGET_RANGES = [
   { label: 'Under $1,000', min: 0, max: 1000 },
   { label: '$1,000 – $5,000', min: 1000, max: 5000 },
@@ -34,6 +48,24 @@ export const BUDGET_RANGES = [
   { label: '$10,000 – $25,000', min: 10000, max: 25000 },
   { label: '$25,000 – $50,000', min: 25000, max: 50000 },
   { label: '$50,000+', min: 50000, max: null },
+] as const;
+
+export const UAE_LOCATIONS = [
+  { emirate: 'Abu Dhabi', cities: ['Abu Dhabi City', 'Al Ain', 'Al Dhafra', 'Al Shamkha', 'Khalifa City', 'Ruwais', 'Madinat Zayed'] },
+  { emirate: 'Dubai', cities: ['Dubai City', 'Jebel Ali', 'Dubai Marina', 'Business Bay', 'Downtown Dubai', 'Deira', 'Jumeirah', 'Al Quoz', 'Dubai Silicon Oasis'] },
+  { emirate: 'Sharjah', cities: ['Sharjah City', 'Al Dhaid', 'Kalba', 'Khor Fakkan', 'Dibba Al Hisn'] },
+  { emirate: 'Ajman', cities: ['Ajman City', 'Masfout', 'Manama'] },
+  { emirate: 'Ras Al Khaimah', cities: ['RAK City', 'Al Jazirah Al Hamra', 'Al Hamraniyah', 'Digdaga'] },
+  { emirate: 'Fujairah', cities: ['Fujairah City', 'Dibba Al Fujairah', 'Masafi'] },
+  { emirate: 'Umm Al Quwain', cities: ['UAQ City', 'Falaj Al Mualla'] },
+] as const;
+
+export const SINGAPORE_LOCATIONS = [
+  { region: 'Central', districts: ['Downtown Core', 'Marina Bay', 'Orchard', 'Newton', 'Novena', 'Toa Payoh', 'Bishan', 'Ang Mo Kio', 'Bukit Timah', 'Tanglin', 'Rochor', 'Kallang', 'Geylang'] },
+  { region: 'East', districts: ['Bedok', 'Tampines', 'Pasir Ris', 'Changi', 'Paya Lebar', 'Marine Parade'] },
+  { region: 'West', districts: ['Jurong East', 'Jurong West', 'Clementi', 'Bukit Batok', 'Bukit Panjang', 'Choa Chu Kang', 'Tuas'] },
+  { region: 'North', districts: ['Woodlands', 'Yishun', 'Sembawang', 'Mandai', 'Sungei Kadut'] },
+  { region: 'North-East', districts: ['Sengkang', 'Punggol', 'Hougang', 'Serangoon', 'Ang Mo Kio'] },
 ] as const;
 
 export const TIMELINE_OPTIONS = [

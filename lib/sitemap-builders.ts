@@ -8,18 +8,27 @@
  *    app/sitemap/[id]/route.ts  → serves XML child sitemaps at /sitemap/[id]
  *
  *  Sitemap breakdown:
- *   ID  Path            Contents                              ~URLs
- *   ──  ──────────────  ────────────────────────────────────  ──────
- *   0   /sitemap/0      Static & core pages                      15
- *   1   /sitemap/1      /hire/[cat] + /hire/[cat]/[state]       640
- *   2   /sitemap/2      /hire cities — states  0–10           2,360
- *   3   /sitemap/3      /hire cities — states 11–20           2,160
- *   4   /sitemap/4      /hire cities — states 21–end          2,180
- *   5   /sitemap/5      /cost + /cost/[svc] + /ask/[slug]        83
- *   6   /sitemap/6      /cost/[svc]/[city] — services 0–3     1,340
- *   7   /sitemap/7      /cost/[svc]/[city] — services 4–end   1,005
- *   ──  ──────────────  ────────────────────────────────────  ──────
- *                                              TOTAL:         ~9,782
+ *   ID   Path            Contents                              ~URLs
+ *   ──   ──────────────  ────────────────────────────────────  ──────
+ *    0   /sitemap/0      Static & core pages                      15
+ *    1   /sitemap/1      /hire/[cat] + /hire/[cat]/[state]       640
+ *    2   /sitemap/2      /hire cities — states  0–10           2,360
+ *    3   /sitemap/3      /hire cities — states 11–20           2,160
+ *    4   /sitemap/4      /hire cities — states 21–end          2,180
+ *    5   /sitemap/5      /cost + /cost/[svc] + /ask/[slug]        83
+ *    6   /sitemap/6      /cost/[svc]/[city] — services 0–3     1,340
+ *    7   /sitemap/7      /cost/[svc]/[city] — services 4–end   1,005
+ *    8   /sitemap/8      /uae/hire hub + categories + states     150
+ *    9   /sitemap/9      /uae/hire cities (all)                  600
+ *   10   /sitemap/10     /uae/cost hub + services + cities       530
+ *   11   /sitemap/11     /sg/hire hub + categories + regions     530
+ *   12   /sitemap/12     /sg/hire cities (all)                   480
+ *   13   /sitemap/13     /sg/cost hub + services + cities        420
+ *   14   /sitemap/14     /us/hire hub + categories + states      500
+ *   15   /sitemap/15     /us/hire cities (all)                 3,000
+ *   16   /sitemap/16     /us/cost hub + services + cities      1,600
+ *   ──   ──────────────  ────────────────────────────────────  ──────
+ *                                              TOTAL:        ~13,593
  *
  *  ✅ Submit to Google Search Console: https://biddaro.com/sitemap.xml
  * ─────────────────────────────────────────────────────────────────────────────
@@ -28,9 +37,15 @@
 import { COST_SERVICES } from '@/lib/cost-data';
 import { JOB_CATEGORY_META, INDIA_LOCATIONS } from '@/lib/seo-data';
 import { getAllSlugs as getAskSlugs } from '@/lib/ask-data';
+import { UAE_LOCATIONS, UAE_JOB_CATEGORY_META } from '@/lib/seo-data-uae';
+import { UAE_COST_SERVICES } from '@/lib/cost-data-uae';
+import { SG_LOCATIONS, SG_JOB_CATEGORY_META } from '@/lib/seo-data-sg';
+import { SG_COST_SERVICES } from '@/lib/cost-data-sg';
+import { USA_LOCATIONS, USA_JOB_CATEGORY_META } from '@/lib/seo-data-usa';
+import { USA_COST_SERVICES } from '@/lib/cost-data-usa';
 
 export const SITEMAP_BASE = 'https://biddaro.com';
-export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7] as const;
+export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
 
 export interface SitemapEntry {
   url: string;
@@ -43,14 +58,23 @@ export interface SitemapEntry {
 
 export function buildSitemap(id: number): SitemapEntry[] {
   switch (id) {
-    case 0: return buildStaticSitemap();
-    case 1: return buildHireHubSitemap();
-    case 2: return buildHireCitiesSitemap(0,  11);
-    case 3: return buildHireCitiesSitemap(11, 21);
-    case 4: return buildHireCitiesSitemap(21, INDIA_LOCATIONS.length);
-    case 5: return buildCostAndAskSitemap();
-    case 6: return buildCostCitiesSitemap(0, 4);
-    case 7: return buildCostCitiesSitemap(4, COST_SERVICES.length);
+    case 0:  return buildStaticSitemap();
+    case 1:  return buildHireHubSitemap();
+    case 2:  return buildHireCitiesSitemap(0,  11);
+    case 3:  return buildHireCitiesSitemap(11, 21);
+    case 4:  return buildHireCitiesSitemap(21, INDIA_LOCATIONS.length);
+    case 5:  return buildCostAndAskSitemap();
+    case 6:  return buildCostCitiesSitemap(0, 4);
+    case 7:  return buildCostCitiesSitemap(4, COST_SERVICES.length);
+    case 8:  return buildUAEHireHubSitemap();
+    case 9:  return buildUAEHireCitiesSitemap();
+    case 10: return buildUAECostSitemap();
+    case 11: return buildSGHireHubSitemap();
+    case 12: return buildSGHireCitiesSitemap();
+    case 13: return buildSGCostSitemap();
+    case 14: return buildUSHireHubSitemap();
+    case 15: return buildUSHireCitiesSitemap();
+    case 16: return buildUSCostSitemap();
     default: return [];
   }
 }
@@ -87,6 +111,13 @@ function buildStaticSitemap(): SitemapEntry[] {
     entry('/html-sitemap',   0.5,  'monthly'),
     entry('/privacy-policy', 0.3,  'yearly'),
     entry('/terms',          0.3,  'yearly'),
+    // Country hubs
+    entry('/uae/hire',       0.9,  'daily'),
+    entry('/uae/cost',       0.9,  'weekly'),
+    entry('/sg/hire',        0.9,  'daily'),
+    entry('/sg/cost',        0.9,  'weekly'),
+    entry('/us/hire',        0.9,  'daily'),
+    entry('/us/cost',        0.9,  'weekly'),
   ];
 }
 
@@ -139,6 +170,132 @@ function buildCostCitiesSitemap(svcFrom: number, svcTo: number): SitemapEntry[] 
     for (const state of INDIA_LOCATIONS) {
       for (const city of state.cities) {
         entries.push(entry(`/cost/${svc.slug}/${city.slug}`, 0.7, 'monthly'));
+      }
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 8 — UAE Hire Hub ─────────────────────────────────────────────────
+
+function buildUAEHireHubSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const cat of UAE_JOB_CATEGORY_META) {
+    entries.push(entry(`/uae/hire/${cat.slug}`, 0.85, 'weekly'));
+    for (const emirate of UAE_LOCATIONS) {
+      entries.push(entry(`/uae/hire/${cat.slug}/${emirate.slug}`, 0.75, 'weekly'));
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 9 — UAE Hire Cities ──────────────────────────────────────────────
+
+function buildUAEHireCitiesSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const emirate of UAE_LOCATIONS) {
+    for (const city of emirate.cities) {
+      for (const cat of UAE_JOB_CATEGORY_META) {
+        entries.push(entry(`/uae/hire/${cat.slug}/${emirate.slug}/${city.slug}`, 0.7, 'weekly'));
+      }
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 10 — UAE Cost ────────────────────────────────────────────────────
+
+function buildUAECostSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const svc of UAE_COST_SERVICES) {
+    entries.push(entry(`/uae/cost/${svc.slug}`, 0.85, 'weekly'));
+    for (const emirate of UAE_LOCATIONS) {
+      for (const city of emirate.cities) {
+        entries.push(entry(`/uae/cost/${svc.slug}/${city.slug}`, 0.7, 'monthly'));
+      }
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 11 — SG Hire Hub ─────────────────────────────────────────────────
+
+function buildSGHireHubSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const cat of SG_JOB_CATEGORY_META) {
+    entries.push(entry(`/sg/hire/${cat.slug}`, 0.85, 'weekly'));
+    for (const region of SG_LOCATIONS) {
+      entries.push(entry(`/sg/hire/${cat.slug}/${region.slug}`, 0.75, 'weekly'));
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 12 — SG Hire Cities ──────────────────────────────────────────────
+
+function buildSGHireCitiesSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const region of SG_LOCATIONS) {
+    for (const district of region.districts) {
+      for (const cat of SG_JOB_CATEGORY_META) {
+        entries.push(entry(`/sg/hire/${cat.slug}/${region.slug}/${district.slug}`, 0.7, 'weekly'));
+      }
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 13 — SG Cost ────────────────────────────────────────────────────
+
+function buildSGCostSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const svc of SG_COST_SERVICES) {
+    entries.push(entry(`/sg/cost/${svc.slug}`, 0.85, 'weekly'));
+    for (const region of SG_LOCATIONS) {
+      for (const district of region.districts) {
+        entries.push(entry(`/sg/cost/${svc.slug}/${district.slug}`, 0.7, 'monthly'));
+      }
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 14 — US Hire Hub ─────────────────────────────────────────────────
+
+function buildUSHireHubSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const cat of USA_JOB_CATEGORY_META) {
+    entries.push(entry(`/us/hire/${cat.slug}`, 0.85, 'weekly'));
+    for (const state of USA_LOCATIONS) {
+      entries.push(entry(`/us/hire/${cat.slug}/${state.slug}`, 0.75, 'weekly'));
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 15 — US Hire Cities ──────────────────────────────────────────────
+
+function buildUSHireCitiesSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const state of USA_LOCATIONS) {
+    for (const city of state.cities) {
+      for (const cat of USA_JOB_CATEGORY_META) {
+        entries.push(entry(`/us/hire/${cat.slug}/${state.slug}/${city.slug}`, 0.7, 'weekly'));
+      }
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 16 — US Cost ────────────────────────────────────────────────────
+
+function buildUSCostSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const svc of USA_COST_SERVICES) {
+    entries.push(entry(`/us/cost/${svc.slug}`, 0.85, 'weekly'));
+    for (const state of USA_LOCATIONS) {
+      for (const city of state.cities) {
+        entries.push(entry(`/us/cost/${svc.slug}/${city.slug}`, 0.7, 'monthly'));
       }
     }
   }

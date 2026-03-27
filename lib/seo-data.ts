@@ -383,6 +383,140 @@ export const INDIA_LOCATIONS: IndiaLocation[] = [
   },
 ];
 
+// ─── UAE Locations ────────────────────────────────────────────────────────────
+
+export interface UAELocation {
+  name: string;           // "Dubai"
+  slug: string;           // "dubai"
+  region: string;         // "Emirate"
+  cities: CityEntry[];
+}
+
+export const UAE_LOCATIONS: UAELocation[] = [
+  {
+    name: 'Abu Dhabi', slug: 'abu-dhabi', region: 'Emirate',
+    cities: [
+      { name: 'Abu Dhabi City', slug: 'abu-dhabi-city' }, { name: 'Al Ain', slug: 'al-ain' },
+      { name: 'Al Dhafra', slug: 'al-dhafra' }, { name: 'Al Shamkha', slug: 'al-shamkha' },
+      { name: 'Khalifa City', slug: 'khalifa-city' }, { name: 'Ruwais', slug: 'ruwais' },
+      { name: 'Madinat Zayed', slug: 'madinat-zayed' }, { name: 'Mussafah', slug: 'mussafah' },
+      { name: 'Yas Island', slug: 'yas-island' }, { name: 'Saadiyat Island', slug: 'saadiyat-island' },
+    ],
+  },
+  {
+    name: 'Dubai', slug: 'dubai', region: 'Emirate',
+    cities: [
+      { name: 'Dubai City', slug: 'dubai-city' }, { name: 'Jebel Ali', slug: 'jebel-ali' },
+      { name: 'Dubai Marina', slug: 'dubai-marina' }, { name: 'Business Bay', slug: 'business-bay' },
+      { name: 'Downtown Dubai', slug: 'downtown-dubai' }, { name: 'Deira', slug: 'deira' },
+      { name: 'Jumeirah', slug: 'jumeirah' }, { name: 'Al Quoz', slug: 'al-quoz' },
+      { name: 'Dubai Silicon Oasis', slug: 'dubai-silicon-oasis' }, { name: 'Al Barsha', slug: 'al-barsha' },
+      { name: 'Dubai Hills', slug: 'dubai-hills' }, { name: 'Palm Jumeirah', slug: 'palm-jumeirah' },
+      { name: 'Dubai South', slug: 'dubai-south' }, { name: 'International City', slug: 'international-city' },
+    ],
+  },
+  {
+    name: 'Sharjah', slug: 'sharjah', region: 'Emirate',
+    cities: [
+      { name: 'Sharjah City', slug: 'sharjah-city' }, { name: 'Al Dhaid', slug: 'al-dhaid' },
+      { name: 'Kalba', slug: 'kalba' }, { name: 'Khor Fakkan', slug: 'khor-fakkan' },
+      { name: 'Dibba Al Hisn', slug: 'dibba-al-hisn' }, { name: 'Al Nahda', slug: 'al-nahda' },
+    ],
+  },
+  {
+    name: 'Ajman', slug: 'ajman', region: 'Emirate',
+    cities: [
+      { name: 'Ajman City', slug: 'ajman-city' }, { name: 'Masfout', slug: 'masfout' },
+      { name: 'Manama', slug: 'manama-ajman' },
+    ],
+  },
+  {
+    name: 'Ras Al Khaimah', slug: 'ras-al-khaimah', region: 'Emirate',
+    cities: [
+      { name: 'RAK City', slug: 'rak-city' }, { name: 'Al Jazirah Al Hamra', slug: 'al-jazirah-al-hamra' },
+      { name: 'Al Hamraniyah', slug: 'al-hamraniyah' }, { name: 'Digdaga', slug: 'digdaga' },
+    ],
+  },
+  {
+    name: 'Fujairah', slug: 'fujairah', region: 'Emirate',
+    cities: [
+      { name: 'Fujairah City', slug: 'fujairah-city' }, { name: 'Dibba Al Fujairah', slug: 'dibba-al-fujairah' },
+      { name: 'Masafi', slug: 'masafi' },
+    ],
+  },
+  {
+    name: 'Umm Al Quwain', slug: 'umm-al-quwain', region: 'Emirate',
+    cities: [
+      { name: 'UAQ City', slug: 'uaq-city' }, { name: 'Falaj Al Mualla', slug: 'falaj-al-mualla' },
+    ],
+  },
+];
+
+// ─── Singapore Locations ──────────────────────────────────────────────────────
+
+export interface SingaporeLocation {
+  name: string;           // "Central Region"
+  slug: string;           // "central"
+  region: string;         // "Region"
+  districts: CityEntry[]; // Districts treated like cities for routing
+}
+
+export const SINGAPORE_LOCATIONS: SingaporeLocation[] = [
+  {
+    name: 'Central Region', slug: 'central', region: 'Region',
+    districts: [
+      { name: 'Downtown Core', slug: 'downtown-core' }, { name: 'Marina Bay', slug: 'marina-bay' },
+      { name: 'Orchard', slug: 'orchard' }, { name: 'Newton', slug: 'newton' },
+      { name: 'Novena', slug: 'novena' }, { name: 'Toa Payoh', slug: 'toa-payoh' },
+      { name: 'Bishan', slug: 'bishan' }, { name: 'Bukit Timah', slug: 'bukit-timah' },
+      { name: 'Tanglin', slug: 'tanglin' }, { name: 'Rochor', slug: 'rochor' },
+      { name: 'Kallang', slug: 'kallang' }, { name: 'Geylang', slug: 'geylang' },
+    ],
+  },
+  {
+    name: 'East Region', slug: 'east', region: 'Region',
+    districts: [
+      { name: 'Bedok', slug: 'bedok' }, { name: 'Tampines', slug: 'tampines' },
+      { name: 'Pasir Ris', slug: 'pasir-ris' }, { name: 'Changi', slug: 'changi' },
+      { name: 'Paya Lebar', slug: 'paya-lebar' }, { name: 'Marine Parade', slug: 'marine-parade' },
+    ],
+  },
+  {
+    name: 'West Region', slug: 'west', region: 'Region',
+    districts: [
+      { name: 'Jurong East', slug: 'jurong-east' }, { name: 'Jurong West', slug: 'jurong-west' },
+      { name: 'Clementi', slug: 'clementi' }, { name: 'Bukit Batok', slug: 'bukit-batok' },
+      { name: 'Bukit Panjang', slug: 'bukit-panjang' }, { name: 'Choa Chu Kang', slug: 'choa-chu-kang' },
+      { name: 'Tuas', slug: 'tuas' },
+    ],
+  },
+  {
+    name: 'North Region', slug: 'north', region: 'Region',
+    districts: [
+      { name: 'Woodlands', slug: 'woodlands' }, { name: 'Yishun', slug: 'yishun' },
+      { name: 'Sembawang', slug: 'sembawang' }, { name: 'Mandai', slug: 'mandai' },
+      { name: 'Sungei Kadut', slug: 'sungei-kadut' },
+    ],
+  },
+  {
+    name: 'North-East Region', slug: 'north-east', region: 'Region',
+    districts: [
+      { name: 'Sengkang', slug: 'sengkang' }, { name: 'Punggol', slug: 'punggol' },
+      { name: 'Hougang', slug: 'hougang' }, { name: 'Serangoon', slug: 'serangoon' },
+    ],
+  },
+];
+
+// ─── Cross-region helpers ─────────────────────────────────────────────────────
+
+export function getUAELocation(slug: string): UAELocation | undefined {
+  return UAE_LOCATIONS.find(l => l.slug === slug);
+}
+
+export function getSingaporeLocation(slug: string): SingaporeLocation | undefined {
+  return SINGAPORE_LOCATIONS.find(l => l.slug === slug);
+}
+
 // ─── Job Category Metadata ────────────────────────────────────────────────────
 // {state} in FAQ strings is replaced at render time with the actual state name.
 

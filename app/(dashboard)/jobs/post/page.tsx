@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea, Select } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
-import { JOB_CATEGORIES, TIMELINE_OPTIONS, SKILLS, PROJECT_TYPES, ROUTES } from '@/lib/constants';
+import { JOB_CATEGORIES, TIMELINE_OPTIONS, SKILLS, PROJECT_TYPES, ROUTES, CURRENCIES, UAE_LOCATIONS, SINGAPORE_LOCATIONS } from '@/lib/constants';
 import { toast } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
 import { jobsApi, uploadApi } from '@/lib/api';
@@ -20,6 +20,7 @@ interface PostJobForm {
   projectType: string;
   description: string;
   budget: number;
+  currency: string;
   timeline: string;
   location: string;
   startDate?: string;
@@ -54,9 +55,25 @@ export default function PostJobPage() {
   const {
     register, handleSubmit, watch, setValue,
     formState: { errors },
-  } = useForm<PostJobForm>({ defaultValues: { projectType: 'standard' } });
+  } = useForm<PostJobForm>({ defaultValues: { projectType: 'standard', currency: 'USD' } });
 
   const values = watch();
+
+  // Build location suggestions based on selected currency/region
+  const locationOptions = React.useMemo(() => {
+    const currency = values.currency || 'USD';
+    if (currency === 'AED') {
+      return UAE_LOCATIONS.flatMap(e =>
+        e.cities.map(city => ({ label: `${city}, ${e.emirate}`, value: `${city}, ${e.emirate}` }))
+      );
+    }
+    if (currency === 'SGD') {
+      return SINGAPORE_LOCATIONS.flatMap(r =>
+        r.districts.map(d => ({ label: `${d}, ${r.region} Region`, value: `${d}, ${r.region} Region` }))
+      );
+    }
+    return []; // USD/INR: free-text input
+  }, [values.currency]);
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills((prev) =>
@@ -154,6 +171,7 @@ export default function PostJobPage() {
         category: data.category,
         projectType: data.projectType || 'standard',
         budget: Number(data.budget),
+        currency: data.currency || 'USD',
         location: data.location,
         startDate: data.startDate || undefined,
         skills: selectedSkills,
@@ -457,9 +475,9 @@ export default function PostJobPage() {
                 </Button>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-3 gap-4">
                 <Input
-                  label="Budget (USD)"
+                  label="Budget"
                   type="number"
                   placeholder="e.g. 15000"
                   leftIcon={<DollarSign className="w-4 h-4" />}
@@ -467,8 +485,15 @@ export default function PostJobPage() {
                   hint="Enter your maximum budget"
                   {...register('budget', {
                     required: 'Budget is required',
-                    min: { value: 100, message: 'Minimum $100' },
+                    min: { value: 100, message: 'Minimum 100' },
                   })}
+                />
+
+                <Select
+                  label="Currency"
+                  options={CURRENCIES.map((c) => ({ label: c.label, value: c.value }))}
+                  error={errors.currency?.message}
+                  {...register('currency', { required: 'Currency is required' })}
                 />
 
                 <Select
@@ -481,13 +506,23 @@ export default function PostJobPage() {
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
-                <Input
-                  label="Project Location"
-                  placeholder="City, State"
-                  leftIcon={<MapPin className="w-4 h-4" />}
-                  error={errors.location?.message}
-                  {...register('location', { required: 'Location is required' })}
-                />
+                {locationOptions.length > 0 ? (
+                  <Select
+                    label="Project Location"
+                    placeholder="Select location"
+                    options={locationOptions}
+                    error={errors.location?.message}
+                    {...register('location', { required: 'Location is required' })}
+                  />
+                ) : (
+                  <Input
+                    label="Project Location"
+                    placeholder="City, State"
+                    leftIcon={<MapPin className="w-4 h-4" />}
+                    error={errors.location?.message}
+                    {...register('location', { required: 'Location is required' })}
+                  />
+                )}
 
                 <Input
                   label="Preferred Start Date"
@@ -503,7 +538,7 @@ export default function PostJobPage() {
                 <p className="text-sm font-semibold text-brand-800 mb-1">💡 Budget Insights</p>
                 <p className="text-xs text-brand-700">
                   For a {values.category || 'general construction'} project with a budget of{' '}
-                  <strong>${Number(values.budget).toLocaleString()}</strong>, you can expect to receive{' '}
+                  <strong>{(CURRENCIES.find(c => c.value === values.currency)?.symbol || '$')}{Number(values.budget).toLocaleString()}</strong> {values.currency || 'USD'}, you can expect to receive{' '}
                   <strong>5–15 competitive bids</strong> from qualified contractors in your area.
                 </p>
               </div>
@@ -541,7 +576,7 @@ export default function PostJobPage() {
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
                   <div>
                     <p className="text-xs text-dark-400 font-medium">Budget</p>
-                    <p className="font-bold text-dark-900">${Number(values.budget || 0).toLocaleString()}</p>
+                    <p className="font-bold text-dark-900">{(CURRENCIES.find(c => c.value === values.currency)?.symbol || '$')}{Number(values.budget || 0).toLocaleString()} {values.currency || 'USD'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-dark-400 font-medium">Timeline</p>
