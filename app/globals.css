@@ -141,3 +141,8 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* ─── UAE Arabic RTL Layout ──────────────────────────────────────────────── */
+.uae-ar-layout {
+  font-family: 'Noto Naskh Arabic', 'Segoe UI', system-ui, sans-serif;
+}

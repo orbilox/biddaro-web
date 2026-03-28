@@ -39,13 +39,15 @@ import { JOB_CATEGORY_META, INDIA_LOCATIONS } from '@/lib/seo-data';
 import { getAllSlugs as getAskSlugs } from '@/lib/ask-data';
 import { UAE_LOCATIONS, UAE_JOB_CATEGORY_META } from '@/lib/seo-data-uae';
 import { UAE_COST_SERVICES } from '@/lib/cost-data-uae';
+import { UAE_LOCATIONS_AR, UAE_JOB_CATEGORY_META_AR } from '@/lib/seo-data-uae-ar';
+import { UAE_COST_SERVICES_AR } from '@/lib/cost-data-uae-ar';
 import { SG_LOCATIONS, SG_JOB_CATEGORY_META } from '@/lib/seo-data-sg';
 import { SG_COST_SERVICES } from '@/lib/cost-data-sg';
 import { USA_LOCATIONS, USA_JOB_CATEGORY_META } from '@/lib/seo-data-usa';
 import { USA_COST_SERVICES } from '@/lib/cost-data-usa';
 
 export const SITEMAP_BASE = 'https://biddaro.com';
-export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
+export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] as const;
 
 export interface SitemapEntry {
   url: string;
@@ -75,6 +77,8 @@ export function buildSitemap(id: number): SitemapEntry[] {
     case 14: return buildUSHireHubSitemap();
     case 15: return buildUSHireCitiesSitemap();
     case 16: return buildUSCostSitemap();
+    case 17: return buildUAEArHireSitemap();
+    case 18: return buildUAEArCostSitemap();
     default: return [];
   }
 }
@@ -111,13 +115,18 @@ function buildStaticSitemap(): SitemapEntry[] {
     entry('/html-sitemap',   0.5,  'monthly'),
     entry('/privacy-policy', 0.3,  'yearly'),
     entry('/terms',          0.3,  'yearly'),
-    // Country hubs
+    // Country hubs — English
     entry('/uae/hire',       0.9,  'daily'),
     entry('/uae/cost',       0.9,  'weekly'),
     entry('/sg/hire',        0.9,  'daily'),
     entry('/sg/cost',        0.9,  'weekly'),
     entry('/us/hire',        0.9,  'daily'),
     entry('/us/cost',        0.9,  'weekly'),
+    // UAE Arabic hubs
+    entry('/uae/ar/hire',    0.9,  'daily'),
+    entry('/uae/ar/cost',    0.9,  'weekly'),
+    // Sitemap page
+    entry('/html-sitemap',   0.5,  'monthly'),
   ];
 }
 
@@ -296,6 +305,39 @@ function buildUSCostSitemap(): SitemapEntry[] {
     for (const state of USA_LOCATIONS) {
       for (const city of state.cities) {
         entries.push(entry(`/us/cost/${svc.slug}/${city.slug}`, 0.7, 'monthly'));
+      }
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 17 — UAE Arabic Hire Hub + Emirates ──────────────────────────────
+
+function buildUAEArHireSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  entries.push(entry('/uae/ar/hire', 0.9, 'daily'));
+  for (const cat of UAE_JOB_CATEGORY_META_AR) {
+    entries.push(entry(`/uae/ar/hire/${cat.slug}`, 0.85, 'weekly'));
+    for (const emirate of UAE_LOCATIONS_AR) {
+      entries.push(entry(`/uae/ar/hire/${cat.slug}/${emirate.slug}`, 0.75, 'weekly'));
+      for (const city of emirate.cities) {
+        entries.push(entry(`/uae/ar/hire/${cat.slug}/${emirate.slug}/${city.slug}`, 0.7, 'weekly'));
+      }
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 18 — UAE Arabic Cost ────────────────────────────────────────────
+
+function buildUAEArCostSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  entries.push(entry('/uae/ar/cost', 0.9, 'weekly'));
+  for (const svc of UAE_COST_SERVICES_AR) {
+    entries.push(entry(`/uae/ar/cost/${svc.slug}`, 0.85, 'weekly'));
+    for (const emirate of UAE_LOCATIONS_AR) {
+      for (const city of emirate.cities) {
+        entries.push(entry(`/uae/ar/cost/${svc.slug}/${city.slug}`, 0.7, 'monthly'));
       }
     }
   }
