@@ -440,6 +440,23 @@ export const premiumApi = {
   adminRevenue: () => api.get('/admin/premium/revenue'),
 };
 
+export const projectTrackingApi = {
+  /** Dashboard: all active contracts with latest update */
+  dashboard: () => api.get('/project-tracking'),
+  /** Full update feed for a single contract */
+  feed: (contractId: string) => api.get(`/project-tracking/${contractId}`),
+  /** Post a progress update */
+  postUpdate: (contractId: string, data: {
+    message: string;
+    progressPercent?: number;
+    imageUrl?: string;
+    type?: 'update' | 'note' | 'photo' | 'milestone';
+  }) => api.post(`/project-tracking/${contractId}/updates`, data),
+  /** Delete an update */
+  deleteUpdate: (contractId: string, updateId: string) =>
+    api.delete(`/project-tracking/${contractId}/updates/${updateId}`),
+};
+
 export const addonsApi = {
   /** Full catalog with isInstalled flag for the current user */
   list: () => api.get('/addons'),
