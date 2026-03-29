@@ -139,6 +139,7 @@ export const ROUTES = {
   FIND_WORK: '/find-work',
   OPEN_JOBS: '/open-jobs',
   PREMIUM: '/premium',
+  ADDONS: '/addons',
   // Programmatic SEO – hire pages
   HIRE: '/hire',
   HIRE_CATEGORY: (category: string) => `/hire/${category}`,

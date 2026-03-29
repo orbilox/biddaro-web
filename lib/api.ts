@@ -440,4 +440,17 @@ export const premiumApi = {
   adminRevenue: () => api.get('/admin/premium/revenue'),
 };
 
+export const addonsApi = {
+  /** Full catalog with isInstalled flag for the current user */
+  list: () => api.get('/addons'),
+  /** Only the currently installed add-ons */
+  installed: () => api.get('/addons/installed'),
+  /** Install an add-on (debits wallet for paid ones) */
+  install: (slug: string) => api.post(`/addons/${slug}/install`),
+  /** Uninstall an add-on */
+  uninstall: (slug: string) => api.delete(`/addons/${slug}/uninstall`),
+  /** Check if a single add-on is installed */
+  check: (slug: string) => api.get(`/addons/${slug}`),
+};
+
 export default api;

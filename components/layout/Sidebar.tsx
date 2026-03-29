@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
-  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown,
+  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -28,6 +28,7 @@ const posterNavItems: NavItem[] = [
   { href: ROUTES.MESSAGES, label: 'Messages', icon: MessageSquare },
   { href: ROUTES.WALLET, label: 'Wallet', icon: Wallet },
   { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
+  { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];
 
@@ -40,6 +41,7 @@ const contractorNavItems: NavItem[] = [
   { href: ROUTES.WALLET, label: 'Wallet', icon: Wallet },
   { href: '/subscription', label: 'Premium', icon: Crown },
   { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
+  { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];
 
