@@ -440,6 +440,40 @@ export const premiumApi = {
   adminRevenue: () => api.get('/admin/premium/revenue'),
 };
 
+export const pmApi = {
+  // Projects
+  listProjects:    () => api.get('/pm/projects'),
+  createProject:   (data: Record<string, unknown>) => api.post('/pm/projects', data),
+  updateProject:   (id: string, data: Record<string, unknown>) => api.put(`/pm/projects/${id}`, data),
+  deleteProject:   (id: string) => api.delete(`/pm/projects/${id}`),
+  projectOverview: (id: string) => api.get(`/pm/projects/${id}/overview`),
+  // Tasks
+  listTasks:   (projectId: string) => api.get(`/pm/projects/${projectId}/tasks`),
+  createTask:  (projectId: string, data: Record<string, unknown>) => api.post(`/pm/projects/${projectId}/tasks`, data),
+  updateTask:  (taskId: string, data: Record<string, unknown>) => api.put(`/pm/tasks/${taskId}`, data),
+  deleteTask:  (taskId: string) => api.delete(`/pm/tasks/${taskId}`),
+  // Milestones
+  listMilestones:   (projectId: string) => api.get(`/pm/projects/${projectId}/milestones`),
+  createMilestone:  (projectId: string, data: Record<string, unknown>) => api.post(`/pm/projects/${projectId}/milestones`, data),
+  updateMilestone:  (id: string, data: Record<string, unknown>) => api.put(`/pm/milestones/${id}`, data),
+  deleteMilestone:  (id: string) => api.delete(`/pm/milestones/${id}`),
+  // Discussions
+  listDiscussions:    (projectId: string) => api.get(`/pm/projects/${projectId}/discussions`),
+  createDiscussion:   (projectId: string, data: Record<string, unknown>) => api.post(`/pm/projects/${projectId}/discussions`, data),
+  getDiscussion:      (id: string) => api.get(`/pm/discussions/${id}`),
+  replyDiscussion:    (id: string, content: string) => api.post(`/pm/discussions/${id}/replies`, { content }),
+  deleteDiscussion:   (id: string) => api.delete(`/pm/discussions/${id}`),
+  deleteReply:        (id: string) => api.delete(`/pm/discussion-replies/${id}`),
+  // Files
+  listFiles:   (projectId: string) => api.get(`/pm/projects/${projectId}/files`),
+  addFile:     (projectId: string, data: Record<string, unknown>) => api.post(`/pm/projects/${projectId}/files`, data),
+  deleteFile:  (id: string) => api.delete(`/pm/files/${id}`),
+  // Time
+  listTime:    (projectId: string) => api.get(`/pm/projects/${projectId}/time`),
+  logTime:     (projectId: string, data: Record<string, unknown>) => api.post(`/pm/projects/${projectId}/time`, data),
+  deleteTime:  (id: string) => api.delete(`/pm/time/${id}`),
+};
+
 export const projectTrackingApi = {
   /** Dashboard: all active contracts with latest update */
   dashboard: () => api.get('/project-tracking'),

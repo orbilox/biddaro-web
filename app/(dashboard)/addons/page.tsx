@@ -84,7 +84,7 @@ function AddOnCard({ addon, onInstall, onUninstall, loading }: AddOnCardProps) {
         </div>
         <div className="flex-shrink-0 text-right">
           <p className="text-sm font-bold text-dark-900">{pricingLabel(addon)}</p>
-          <Badge variant="secondary" size="sm" className="mt-0.5">{addon.category}</Badge>
+          <Badge variant="default" size="sm" className="mt-0.5">{addon.category}</Badge>
         </div>
       </div>
 

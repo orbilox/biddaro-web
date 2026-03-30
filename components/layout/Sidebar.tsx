@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
-  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio,
+  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -43,6 +43,7 @@ const contractorNavItems: NavItem[] = [
   { href: '/subscription', label: 'Premium', icon: Crown },
   { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
   { href: ROUTES.PROJECT_TRACKING, label: 'Project Tracking', icon: Radio },
+  { href: ROUTES.PROJECT_MANAGER, label: 'Project Manager', icon: FolderKanban },
   { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];

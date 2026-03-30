@@ -141,6 +141,7 @@ export const ROUTES = {
   PREMIUM: '/premium',
   ADDONS: '/addons',
   PROJECT_TRACKING: '/project-tracking',
+  PROJECT_MANAGER: '/project-manager',
   // Programmatic SEO – hire pages
   HIRE: '/hire',
   HIRE_CATEGORY: (category: string) => `/hire/${category}`,
