@@ -1082,6 +1082,18 @@ export default function ProjectManagerPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [milestones, setMilestones] = useState<PMMilestone[]>([]);
 
+  // Contract auto-import suggestions
+  interface ContractSuggestion {
+    id: string;
+    totalAmount: number;
+    currency: string;
+    job: { id: string; title: string; category: string; location: string };
+    poster: { id: string; firstName: string; lastName: string };
+  }
+  const [suggestions, setSuggestions] = useState<ContractSuggestion[]>([]);
+  const [importingId, setImportingId] = useState<string | null>(null);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(true);
+
   // Project create/edit
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -1094,13 +1106,17 @@ export default function ProjectManagerPage() {
 
   const selectedProject = projects.find((p) => p.id === selectedId);
 
-  // ── Load projects ───────────────────────────────────────────────────────────
+  // ── Load projects + suggestions ─────────────────────────────────────────────
   const loadProjects = useCallback(async () => {
     setLoadingProjects(true);
     try {
-      const res = await pmApi.listProjects();
-      const list: PMProject[] = Array.isArray(res.data.data) ? res.data.data : [];
+      const [projRes, sugRes] = await Promise.all([
+        pmApi.listProjects(),
+        pmApi.contractSuggestions(),
+      ]);
+      const list: PMProject[] = Array.isArray(projRes.data.data) ? projRes.data.data : [];
       setProjects(list);
+      setSuggestions(Array.isArray(sugRes.data.data) ? sugRes.data.data : []);
       setHasAddon(true);
       if (!selectedId && list.length > 0) setSelectedId(list[0].id);
     } catch (err: any) {
@@ -1130,6 +1146,28 @@ export default function ProjectManagerPage() {
       toast.error('Error', err?.response?.data?.message ?? 'Installation failed');
     } finally {
       setInstalling(false);
+    }
+  };
+
+  // ── Import contract as project ──────────────────────────────────────────────
+  const handleImportContract = async (contractId: string) => {
+    setImportingId(contractId);
+    try {
+      const res = await pmApi.importContract(contractId);
+      const newProject: PMProject = res.data.data;
+      toast.success('Imported!', `"${newProject.title}" added to your projects`);
+      await loadProjects();
+      setSelectedId(newProject.id);
+    } catch (err: any) {
+      toast.error('Error', err?.response?.data?.message ?? 'Import failed');
+    } finally {
+      setImportingId(null);
+    }
+  };
+
+  const handleImportAll = async () => {
+    for (const s of suggestions) {
+      await handleImportContract(s.id);
     }
   };
 
@@ -1295,8 +1333,73 @@ export default function ProjectManagerPage() {
           </button>
         </div>
 
-        {/* Project list */}
+        {/* ── Contract Suggestions ── */}
+        {!loadingProjects && suggestions.length > 0 && (
+          <div className="border-b border-dark-700">
+            {/* Collapsible header */}
+            <button
+              onClick={() => setSuggestionsOpen((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-dark-700 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wide">
+                  ⚡ Active Contracts
+                </span>
+                <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded-full font-bold">
+                  {suggestions.length}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {suggestions.length > 1 && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleImportAll(); }}
+                    className="text-[10px] text-brand-400 hover:text-brand-300 font-semibold px-2 py-0.5 rounded border border-brand-500/30 hover:bg-brand-500/10 transition-colors"
+                  >
+                    Import All
+                  </button>
+                )}
+                {suggestionsOpen
+                  ? <ChevronDown className="w-3 h-3 text-dark-400" />
+                  : <ChevronRight className="w-3 h-3 text-dark-400" />}
+              </div>
+            </button>
+
+            {suggestionsOpen && (
+              <div className="px-2 pb-2 space-y-1">
+                {suggestions.map((s) => (
+                  <div key={s.id} className="flex items-center gap-2 px-2 py-2 rounded-lg bg-dark-800 border border-dark-600">
+                    <span className="text-base flex-shrink-0">🏗️</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-dark-200 truncate">{s.job.title}</p>
+                      <p className="text-[10px] text-dark-500 truncate">
+                        {s.job.category} · {s.poster.firstName} {s.poster.lastName}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleImportContract(s.id)}
+                      disabled={importingId === s.id}
+                      className="flex-shrink-0 text-[10px] font-bold bg-brand-500 hover:bg-brand-600 text-white px-2 py-1 rounded-md transition-colors disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {importingId === s.id
+                        ? <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                        : <ArrowRight className="w-2.5 h-2.5" />}
+                      Track
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Project list ── */}
         <div className="flex-1 py-2 px-2 space-y-0.5">
+          {/* Section label */}
+          {projects.length > 0 && (
+            <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold text-dark-500 uppercase tracking-widest">
+              My Projects
+            </p>
+          )}
           {loadingProjects ? (
             <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 text-brand-400 animate-spin" /></div>
           ) : projects.length === 0 ? (
@@ -1320,11 +1423,16 @@ export default function ProjectManagerPage() {
                   <p className={cn('text-xs font-semibold truncate', selectedId === p.id ? 'text-brand-300' : 'text-dark-200')}>
                     {p.title}
                   </p>
-                  {p._count && (
-                    <p className="text-[10px] text-dark-500 mt-0.5">
-                      {p._count.tasks} tasks · {p._count.milestones} milestones
-                    </p>
-                  )}
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {p._count && (
+                      <p className="text-[10px] text-dark-500">
+                        {p._count.tasks} tasks · {p._count.milestones} ms
+                      </p>
+                    )}
+                    {p.contractId && (
+                      <span className="text-[9px] bg-blue-500/20 text-blue-400 px-1 py-0.5 rounded font-bold">CONTRACT</span>
+                    )}
+                  </div>
                 </div>
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
               </button>
@@ -1345,11 +1453,24 @@ export default function ProjectManagerPage() {
         {!selectedProject ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <FolderKanban className="w-14 h-14 text-dark-200 mb-4" />
-            <h2 className="text-lg font-bold text-dark-600 mb-2">Select a Project</h2>
-            <p className="text-sm text-dark-400 mb-6">Choose a project from the sidebar or create a new one</p>
-            <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => setCreateOpen(true)}>
-              Create Project
-            </Button>
+            <h2 className="text-lg font-bold text-dark-600 mb-2">
+              {suggestions.length > 0 ? 'Import or Create a Project' : 'Select a Project'}
+            </h2>
+            <p className="text-sm text-dark-400 mb-6">
+              {suggestions.length > 0
+                ? `You have ${suggestions.length} active contract${suggestions.length > 1 ? 's' : ''} ready to track — import from the sidebar or create a new project.`
+                : 'Choose a project from the sidebar or create a new one'}
+            </p>
+            <div className="flex gap-3">
+              {suggestions.length > 0 && (
+                <Button variant="outline" leftIcon={<ArrowRight className="w-4 h-4" />} onClick={handleImportAll}>
+                  Import All Contracts
+                </Button>
+              )}
+              <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => setCreateOpen(true)}>
+                Create Project
+              </Button>
+            </div>
           </div>
         ) : (
           <>

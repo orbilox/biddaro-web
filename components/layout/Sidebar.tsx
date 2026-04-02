@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
-  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban,
+  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban, Hammer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -29,6 +29,7 @@ const posterNavItems: NavItem[] = [
   { href: ROUTES.WALLET, label: 'Wallet', icon: Wallet },
   { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
   { href: ROUTES.PROJECT_TRACKING, label: 'Project Tracking', icon: Radio },
+  { href: ROUTES.BUILD_PLANNER, label: 'Build Planner', icon: Hammer },
   { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];

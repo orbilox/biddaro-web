@@ -472,6 +472,9 @@ export const pmApi = {
   listTime:    (projectId: string) => api.get(`/pm/projects/${projectId}/time`),
   logTime:     (projectId: string, data: Record<string, unknown>) => api.post(`/pm/projects/${projectId}/time`, data),
   deleteTime:  (id: string) => api.delete(`/pm/time/${id}`),
+  // Contract sync
+  contractSuggestions: () => api.get('/pm/contract-suggestions'),
+  importContract:      (contractId: string) => api.post(`/pm/import-contract/${contractId}`),
 };
 
 export const projectTrackingApi = {
@@ -489,6 +492,29 @@ export const projectTrackingApi = {
   /** Delete an update */
   deleteUpdate: (contractId: string, updateId: string) =>
     api.delete(`/project-tracking/${contractId}/updates/${updateId}`),
+};
+
+export const buildPlannerApi = {
+  // Plans
+  listPlans:   () => api.get('/build-planner/plans'),
+  createPlan:  (data: Record<string, unknown>) => api.post('/build-planner/plans', data),
+  getPlan:     (id: string) => api.get(`/build-planner/plans/${id}`),
+  updatePlan:  (id: string, data: Record<string, unknown>) => api.put(`/build-planner/plans/${id}`, data),
+  deletePlan:  (id: string) => api.delete(`/build-planner/plans/${id}`),
+  // Sections
+  addSection:    (planId: string, data: Record<string, unknown>) => api.post(`/build-planner/plans/${planId}/sections`, data),
+  updateSection: (id: string, data: Record<string, unknown>) => api.put(`/build-planner/sections/${id}`, data),
+  deleteSection: (id: string) => api.delete(`/build-planner/sections/${id}`),
+  // Check items
+  addItem:    (sectionId: string, label: string) => api.post(`/build-planner/sections/${sectionId}/items`, { label }),
+  toggleItem: (itemId: string) => api.put(`/build-planner/items/${itemId}/toggle`),
+  deleteItem: (itemId: string) => api.delete(`/build-planner/items/${itemId}`),
+  // Media
+  listMedia:  (planId: string) => api.get(`/build-planner/plans/${planId}/media`),
+  addMedia:   (planId: string, data: Record<string, unknown>) => api.post(`/build-planner/plans/${planId}/media`, data),
+  deleteMedia:(id: string) => api.delete(`/build-planner/media/${id}`),
+  // Achievements
+  achievements: (planId: string) => api.get(`/build-planner/plans/${planId}/achievements`),
 };
 
 export const addonsApi = {
