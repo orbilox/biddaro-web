@@ -6,7 +6,8 @@ import {
   CheckSquare, Square, Image as ImageIcon, X, Trophy, Target, Upload,
   Building2, Zap, Shield, Layers, Droplets,
   Wind, Paintbrush, Map, BarChart3, FileText, RefreshCw, CheckCircle2,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, ShoppingCart, Truck, PackageCheck,
+  DollarSign, Pencil, AlertCircle, Boxes,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -84,6 +85,25 @@ interface Achievement {
   unlocked: boolean;
 }
 
+type MaterialStatus = 'pending' | 'ordered' | 'delivered' | 'installed';
+type MaterialCategory = 'concrete' | 'steel' | 'wood' | 'electrical' | 'plumbing' | 'roofing' | 'finishing' | 'other';
+
+interface BuildMaterial {
+  id: string;
+  planId: string;
+  name: string;
+  category: MaterialCategory;
+  quantity: number;
+  unit: string;
+  estimatedCost?: number;
+  actualCost?: number;
+  status: MaterialStatus;
+  supplier?: string;
+  notes?: string;
+  order: number;
+  createdAt: string;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const SECTION_TYPE_META: Record<string, { icon: React.ElementType; label: string; color: string }> = {
@@ -109,6 +129,26 @@ const BUILD_TYPES = [
   { value: 'renovation',  label: 'Renovation'  },
   { value: 'industrial',  label: 'Industrial'  },
 ];
+
+const MATERIAL_CATEGORIES: { value: MaterialCategory; label: string; color: string; bg: string }[] = [
+  { value: 'concrete',   label: 'Concrete & Masonry', color: 'text-stone-600',  bg: 'bg-stone-100'  },
+  { value: 'steel',      label: 'Steel & Metal',       color: 'text-slate-600',  bg: 'bg-slate-100'  },
+  { value: 'wood',       label: 'Wood & Timber',       color: 'text-amber-700',  bg: 'bg-amber-50'   },
+  { value: 'electrical', label: 'Electrical',          color: 'text-yellow-600', bg: 'bg-yellow-50'  },
+  { value: 'plumbing',   label: 'Plumbing',            color: 'text-cyan-600',   bg: 'bg-cyan-50'    },
+  { value: 'roofing',    label: 'Roofing',             color: 'text-blue-600',   bg: 'bg-blue-50'    },
+  { value: 'finishing',  label: 'Finishing',           color: 'text-pink-600',   bg: 'bg-pink-50'    },
+  { value: 'other',      label: 'Other',               color: 'text-gray-600',   bg: 'bg-gray-100'   },
+];
+
+const MATERIAL_UNITS = ['pcs', 'bags', 'm²', 'm³', 'kg', 'tons', 'L', 'm', 'rolls', 'sheets'];
+
+const MATERIAL_STATUS_META: Record<MaterialStatus, { label: string; icon: React.ElementType; color: string; bg: string }> = {
+  pending:   { label: 'Pending',   icon: AlertCircle,   color: 'text-gray-500',  bg: 'bg-gray-100'   },
+  ordered:   { label: 'Ordered',   icon: ShoppingCart,  color: 'text-blue-600',  bg: 'bg-blue-50'    },
+  delivered: { label: 'Delivered', icon: Truck,         color: 'text-amber-600', bg: 'bg-amber-50'   },
+  installed: { label: 'Installed', icon: PackageCheck,  color: 'text-green-600', bg: 'bg-green-50'   },
+};
 
 function ProgressRing({ percent, size = 96 }: { percent: number; size?: number }) {
   const r = size / 2 - 8;
@@ -163,6 +203,15 @@ export default function BuildPlannerPage() {
   const [mediaUploading, setMediaUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Materials
+  const [materials, setMaterials] = useState<BuildMaterial[]>([]);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const [addMaterialOpen, setAddMaterialOpen] = useState(false);
+  const [editMaterial, setEditMaterial] = useState<BuildMaterial | null>(null);
+  const [deleteMaterialId, setDeleteMaterialId] = useState<string | null>(null);
+  const emptyMaterialForm = { name: '', category: 'concrete' as MaterialCategory, quantity: '', unit: 'pcs', estimatedCost: '', actualCost: '', status: 'pending' as MaterialStatus, supplier: '', notes: '' };
+  const [materialForm, setMaterialForm] = useState(emptyMaterialForm);
+
   // ── Addon check ────────────────────────────────────────────────────────────
   useEffect(() => {
     addonsApi.check('construction-planner')
@@ -193,6 +242,7 @@ export default function BuildPlannerPage() {
     try {
       const r = await buildPlannerApi.getPlan(id);
       setSelectedPlan(r.data?.data ?? r.data ?? null);
+      loadMaterials(id);
     } catch {
       toast.error('Failed to load plan');
     }
@@ -320,6 +370,76 @@ export default function BuildPlannerPage() {
       await loadPlan(selectedPlan.id);
       toast.success('Media removed');
     } catch { toast.error('Failed to remove media'); }
+  };
+
+  // ── Materials ──────────────────────────────────────────────────────────────
+  const loadMaterials = useCallback(async (planId: string) => {
+    setMaterialsLoading(true);
+    try {
+      const r = await buildPlannerApi.listMaterials(planId);
+      setMaterials(Array.isArray(r.data?.data) ? r.data.data : []);
+    } catch { /* silent */ }
+    finally { setMaterialsLoading(false); }
+  }, []);
+
+  const handleSaveMaterial = async () => {
+    if (!selectedPlan || !materialForm.name.trim() || !materialForm.quantity) return;
+    setSaving(true);
+    try {
+      const payload = {
+        name: materialForm.name.trim(),
+        category: materialForm.category,
+        quantity: parseFloat(materialForm.quantity),
+        unit: materialForm.unit,
+        estimatedCost: materialForm.estimatedCost ? parseFloat(materialForm.estimatedCost) : undefined,
+        actualCost: materialForm.actualCost ? parseFloat(materialForm.actualCost) : undefined,
+        status: materialForm.status,
+        supplier: materialForm.supplier.trim() || undefined,
+        notes: materialForm.notes.trim() || undefined,
+      };
+      if (editMaterial) {
+        await buildPlannerApi.updateMaterial(editMaterial.id, payload);
+        toast.success('Material updated');
+      } else {
+        await buildPlannerApi.addMaterial(selectedPlan.id, payload);
+        toast.success('Material added');
+      }
+      setAddMaterialOpen(false);
+      setEditMaterial(null);
+      setMaterialForm(emptyMaterialForm);
+      await loadMaterials(selectedPlan.id);
+    } catch { toast.error('Failed to save material'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDeleteMaterial = async () => {
+    if (!deleteMaterialId || !selectedPlan) return;
+    try {
+      await buildPlannerApi.deleteMaterial(deleteMaterialId);
+      setDeleteMaterialId(null);
+      toast.success('Material removed');
+      await loadMaterials(selectedPlan.id);
+    } catch { toast.error('Failed to remove material'); }
+  };
+
+  const openEditMaterial = (m: BuildMaterial) => {
+    setEditMaterial(m);
+    setMaterialForm({
+      name: m.name, category: m.category, quantity: String(m.quantity), unit: m.unit,
+      estimatedCost: m.estimatedCost != null ? String(m.estimatedCost) : '',
+      actualCost: m.actualCost != null ? String(m.actualCost) : '',
+      status: m.status, supplier: m.supplier ?? '', notes: m.notes ?? '',
+    });
+    setAddMaterialOpen(true);
+  };
+
+  const handleStatusCycle = async (m: BuildMaterial) => {
+    const order: MaterialStatus[] = ['pending', 'ordered', 'delivered', 'installed'];
+    const next = order[(order.indexOf(m.status) + 1) % order.length];
+    try {
+      await buildPlannerApi.updateMaterial(m.id, { status: next });
+      if (selectedPlan) await loadMaterials(selectedPlan.id);
+    } catch { toast.error('Failed to update status'); }
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -578,6 +698,7 @@ export default function BuildPlannerPage() {
                   <TabList>
                     <Tab value="blueprint"><Trophy className="w-3.5 h-3.5 mr-1 lg:mr-1.5 inline" /><span className="hidden sm:inline">Blueprint</span><span className="sm:hidden">Plan</span></Tab>
                     <Tab value="sections"><CheckSquare className="w-3.5 h-3.5 mr-1 lg:mr-1.5 inline" />Sections</Tab>
+                    <Tab value="materials"><Boxes className="w-3.5 h-3.5 mr-1 lg:mr-1.5 inline" />Materials</Tab>
                     <Tab value="media"><ImageIcon className="w-3.5 h-3.5 mr-1 lg:mr-1.5 inline" /><span className="hidden sm:inline">Media Board</span><span className="sm:hidden">Media</span></Tab>
                     <Tab value="report"><FileText className="w-3.5 h-3.5 mr-1 lg:mr-1.5 inline" />Report</Tab>
                   </TabList>
@@ -725,6 +846,20 @@ export default function BuildPlannerPage() {
                       </Button>
                     </div>
                   )}
+                </TabPanel>
+
+                {/* ── Materials Tab ───────────────────────────────────────── */}
+                <TabPanel value="materials">
+                  <MaterialsPanel
+                    planId={selectedPlan.id}
+                    materials={materials}
+                    loading={materialsLoading}
+                    currency={selectedPlan.currency}
+                    onAdd={() => { setEditMaterial(null); setMaterialForm(emptyMaterialForm); setAddMaterialOpen(true); }}
+                    onEdit={openEditMaterial}
+                    onDelete={(id) => setDeleteMaterialId(id)}
+                    onStatusCycle={handleStatusCycle}
+                  />
                 </TabPanel>
 
                 {/* ── Media Board Tab ─────────────────────────────────────── */}
@@ -972,7 +1107,7 @@ export default function BuildPlannerPage() {
         </div>
       </Modal>
 
-      {/* Delete confirm */}
+      {/* Delete plan confirm */}
       <ConfirmModal
         open={!!deletePlanId}
         onClose={() => setDeletePlanId(null)}
@@ -982,6 +1117,350 @@ export default function BuildPlannerPage() {
         confirmLabel="Delete Plan"
         danger
       />
+
+      {/* Add / Edit Material Modal */}
+      <Modal
+        open={addMaterialOpen}
+        onClose={() => { setAddMaterialOpen(false); setEditMaterial(null); setMaterialForm(emptyMaterialForm); }}
+        title={editMaterial ? 'Edit Material' : 'Add Material'}
+      >
+        <div className="space-y-4">
+          {/* Name */}
+          <div>
+            <label className="block text-sm text-gray-700 mb-1 font-medium">Material Name *</label>
+            <input
+              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500"
+              placeholder="e.g. Portland Cement"
+              value={materialForm.name}
+              onChange={e => setMaterialForm(f => ({ ...f, name: e.target.value }))}
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm text-gray-700 mb-2 font-medium">Category</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {MATERIAL_CATEGORIES.map(c => (
+                <button
+                  key={c.value}
+                  onClick={() => setMaterialForm(f => ({ ...f, category: c.value }))}
+                  className={cn(
+                    'px-2 py-1.5 rounded-lg text-xs font-medium border transition-all text-left',
+                    materialForm.category === c.value
+                      ? `${c.bg} ${c.color} border-current`
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  )}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quantity + Unit */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-gray-700 mb-1 font-medium">Quantity *</label>
+              <input
+                type="number" min="0" step="any"
+                className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500"
+                placeholder="0"
+                value={materialForm.quantity}
+                onChange={e => setMaterialForm(f => ({ ...f, quantity: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1 font-medium">Unit</label>
+              <select
+                className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500"
+                value={materialForm.unit}
+                onChange={e => setMaterialForm(f => ({ ...f, unit: e.target.value }))}
+              >
+                {MATERIAL_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Cost */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-gray-700 mb-1 font-medium">Est. Cost ($)</label>
+              <input
+                type="number" min="0" step="any"
+                className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500"
+                placeholder="0.00"
+                value={materialForm.estimatedCost}
+                onChange={e => setMaterialForm(f => ({ ...f, estimatedCost: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1 font-medium">Actual Cost ($)</label>
+              <input
+                type="number" min="0" step="any"
+                className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500"
+                placeholder="0.00"
+                value={materialForm.actualCost}
+                onChange={e => setMaterialForm(f => ({ ...f, actualCost: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="block text-sm text-gray-700 mb-2 font-medium">Status</label>
+            <div className="flex gap-2 flex-wrap">
+              {(Object.entries(MATERIAL_STATUS_META) as [MaterialStatus, typeof MATERIAL_STATUS_META[MaterialStatus]][]).map(([key, meta]) => (
+                <button
+                  key={key}
+                  onClick={() => setMaterialForm(f => ({ ...f, status: key }))}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                    materialForm.status === key
+                      ? `${meta.bg} ${meta.color} border-current`
+                      : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                  )}
+                >
+                  <meta.icon className="w-3 h-3" />
+                  {meta.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Supplier */}
+          <div>
+            <label className="block text-sm text-gray-700 mb-1 font-medium">Supplier (optional)</label>
+            <input
+              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500"
+              placeholder="e.g. ABC Building Supplies"
+              value={materialForm.supplier}
+              onChange={e => setMaterialForm(f => ({ ...f, supplier: e.target.value }))}
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm text-gray-700 mb-1 font-medium">Notes (optional)</label>
+            <textarea
+              rows={2}
+              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500 resize-none"
+              placeholder="Grade, spec, delivery date..."
+              value={materialForm.notes}
+              onChange={e => setMaterialForm(f => ({ ...f, notes: e.target.value }))}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="ghost" onClick={() => { setAddMaterialOpen(false); setEditMaterial(null); }}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveMaterial} disabled={saving || !materialForm.name.trim() || !materialForm.quantity}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editMaterial ? 'Save Changes' : 'Add Material')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete material confirm */}
+      <ConfirmModal
+        open={!!deleteMaterialId}
+        onClose={() => setDeleteMaterialId(null)}
+        onConfirm={handleDeleteMaterial}
+        title="Remove Material"
+        description="Remove this material from your plan?"
+        confirmLabel="Remove"
+        danger
+      />
+    </div>
+  );
+}
+
+// ─── Materials Panel ──────────────────────────────────────────────────────────
+
+function MaterialsPanel({
+  planId, materials, loading, currency,
+  onAdd, onEdit, onDelete, onStatusCycle,
+}: {
+  planId: string;
+  materials: BuildMaterial[];
+  loading: boolean;
+  currency: string;
+  onAdd: () => void;
+  onEdit: (m: BuildMaterial) => void;
+  onDelete: (id: string) => void;
+  onStatusCycle: (m: BuildMaterial) => void;
+}) {
+  // ── Summary stats ──────────────────────────────────────────────────────────
+  const totalItems    = materials.length;
+  const totalEst      = materials.reduce((s, m) => s + (m.estimatedCost ?? 0), 0);
+  const totalActual   = materials.reduce((s, m) => s + (m.actualCost ?? 0), 0);
+  const orderedCount  = materials.filter(m => m.status === 'ordered').length;
+  const deliveredCount= materials.filter(m => m.status === 'delivered').length;
+  const installedCount= materials.filter(m => m.status === 'installed').length;
+
+  // ── Group by category ──────────────────────────────────────────────────────
+  const grouped = MATERIAL_CATEGORIES.map(cat => ({
+    ...cat,
+    items: materials.filter(m => m.category === cat.value),
+  })).filter(g => g.items.length > 0);
+
+  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 lg:space-y-6">
+      {/* ── Header row ── */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="font-bold text-gray-900 text-base lg:text-lg flex items-center gap-2">
+            <Boxes className="w-5 h-5 text-amber-500" />
+            Material Planning
+          </h2>
+          <p className="text-gray-500 text-xs mt-0.5">{totalItems} material{totalItems !== 1 ? 's' : ''} tracked</p>
+        </div>
+        <Button variant="primary" size="sm" onClick={onAdd}>
+          <Plus className="w-4 h-4 mr-1" /> Add Material
+        </Button>
+      </div>
+
+      {/* ── Summary cards ── */}
+      {totalItems > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: 'Est. Budget',  value: `${currency} ${fmt(totalEst)}`,     icon: DollarSign,    color: 'text-blue-600',  bg: 'bg-blue-50'   },
+            { label: 'Actual Spend', value: `${currency} ${fmt(totalActual)}`,   icon: DollarSign,    color: 'text-purple-600',bg: 'bg-purple-50' },
+            { label: 'Ordered',      value: `${orderedCount} item${orderedCount !== 1 ? 's' : ''}`,   icon: ShoppingCart,  color: 'text-blue-600',  bg: 'bg-blue-50'   },
+            { label: 'Installed',    value: `${installedCount} of ${totalItems}`, icon: PackageCheck,  color: 'text-green-600', bg: 'bg-green-50'  },
+          ].map(s => (
+            <div key={s.label} className={cn('rounded-xl border p-3 lg:p-4 flex items-center gap-3', s.bg, 'border-current/10')}>
+              <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center bg-white/60', s.color)}>
+                <s.icon className="w-4 h-4" />
+              </div>
+              <div>
+                <div className={cn('font-bold text-sm lg:text-base', s.color)}>{s.value}</div>
+                <div className="text-gray-500 text-xs">{s.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Empty state ── */}
+      {totalItems === 0 && (
+        <div className="text-center py-14 border-2 border-dashed border-gray-200 rounded-2xl">
+          <div className="text-5xl mb-3">🧱</div>
+          <h3 className="font-semibold text-gray-700 mb-1">No materials yet</h3>
+          <p className="text-gray-400 text-sm mb-5 max-w-xs mx-auto">
+            Track every material — cement, steel, timber, fixtures and more — with quantities, costs and delivery status.
+          </p>
+          <Button variant="primary" onClick={onAdd}>
+            <Plus className="w-4 h-4 mr-1" /> Add First Material
+          </Button>
+        </div>
+      )}
+
+      {/* ── Grouped material list ── */}
+      {grouped.map(group => (
+        <div key={group.value}>
+          {/* Category header */}
+          <div className={cn('flex items-center gap-2 px-3 py-1.5 rounded-lg mb-2', group.bg)}>
+            <span className={cn('text-xs font-semibold uppercase tracking-wider', group.color)}>{group.label}</span>
+            <span className={cn('text-xs font-medium ml-auto', group.color)}>{group.items.length} item{group.items.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {/* Material rows */}
+          <Card className="overflow-hidden p-0">
+            <div className="divide-y divide-gray-100">
+              {group.items.map(m => {
+                const statusMeta = MATERIAL_STATUS_META[m.status];
+                const StatusIcon = statusMeta.icon;
+                return (
+                  <div key={m.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group">
+                    {/* Status cycle button */}
+                    <button
+                      onClick={() => onStatusCycle(m)}
+                      title={`Status: ${statusMeta.label} — click to advance`}
+                      className={cn('flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110', statusMeta.bg)}
+                    >
+                      <StatusIcon className={cn('w-3.5 h-3.5', statusMeta.color)} />
+                    </button>
+
+                    {/* Name + notes */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-gray-900 text-sm">{m.name}</span>
+                        <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', statusMeta.bg, statusMeta.color)}>
+                          {statusMeta.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                        <span className="text-xs text-gray-500 font-medium">{m.quantity} {m.unit}</span>
+                        {m.supplier && <span className="text-xs text-gray-400">· {m.supplier}</span>}
+                        {m.notes && <span className="text-xs text-gray-400 truncate max-w-[160px]">· {m.notes}</span>}
+                      </div>
+                    </div>
+
+                    {/* Cost */}
+                    <div className="flex-shrink-0 text-right hidden sm:block">
+                      {m.estimatedCost != null && (
+                        <div className="text-xs text-gray-500">Est. {currency} {fmt(m.estimatedCost)}</div>
+                      )}
+                      {m.actualCost != null && (
+                        <div className="text-xs font-semibold text-gray-700">Act. {currency} {fmt(m.actualCost)}</div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => onEdit(m)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => onDelete(m.id)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      ))}
+
+      {/* ── Cost variance footer ── */}
+      {totalItems > 0 && (totalEst > 0 || totalActual > 0) && (
+        <Card className="bg-gray-50">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-amber-500" />
+              <span className="font-semibold text-gray-700 text-sm">Cost Summary</span>
+            </div>
+            <div className="flex items-center gap-6 text-sm flex-wrap">
+              <div><span className="text-gray-500">Estimated: </span><span className="font-bold text-gray-900">{currency} {fmt(totalEst)}</span></div>
+              <div><span className="text-gray-500">Actual: </span><span className={cn('font-bold', totalActual > totalEst ? 'text-red-600' : 'text-green-600')}>{currency} {fmt(totalActual)}</span></div>
+              {totalEst > 0 && totalActual > 0 && (
+                <div>
+                  <span className="text-gray-500">Variance: </span>
+                  <span className={cn('font-bold', totalActual > totalEst ? 'text-red-600' : 'text-green-600')}>
+                    {totalActual > totalEst ? '+' : ''}{currency} {fmt(totalActual - totalEst)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

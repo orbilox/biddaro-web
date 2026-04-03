@@ -513,6 +513,11 @@ export const buildPlannerApi = {
   listMedia:  (planId: string) => api.get(`/build-planner/plans/${planId}/media`),
   addMedia:   (planId: string, data: Record<string, unknown>) => api.post(`/build-planner/plans/${planId}/media`, data),
   deleteMedia:(id: string) => api.delete(`/build-planner/media/${id}`),
+  // Materials
+  listMaterials:   (planId: string) => api.get(`/build-planner/plans/${planId}/materials`),
+  addMaterial:     (planId: string, data: Record<string, unknown>) => api.post(`/build-planner/plans/${planId}/materials`, data),
+  updateMaterial:  (id: string, data: Record<string, unknown>) => api.put(`/build-planner/materials/${id}`, data),
+  deleteMaterial:  (id: string) => api.delete(`/build-planner/materials/${id}`),
   // Achievements
   achievements: (planId: string) => api.get(`/build-planner/plans/${planId}/achievements`),
 };
