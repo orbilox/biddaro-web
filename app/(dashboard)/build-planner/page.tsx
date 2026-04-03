@@ -362,17 +362,17 @@ export default function BuildPlannerPage() {
   const media = selectedPlan?.media ?? [];
 
   return (
-    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-4rem)] lg:overflow-hidden">
+    <div className="flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden">
 
       {/* ── Left Sidebar: Plan List — desktop only ──────────────────────── */}
       <div className={cn(
-        'hidden lg:flex border-r border-dark-700 flex-col bg-dark-900 flex-shrink-0 transition-all duration-300 relative',
-        sidebarCollapsed ? 'w-12' : 'w-64'
+        'max-lg:hidden lg:flex flex-col border-r-2 border-r-amber-500/20 border-l-2 border-l-amber-500/30 bg-[#0e1621] flex-shrink-0 transition-all duration-300 relative shadow-[inset_-1px_0_0_rgba(245,158,11,0.1)]',
+        sidebarCollapsed ? 'w-12' : 'w-60'
       )}>
         {/* Collapse toggle button */}
         <button
           onClick={() => setSidebarCollapsed(v => !v)}
-          className="absolute -right-3.5 top-4 z-10 w-7 h-7 rounded-full bg-dark-800 border border-dark-600 flex items-center justify-center text-dark-400 hover:text-white hover:border-amber-500 transition-colors shadow-md"
+          className="absolute -right-3.5 top-5 z-10 w-7 h-7 rounded-full bg-[#0e1621] border border-amber-500/30 flex items-center justify-center text-amber-500/60 hover:text-amber-400 hover:border-amber-400 transition-colors shadow-md"
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {sidebarCollapsed
@@ -384,8 +384,10 @@ export default function BuildPlannerPage() {
         {sidebarCollapsed ? (
           /* ── Collapsed: icon strip ──────────────────────────────── */
           <div className="flex flex-col items-center pt-4 gap-3">
-            <Hammer className="w-5 h-5 text-amber-400" />
-            <div className="w-px h-px" />
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <Hammer className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="w-6 h-px bg-amber-500/20 my-1" />
             {plans.map(plan => (
               <button
                 key={plan.id}
@@ -395,7 +397,7 @@ export default function BuildPlannerPage() {
                   'w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors',
                   selectedPlan?.id === plan.id
                     ? 'bg-amber-500/20 ring-1 ring-amber-500/40'
-                    : 'hover:bg-dark-800'
+                    : 'hover:bg-white/5'
                 )}
               >
                 {plan.emoji}
@@ -404,7 +406,7 @@ export default function BuildPlannerPage() {
             <button
               onClick={() => setCreatePlanOpen(true)}
               title="New Build Plan"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-dark-400 hover:text-amber-400 hover:bg-dark-800 transition-colors"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-amber-500/40 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -412,14 +414,20 @@ export default function BuildPlannerPage() {
         ) : (
           /* ── Expanded: full plan list ───────────────────────────── */
           <>
-            <div className="p-4 border-b border-dark-700 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Hammer className="w-5 h-5 text-amber-400" />
-                <span className="font-semibold text-white text-sm">Build Plans</span>
+            {/* Amber header strip */}
+            <div className="px-4 py-3.5 border-b border-amber-500/15 flex items-center justify-between bg-amber-500/5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                  <Hammer className="w-3.5 h-3.5 text-amber-400" />
+                </div>
+                <span className="font-semibold text-amber-100 text-sm tracking-wide">Build Plans</span>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setCreatePlanOpen(true)} className="p-1">
-                <Plus className="w-4 h-4" />
-              </Button>
+              <button
+                onClick={() => setCreatePlanOpen(true)}
+                className="w-6 h-6 rounded-md bg-amber-500/10 hover:bg-amber-500/25 flex items-center justify-center text-amber-400 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -442,33 +450,36 @@ export default function BuildPlannerPage() {
                   key={plan.id}
                   onClick={() => loadPlan(plan.id)}
                   className={cn(
-                    'w-full text-left px-3 py-2.5 rounded-lg transition-colors group',
+                    'w-full text-left px-3 py-2.5 rounded-lg transition-all group',
                     selectedPlan?.id === plan.id
-                      ? 'bg-amber-500/10 border border-amber-500/30'
-                      : 'hover:bg-dark-800'
+                      ? 'bg-amber-500/15 border border-amber-500/30 shadow-sm'
+                      : 'hover:bg-white/5 border border-transparent'
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{plan.emoji}</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base leading-none">{plan.emoji}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-white truncate">{plan.title}</div>
-                      <div className="text-xs text-dark-400 capitalize">{plan.buildType}</div>
+                      <div className={cn('text-sm font-medium truncate', selectedPlan?.id === plan.id ? 'text-amber-100' : 'text-gray-300')}>{plan.title}</div>
+                      <div className="text-xs text-gray-500 capitalize mt-0.5">{plan.buildType}</div>
                     </div>
                     <button
                       onClick={e => { e.stopPropagation(); setDeletePlanId(plan.id); }}
-                      className="opacity-0 group-hover:opacity-100 text-dark-400 hover:text-red-400 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-opacity"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 </button>
               ))}
             </div>
 
-            <div className="p-3 border-t border-dark-700">
-              <Button variant="secondary" size="sm" onClick={() => setCreatePlanOpen(true)} className="w-full text-xs">
-                <Plus className="w-3.5 h-3.5 mr-1" /> New Build Plan
-              </Button>
+            <div className="p-3 border-t border-amber-500/10">
+              <button
+                onClick={() => setCreatePlanOpen(true)}
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-amber-400/70 hover:text-amber-300 hover:bg-amber-500/10 border border-dashed border-amber-500/20 hover:border-amber-500/40 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" /> New Build Plan
+              </button>
             </div>
           </>
         )}
@@ -528,13 +539,13 @@ export default function BuildPlannerPage() {
       ) : (
         <div className="flex-1 flex flex-col lg:overflow-hidden min-h-0">
           {/* Header */}
-          <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-dark-700 bg-dark-900 flex-shrink-0">
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200 bg-white flex-shrink-0">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 lg:gap-3 min-w-0">
                 <span className="text-xl lg:text-2xl flex-shrink-0">{selectedPlan.emoji}</span>
                 <div className="min-w-0">
-                  <h1 className="text-base lg:text-lg font-bold text-white truncate">{selectedPlan.title}</h1>
-                  <p className="text-xs text-dark-400 capitalize hidden sm:block">
+                  <h1 className="text-base lg:text-lg font-bold text-gray-900 truncate">{selectedPlan.title}</h1>
+                  <p className="text-xs text-gray-500 capitalize hidden sm:block">
                     {selectedPlan.buildType}{selectedPlan.address ? ` · ${selectedPlan.address}` : ''}
                   </p>
                 </div>

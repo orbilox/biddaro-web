@@ -21,7 +21,7 @@ interface UIState {
 let toastId = 0;
 
 export const useUIStore = create<UIState>((set) => ({
-  sidebarOpen: true,
+  sidebarOpen: false,
   navCollapsed: false,
   toasts: [],
 
