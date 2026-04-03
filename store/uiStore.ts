@@ -9,9 +9,11 @@ interface Toast {
 
 interface UIState {
   sidebarOpen: boolean;
+  navCollapsed: boolean;
   toasts: Toast[];
   toggleSidebar: () => void;
   setSidebar: (open: boolean) => void;
+  toggleNavCollapsed: () => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
 }
@@ -20,10 +22,12 @@ let toastId = 0;
 
 export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
+  navCollapsed: false,
   toasts: [],
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebar: (open) => set({ sidebarOpen: open }),
+  toggleNavCollapsed: () => set((s) => ({ navCollapsed: !s.navCollapsed })),
 
   addToast: (toast) => {
     const id = String(++toastId);

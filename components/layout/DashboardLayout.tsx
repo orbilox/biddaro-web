@@ -11,7 +11,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
-  const { sidebarOpen } = useUIStore();
+  const { navCollapsed } = useUIStore();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -19,7 +19,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
       <div
         className={cn(
           'transition-all duration-300 ease-in-out',
-          'lg:ml-64'
+          navCollapsed ? 'lg:ml-16' : 'lg:ml-64'
         )}
       >
         <Topbar title={title} />

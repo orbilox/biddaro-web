@@ -6,13 +6,14 @@ import {
   CheckSquare, Square, Image as ImageIcon, X, Trophy, Target, Upload,
   Building2, Zap, Shield, Layers, Droplets,
   Wind, Paintbrush, Map, BarChart3, FileText, RefreshCw, CheckCircle2,
+  PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal, ConfirmModal } from '@/components/ui/Modal';
 import { Tabs, TabList, Tab, TabPanel } from '@/components/ui/Tabs';
-import { buildPlannerApi, addonsApi } from '@/lib/api';
+import { buildPlannerApi, addonsApi, uploadApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
@@ -144,18 +145,22 @@ export default function BuildPlannerPage() {
   const [selectedPlan, setSelectedPlan] = useState<BuildPlan | null>(null);
   const [loading, setLoading]   = useState(true);
   const [activeTab, setActiveTab] = useState('blueprint');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Modals
   const [createPlanOpen, setCreatePlanOpen] = useState(false);
   const [deletePlanId, setDeletePlanId]     = useState<string | null>(null);
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [addMediaOpen, setAddMediaOpen]     = useState(false);
+  const [mediaSectionId, setMediaSectionId] = useState<string | null>(null);
   const [editPlanOpen, setEditPlanOpen]     = useState(false);
 
   // Forms
   const [planForm, setPlanForm] = useState({ title: '', description: '', buildType: 'residential', address: '', totalBudget: '', emoji: '🏗️' });
   const [sectionForm, setSectionForm] = useState({ type: 'site_map', notes: '' });
-  const [mediaForm, setMediaForm] = useState({ name: '', url: '', caption: '', mediaType: 'image' });
+  const [mediaForm, setMediaForm] = useState({ caption: '' });
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaUploading, setMediaUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // ── Addon check ────────────────────────────────────────────────────────────
@@ -235,8 +240,10 @@ export default function BuildPlannerPage() {
     if (!selectedPlan) return;
     setSaving(true);
     try {
+      const sectionMeta = SECTION_TYPE_META[sectionForm.type] ?? SECTION_TYPE_META.other;
       await buildPlannerApi.addSection(selectedPlan.id, {
         type: sectionForm.type,
+        title: sectionMeta.label,
         notes: sectionForm.notes.trim() || undefined,
       });
       toast.success('Section added with checklist!');
@@ -258,21 +265,41 @@ export default function BuildPlannerPage() {
 
   // ── Add media ──────────────────────────────────────────────────────────────
   const handleAddMedia = async () => {
-    if (!selectedPlan || !mediaForm.name.trim() || !mediaForm.url.trim()) return;
-    setSaving(true);
+    if (!selectedPlan || !mediaFile) return;
+    setMediaUploading(true);
     try {
+      // 1. Upload file
+      const uploadRes = await uploadApi.single(mediaFile);
+      const uploaded = uploadRes.data?.data;
+      const fileUrl: string = (uploaded as any)?.url ?? '';
+      const isImage = mediaFile.type.startsWith('image/');
+      const mediaType = isImage ? 'image'
+        : mediaFile.type === 'application/pdf' ? 'blueprint'
+        : 'document';
+
+      // 2. Save media record
       await buildPlannerApi.addMedia(selectedPlan.id, {
-        name: mediaForm.name.trim(),
-        url: mediaForm.url.trim(),
+        name: mediaFile.name,
+        url: fileUrl,
         caption: mediaForm.caption.trim() || undefined,
-        mediaType: mediaForm.mediaType,
+        mediaType,
+        ...(mediaSectionId && { sectionId: mediaSectionId }),
       });
-      toast.success('Media added!');
+      toast.success('File uploaded!');
       setAddMediaOpen(false);
-      setMediaForm({ name: '', url: '', caption: '', mediaType: 'image' });
+      setMediaSectionId(null);
+      setMediaFile(null);
+      setMediaForm({ caption: '' });
       await loadPlan(selectedPlan.id);
-    } catch { toast.error('Failed to add media'); }
-    finally { setSaving(false); }
+    } catch { toast.error('Failed to upload file'); }
+    finally { setMediaUploading(false); }
+  };
+
+  const openMediaForSection = (sectionId: string) => {
+    setMediaSectionId(sectionId);
+    setMediaFile(null);
+    setMediaForm({ caption: '' });
+    setAddMediaOpen(true);
   };
 
   // ── Delete section ─────────────────────────────────────────────────────────
@@ -335,137 +362,240 @@ export default function BuildPlannerPage() {
   const media = selectedPlan?.media ?? [];
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
-      {/* ── Left Sidebar: Plan List ─────────────────────────────────────── */}
-      <div className="w-64 border-r border-dark-700 flex flex-col bg-dark-900 flex-shrink-0">
-        <div className="p-4 border-b border-dark-700 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-4rem)] lg:overflow-hidden">
+
+      {/* ── Left Sidebar: Plan List — desktop only ──────────────────────── */}
+      <div className={cn(
+        'hidden lg:flex border-r border-dark-700 flex-col bg-dark-900 flex-shrink-0 transition-all duration-300 relative',
+        sidebarCollapsed ? 'w-12' : 'w-64'
+      )}>
+        {/* Collapse toggle button */}
+        <button
+          onClick={() => setSidebarCollapsed(v => !v)}
+          className="absolute -right-3.5 top-4 z-10 w-7 h-7 rounded-full bg-dark-800 border border-dark-600 flex items-center justify-center text-dark-400 hover:text-white hover:border-amber-500 transition-colors shadow-md"
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {sidebarCollapsed
+            ? <PanelLeftOpen className="w-3.5 h-3.5" />
+            : <PanelLeftClose className="w-3.5 h-3.5" />
+          }
+        </button>
+
+        {sidebarCollapsed ? (
+          /* ── Collapsed: icon strip ──────────────────────────────── */
+          <div className="flex flex-col items-center pt-4 gap-3">
             <Hammer className="w-5 h-5 text-amber-400" />
-            <span className="font-semibold text-white text-sm">Build Plans</span>
+            <div className="w-px h-px" />
+            {plans.map(plan => (
+              <button
+                key={plan.id}
+                onClick={() => loadPlan(plan.id)}
+                title={plan.title}
+                className={cn(
+                  'w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors',
+                  selectedPlan?.id === plan.id
+                    ? 'bg-amber-500/20 ring-1 ring-amber-500/40'
+                    : 'hover:bg-dark-800'
+                )}
+              >
+                {plan.emoji}
+              </button>
+            ))}
+            <button
+              onClick={() => setCreatePlanOpen(true)}
+              title="New Build Plan"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-dark-400 hover:text-amber-400 hover:bg-dark-800 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setCreatePlanOpen(true)} className="p-1">
+        ) : (
+          /* ── Expanded: full plan list ───────────────────────────── */
+          <>
+            <div className="p-4 border-b border-dark-700 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Hammer className="w-5 h-5 text-amber-400" />
+                <span className="font-semibold text-white text-sm">Build Plans</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setCreatePlanOpen(true)} className="p-1">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {loading && plans.length === 0 && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-dark-400" />
+                </div>
+              )}
+              {!loading && plans.length === 0 && (
+                <div className="text-center py-8 px-3">
+                  <div className="text-3xl mb-2">🏗️</div>
+                  <p className="text-dark-400 text-xs">No plans yet</p>
+                  <Button variant="ghost" size="sm" onClick={() => setCreatePlanOpen(true)} className="mt-2 text-amber-400 text-xs">
+                    + New Plan
+                  </Button>
+                </div>
+              )}
+              {plans.map(plan => (
+                <button
+                  key={plan.id}
+                  onClick={() => loadPlan(plan.id)}
+                  className={cn(
+                    'w-full text-left px-3 py-2.5 rounded-lg transition-colors group',
+                    selectedPlan?.id === plan.id
+                      ? 'bg-amber-500/10 border border-amber-500/30'
+                      : 'hover:bg-dark-800'
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{plan.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white truncate">{plan.title}</div>
+                      <div className="text-xs text-dark-400 capitalize">{plan.buildType}</div>
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); setDeletePlanId(plan.id); }}
+                      className="opacity-0 group-hover:opacity-100 text-dark-400 hover:text-red-400 transition-opacity"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="p-3 border-t border-dark-700">
+              <Button variant="secondary" size="sm" onClick={() => setCreatePlanOpen(true)} className="w-full text-xs">
+                <Plus className="w-3.5 h-3.5 mr-1" /> New Build Plan
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Mobile Plan Selector — shown only on small screens ─────────── */}
+      <div className="lg:hidden bg-dark-900 border-b border-dark-700 px-4 pt-3 pb-2 flex-shrink-0">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Hammer className="w-4 h-4 text-amber-400" />
+            <span className="font-semibold text-white text-sm">Build Plans</span>
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-dark-400" />}
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setCreatePlanOpen(true)} className="p-1 text-amber-400">
             <Plus className="w-4 h-4" />
           </Button>
         </div>
-
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {loading && plans.length === 0 && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-dark-400" />
-            </div>
-          )}
-          {!loading && plans.length === 0 && (
-            <div className="text-center py-8 px-3">
-              <div className="text-3xl mb-2">🏗️</div>
-              <p className="text-dark-400 text-xs">No plans yet</p>
-              <Button variant="ghost" size="sm" onClick={() => setCreatePlanOpen(true)} className="mt-2 text-amber-400 text-xs">
-                + New Plan
-              </Button>
-            </div>
-          )}
-          {plans.map(plan => (
-            <button
-              key={plan.id}
-              onClick={() => loadPlan(plan.id)}
-              className={cn(
-                'w-full text-left px-3 py-2.5 rounded-lg transition-colors group',
-                selectedPlan?.id === plan.id
-                  ? 'bg-amber-500/10 border border-amber-500/30'
-                  : 'hover:bg-dark-800'
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{plan.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-white truncate">{plan.title}</div>
-                  <div className="text-xs text-dark-400 capitalize">{plan.buildType}</div>
-                </div>
-                <button
-                  onClick={e => { e.stopPropagation(); setDeletePlanId(plan.id); }}
-                  className="opacity-0 group-hover:opacity-100 text-dark-400 hover:text-red-400 transition-opacity"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        <div className="p-3 border-t border-dark-700">
-          <Button variant="secondary" size="sm" onClick={() => setCreatePlanOpen(true)} className="w-full text-xs">
-            <Plus className="w-3.5 h-3.5 mr-1" /> New Build Plan
-          </Button>
-        </div>
+        {plans.length === 0 && !loading ? (
+          <button
+            onClick={() => setCreatePlanOpen(true)}
+            className="w-full py-2 text-xs text-dark-400 border border-dashed border-dark-600 rounded-lg hover:border-amber-500/50 hover:text-amber-400 transition-colors"
+          >
+            + Create your first build plan
+          </button>
+        ) : (
+          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+            {plans.map(plan => (
+              <button
+                key={plan.id}
+                onClick={() => loadPlan(plan.id)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap flex-shrink-0 transition-all border font-medium',
+                  selectedPlan?.id === plan.id
+                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                    : 'border-dark-600 text-dark-300 hover:bg-dark-700 hover:text-white'
+                )}
+              >
+                <span>{plan.emoji}</span>
+                <span>{plan.title}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Main Content ────────────────────────────────────────────────── */}
       {!selectedPlan ? (
-        <div className="flex-1 flex items-center justify-center text-center">
+        <div className="flex-1 flex items-center justify-center text-center py-16 px-6">
           <div>
             <div className="text-5xl mb-3">🏗️</div>
-            <p className="text-gray-500">Select or create a build plan to get started</p>
-            <Button variant="primary" size="sm" onClick={() => setCreatePlanOpen(true)} className="mt-4">
+            <p className="text-gray-500 mb-4">Select or create a build plan to get started</p>
+            <Button variant="primary" size="sm" onClick={() => setCreatePlanOpen(true)}>
               <Plus className="w-4 h-4 mr-1" /> New Build Plan
             </Button>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col lg:overflow-hidden min-h-0">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-dark-700 flex items-center justify-between bg-dark-900">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{selectedPlan.emoji}</span>
-              <div>
-                <h1 className="text-lg font-bold text-white">{selectedPlan.title}</h1>
-                <p className="text-xs text-dark-400 capitalize">{selectedPlan.buildType}{selectedPlan.address ? ` · ${selectedPlan.address}` : ''}</p>
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-dark-700 bg-dark-900 flex-shrink-0">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+                <span className="text-xl lg:text-2xl flex-shrink-0">{selectedPlan.emoji}</span>
+                <div className="min-w-0">
+                  <h1 className="text-base lg:text-lg font-bold text-white truncate">{selectedPlan.title}</h1>
+                  <p className="text-xs text-dark-400 capitalize hidden sm:block">
+                    {selectedPlan.buildType}{selectedPlan.address ? ` · ${selectedPlan.address}` : ''}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => loadPlan(selectedPlan.id)}>
-                <RefreshCw className="w-4 h-4" />
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setAddSectionOpen(true)}>
-                <Plus className="w-4 h-4 mr-1" /> Add Section
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setAddMediaOpen(true)}>
-                <Upload className="w-4 h-4 mr-1" /> Upload
-              </Button>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <Button variant="ghost" size="sm" onClick={() => loadPlan(selectedPlan.id)} className="p-1.5 lg:p-2">
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setAddSectionOpen(true)} className="hidden sm:flex">
+                  <Plus className="w-4 h-4 mr-1" /> Add Section
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setAddSectionOpen(true)} className="flex sm:hidden p-1.5">
+                  <Plus className="w-4 h-4" />
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => { setMediaSectionId(null); setAddMediaOpen(true); }} className="hidden sm:flex">
+                  <Upload className="w-4 h-4 mr-1" /> Upload
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => { setMediaSectionId(null); setAddMediaOpen(true); }} className="flex sm:hidden p-1.5">
+                  <Upload className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex-1 overflow-hidden">
-            <Tabs defaultValue="blueprint" onChange={setActiveTab}>
-              <div className="border-b border-dark-700 px-6">
-                <TabList>
-                  <Tab value="blueprint"><Trophy className="w-4 h-4 mr-1.5 inline" />Blueprint</Tab>
-                  <Tab value="sections"><CheckSquare className="w-4 h-4 mr-1.5 inline" />Sections</Tab>
-                  <Tab value="media"><ImageIcon className="w-4 h-4 mr-1.5 inline" />Media Board</Tab>
-                  <Tab value="report"><FileText className="w-4 h-4 mr-1.5 inline" />Report</Tab>
-                </TabList>
+          <div className="flex-1 flex flex-col lg:overflow-hidden min-h-0">
+            <Tabs defaultValue="blueprint" onChange={setActiveTab} className="h-full flex flex-col">
+              <div className="border-b border-gray-200 overflow-x-auto flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
+                <div className="px-3 lg:px-6 min-w-max">
+                  <TabList>
+                    <Tab value="blueprint"><Trophy className="w-3.5 h-3.5 mr-1 lg:mr-1.5 inline" /><span className="hidden sm:inline">Blueprint</span><span className="sm:hidden">Plan</span></Tab>
+                    <Tab value="sections"><CheckSquare className="w-3.5 h-3.5 mr-1 lg:mr-1.5 inline" />Sections</Tab>
+                    <Tab value="media"><ImageIcon className="w-3.5 h-3.5 mr-1 lg:mr-1.5 inline" /><span className="hidden sm:inline">Media Board</span><span className="sm:hidden">Media</span></Tab>
+                    <Tab value="report"><FileText className="w-3.5 h-3.5 mr-1 lg:mr-1.5 inline" />Report</Tab>
+                  </TabList>
+                </div>
               </div>
 
-              <div className="overflow-y-auto h-[calc(100%-3rem)] p-6">
+              <div className="flex-1 lg:overflow-y-auto overflow-visible p-3 sm:p-4 lg:p-6">
                 {/* ── Blueprint Tab ───────────────────────────────────────── */}
                 <TabPanel value="blueprint">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Progress ring */}
-                    <Card className="col-span-1 flex flex-col items-center justify-center gap-4 py-6">
-                      <ProgressRing percent={stats?.overallPercent ?? 0} size={120} />
-                      <div className="text-center">
-                        <div className="text-gray-900 font-semibold">Overall Progress</div>
-                        <div className="text-gray-500 text-sm">
-                          {stats?.checkedItems ?? 0} / {stats?.totalItems ?? 0} items complete
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6">
+                    {/* Progress ring + stats — side by side on mobile */}
+                    <div className="col-span-1 flex flex-col sm:flex-row lg:flex-col gap-3 lg:gap-0">
+                      <Card className="flex-1 sm:flex-none lg:flex-1 flex flex-row sm:flex-col items-center justify-center gap-3 sm:gap-4 py-4 sm:py-6 px-4 sm:px-6">
+                        <ProgressRing percent={stats?.overallPercent ?? 0} size={80} />
+                        <div className="text-center">
+                          <div className="text-gray-900 font-semibold text-sm lg:text-base">Overall Progress</div>
+                          <div className="text-gray-500 text-xs lg:text-sm">
+                            {stats?.checkedItems ?? 0} / {stats?.totalItems ?? 0} items complete
+                          </div>
+                          <div className="text-gray-400 text-xs mt-0.5">
+                            {stats?.fullyCompletedSectionCount ?? 0} / {stats?.totalSections ?? 0} sections done
+                          </div>
                         </div>
-                        <div className="text-gray-400 text-xs mt-1">
-                          {stats?.fullyCompletedSectionCount ?? 0} / {stats?.totalSections ?? 0} sections done
-                        </div>
-                      </div>
-                    </Card>
+                      </Card>
+                    </div>
 
                     {/* Stats */}
                     <Card className="col-span-1 lg:col-span-2">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 lg:gap-4">
                         {[
                           { label: 'Sections', value: stats?.totalSections ?? 0, icon: Layers },
                           { label: 'Tasks',    value: stats?.totalItems ?? 0,    icon: CheckSquare },
@@ -474,7 +604,7 @@ export default function BuildPlannerPage() {
                           { label: 'Badges',   value: achievements.filter(a => a.unlocked).length, icon: Trophy },
                           { label: 'Budget',   value: selectedPlan.totalBudget ? `$${selectedPlan.totalBudget.toLocaleString()}` : '—', icon: Target },
                         ].map(s => (
-                          <div key={s.label} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                          <div key={s.label} className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 p-2 lg:p-3 bg-gray-50 border border-gray-200 rounded-lg text-center sm:text-left">
                             <s.icon className="w-4 h-4 text-amber-500 flex-shrink-0" />
                             <div>
                               <div className="text-gray-900 font-semibold text-sm">{s.value}</div>
@@ -486,7 +616,7 @@ export default function BuildPlannerPage() {
                     </Card>
 
                     {/* Achievements */}
-                    <Card className="col-span-1 lg:col-span-3">
+                    <Card className="col-span-1 lg:col-span-3 lg:col-start-1">
                       <div className="flex items-center gap-2 mb-4">
                         <Trophy className="w-5 h-5 text-amber-500" />
                         <h3 className="font-semibold text-gray-900">Achievement Badges</h3>
@@ -494,27 +624,27 @@ export default function BuildPlannerPage() {
                           {achievements.filter(a => a.unlocked).length} / {achievements.length} earned
                         </Badge>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 lg:gap-3">
                         {achievements.map(ach => (
                           <div
                             key={ach.slug}
                             className={cn(
-                              'flex flex-col items-center text-center p-3 rounded-xl border transition-all',
+                              'flex flex-col items-center text-center p-2.5 lg:p-3 rounded-xl border transition-all',
                               ach.unlocked
                                 ? 'border-amber-400 bg-amber-50 shadow-sm'
                                 : 'border-gray-200 bg-gray-50 opacity-50 grayscale'
                             )}
                           >
-                            <span className="text-3xl mb-1">{ach.emoji}</span>
+                            <span className="text-2xl lg:text-3xl mb-1">{ach.emoji}</span>
                             <div className="text-gray-900 text-xs font-semibold leading-tight">{ach.title}</div>
-                            <div className="text-gray-500 text-xs mt-1 leading-tight">{ach.description}</div>
+                            <div className="text-gray-500 text-xs mt-1 leading-tight hidden sm:block">{ach.description}</div>
                             {ach.unlocked && (
-                              <Badge variant="warning" className="mt-2 text-xs">Earned!</Badge>
+                              <Badge variant="warning" className="mt-1.5 text-xs">Earned!</Badge>
                             )}
                           </div>
                         ))}
                         {achievements.length === 0 && (
-                          <div className="col-span-4 text-center text-gray-500 py-4">
+                          <div className="col-span-2 sm:col-span-3 lg:col-span-4 text-center text-gray-500 py-4">
                             Add sections and complete tasks to earn achievement badges
                           </div>
                         )}
@@ -523,7 +653,7 @@ export default function BuildPlannerPage() {
 
                     {/* Section progress bars */}
                     {sections.length > 0 && (
-                      <Card className="col-span-1 lg:col-span-3">
+                      <Card className="col-span-1 lg:col-span-3 lg:col-start-1">
                         <div className="flex items-center gap-2 mb-4">
                           <BarChart3 className="w-5 h-5 text-amber-500" />
                           <h3 className="font-semibold text-gray-900">Section Progress</h3>
@@ -576,6 +706,7 @@ export default function BuildPlannerPage() {
                           section={section}
                           onToggle={handleToggleItem}
                           onDelete={handleDeleteSection}
+                          onAddMedia={openMediaForSection}
                         />
                       ))}
                       <Button variant="secondary" onClick={() => setAddSectionOpen(true)} className="w-full">
@@ -589,7 +720,7 @@ export default function BuildPlannerPage() {
                 <TabPanel value="media">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-gray-900">{media.length} item{media.length !== 1 ? 's' : ''}</h3>
-                    <Button variant="secondary" size="sm" onClick={() => setAddMediaOpen(true)}>
+                    <Button variant="secondary" size="sm" onClick={() => { setMediaSectionId(null); setAddMediaOpen(true); }}>
                       <Upload className="w-4 h-4 mr-1" /> Add Media
                     </Button>
                   </div>
@@ -598,24 +729,24 @@ export default function BuildPlannerPage() {
                       <ImageIcon className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                       <p className="text-gray-500 mb-2">No media uploaded yet</p>
                       <p className="text-gray-400 text-sm">Upload blueprints, site photos, inspiration images & more</p>
-                      <Button variant="secondary" size="sm" onClick={() => setAddMediaOpen(true)} className="mt-4">
+                      <Button variant="secondary" size="sm" onClick={() => { setMediaSectionId(null); setAddMediaOpen(true); }} className="mt-4">
                         <Upload className="w-4 h-4 mr-1" /> Upload First File
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                       {media.map(m => (
                         <div key={m.id} className="group relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
                           {m.mediaType === 'image' ? (
                             <img
                               src={m.url}
                               alt={m.name}
-                              className="w-full h-36 object-cover"
+                              className="w-full h-24 sm:h-36 object-cover"
                               onError={e => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23f3f4f6"/><text x="50" y="50" text-anchor="middle" fill="%236b7280" font-size="12">No preview</text></svg>'; }}
                             />
                           ) : (
-                            <div className="w-full h-36 flex items-center justify-center bg-gray-100">
-                              <FileText className="w-10 h-10 text-gray-400" />
+                            <div className="w-full h-24 sm:h-36 flex items-center justify-center bg-gray-100">
+                              <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
                             </div>
                           )}
                           <div className="p-2">
@@ -760,54 +891,71 @@ export default function BuildPlannerPage() {
       {/* Add Media Modal */}
       <Modal
         open={addMediaOpen}
-        onClose={() => setAddMediaOpen(false)}
-        title="Add Media / Blueprint"
+        onClose={() => { setAddMediaOpen(false); setMediaSectionId(null); setMediaFile(null); }}
+        title={mediaSectionId
+          ? `Upload File to ${sections.find(s => s.id === mediaSectionId)?.title ?? 'Section'}`
+          : 'Upload File'}
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-700 mb-1">Name *</label>
+          {/* Drop zone / file picker */}
+          <label className="block cursor-pointer">
+            <div className={cn(
+              'border-2 border-dashed rounded-xl p-6 text-center transition-colors',
+              mediaFile
+                ? 'border-brand-400 bg-brand-50'
+                : 'border-gray-300 hover:border-brand-400 hover:bg-gray-50'
+            )}>
+              {mediaFile ? (
+                <div className="flex flex-col items-center gap-2">
+                  {mediaFile.type.startsWith('image/') ? (
+                    <img
+                      src={URL.createObjectURL(mediaFile)}
+                      alt="preview"
+                      className="max-h-32 rounded-lg object-contain"
+                    />
+                  ) : (
+                    <FileText className="w-10 h-10 text-brand-500" />
+                  )}
+                  <span className="text-sm font-medium text-gray-800">{mediaFile.name}</span>
+                  <span className="text-xs text-gray-500">{(mediaFile.size / 1024).toFixed(0)} KB</span>
+                  <button
+                    type="button"
+                    onClick={e => { e.preventDefault(); setMediaFile(null); }}
+                    className="text-xs text-red-500 hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <Upload className="w-8 h-8 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700">Click to select a file</span>
+                  <span className="text-xs text-gray-400">Images, PDFs, Word documents · max 10 MB</span>
+                </div>
+              )}
+            </div>
             <input
-              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500"
-              placeholder="e.g. Front elevation blueprint"
-              value={mediaForm.name}
-              onChange={e => setMediaForm(m => ({ ...m, name: e.target.value }))}
+              type="file"
+              className="hidden"
+              accept="image/*,.pdf,.doc,.docx,.txt"
+              onChange={e => setMediaFile(e.target.files?.[0] ?? null)}
             />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-700 mb-1">URL *</label>
-            <input
-              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500"
-              placeholder="https://..."
-              value={mediaForm.url}
-              onChange={e => setMediaForm(m => ({ ...m, url: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-700 mb-1">Type</label>
-            <select
-              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm"
-              value={mediaForm.mediaType}
-              onChange={e => setMediaForm(m => ({ ...m, mediaType: e.target.value }))}
-            >
-              <option value="image">Image / Photo</option>
-              <option value="blueprint">Blueprint / Plan</option>
-              <option value="document">Document</option>
-              <option value="video">Video</option>
-            </select>
-          </div>
+          </label>
+
           <div>
             <label className="block text-sm text-gray-700 mb-1">Caption (optional)</label>
             <input
               className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-brand-500"
-              placeholder="Brief description..."
+              placeholder="Brief description of this file..."
               value={mediaForm.caption}
               onChange={e => setMediaForm(m => ({ ...m, caption: e.target.value }))}
             />
           </div>
+
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="ghost" onClick={() => setAddMediaOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleAddMedia} disabled={saving || !mediaForm.name.trim() || !mediaForm.url.trim()}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Media'}
+            <Button variant="ghost" onClick={() => { setAddMediaOpen(false); setMediaFile(null); }}>Cancel</Button>
+            <Button variant="primary" onClick={handleAddMedia} disabled={mediaUploading || !mediaFile}>
+              {mediaUploading ? <><Loader2 className="w-4 h-4 animate-spin mr-1" />Uploading…</> : 'Upload File'}
             </Button>
           </div>
         </div>
@@ -833,16 +981,19 @@ function SectionCard({
   section,
   onToggle,
   onDelete,
+  onAddMedia,
 }: {
   section: BuildSection;
   onToggle: (itemId: string) => void;
   onDelete: (sectionId: string) => void;
+  onAddMedia: (sectionId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const meta = SECTION_TYPE_META[section.type] ?? SECTION_TYPE_META.other;
   const total = section.checkItems.length;
   const done = section.checkItems.filter(i => i.isChecked).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const sectionMedia = section.media ?? [];
 
   return (
     <Card className="overflow-hidden">
@@ -853,21 +1004,33 @@ function SectionCard({
         <meta.icon className={cn('w-5 h-5 flex-shrink-0', meta.color)} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-900">{section.title}</span>
+            <span className="font-semibold text-gray-900">
+              {section.title === section.type
+                ? (SECTION_TYPE_META[section.type]?.label ?? section.title)
+                : section.title}
+            </span>
             {pct === 100 && total > 0 && (
               <Badge variant="success" className="text-xs">Complete ✓</Badge>
             )}
           </div>
           {section.notes && <p className="text-xs text-gray-500 truncate">{section.notes}</p>}
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm text-gray-500">{done}/{total}</span>
-          <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs text-gray-500 hidden sm:block">{done}/{total}</span>
+          <div className="w-12 sm:w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
           </div>
           <button
+            onClick={e => { e.stopPropagation(); onAddMedia(section.id); }}
+            className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+            title="Add file to this section"
+          >
+            <Upload className="w-4 h-4" />
+          </button>
+          <button
             onClick={e => { e.stopPropagation(); onDelete(section.id); }}
-            className="text-gray-400 hover:text-red-500 transition-colors"
+            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+            title="Delete section"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -875,24 +1038,68 @@ function SectionCard({
         </div>
       </div>
 
-      {expanded && total > 0 && (
-        <div className="mt-4 space-y-2 border-t border-gray-200 pt-4">
-          {section.checkItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => onToggle(item.id)}
-              className="flex items-center gap-3 w-full text-left group hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors"
-            >
-              {item.isChecked
-                ? <CheckSquare className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                : <Square className="w-4 h-4 text-gray-400 flex-shrink-0 group-hover:text-gray-600" />
-              }
-              <span className={cn('text-sm', item.isChecked ? 'line-through text-gray-400' : 'text-gray-800')}>
-                {item.label}
-              </span>
-            </button>
-          ))}
-        </div>
+      {expanded && (
+        <>
+          {total > 0 && (
+            <div className="mt-4 space-y-2 border-t border-gray-200 pt-4">
+              {section.checkItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => onToggle(item.id)}
+                  className="flex items-center gap-3 w-full text-left group hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors"
+                >
+                  {item.isChecked
+                    ? <CheckSquare className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    : <Square className="w-4 h-4 text-gray-400 flex-shrink-0 group-hover:text-gray-600" />
+                  }
+                  <span className={cn('text-sm', item.isChecked ? 'line-through text-gray-400' : 'text-gray-800')}>
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {sectionMedia.length > 0 && (
+            <div className="mt-4 border-t border-gray-100 pt-4">
+              <p className="text-xs text-gray-500 font-medium mb-2">
+                Files ({sectionMedia.length})
+              </p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                {sectionMedia.map(m => (
+                  <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer"
+                    className="group flex flex-col items-center gap-1 p-2 bg-gray-50 border border-gray-200 rounded-lg hover:border-blue-400 transition-colors"
+                  >
+                    {m.mediaType === 'image'
+                      ? <img src={m.url} alt={m.name} className="w-full h-14 object-cover rounded" />
+                      : <FileText className="w-8 h-8 text-gray-400 group-hover:text-blue-500" />
+                    }
+                    <span className="text-xs text-gray-600 truncate w-full text-center">{m.name}</span>
+                  </a>
+                ))}
+                <button
+                  onClick={() => onAddMedia(section.id)}
+                  className="flex flex-col items-center justify-center gap-1 p-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors min-h-[4rem]"
+                >
+                  <Plus className="w-5 h-5 text-gray-400" />
+                  <span className="text-xs text-gray-400">Add</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {sectionMedia.length === 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <button
+                onClick={() => onAddMedia(section.id)}
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-blue-500 transition-colors px-1 py-1"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Add file to this section
+              </button>
+            </div>
+          )}
+        </>
       )}
     </Card>
   );
