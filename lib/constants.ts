@@ -143,7 +143,7 @@ export const ROUTES = {
   PROJECT_TRACKING: '/project-tracking',
   PROJECT_MANAGER: '/project-manager',
   BUILD_PLANNER: '/build-planner',
-  LOANS: '/loans',
+  LOANS: '/my-loans',
   ADMIN: '/admin',
   ADMIN_LOGIN: '/admin-login',
   // Programmatic SEO – hire pages
