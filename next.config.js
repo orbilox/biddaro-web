@@ -15,6 +15,8 @@ const nextConfig = {
         hostname: '**.biddaro.com',
         pathname: '/uploads/**',
       },
+      // ── AWS S3 uploads ───────────────────────────────────────────────────
+      { protocol: 'https', hostname: '**.amazonaws.com' },
       // ── External image sources ───────────────────────────────────────────
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'randomuser.me' },

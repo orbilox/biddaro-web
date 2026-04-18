@@ -325,23 +325,32 @@ export const aiApi = {
     api.post('/ai/chat', { messages }),
 };
 
-// ─── AI Image Generation ───────────────────────────────────────────────────────
+// ─── Loans ────────────────────────────────────────────────────────────────────
 
-export const imageGenApi = {
-  /**
-   * Upload an image + prompt → receive a base64 data URL of the generated image.
-   * Uses a 150-second timeout to handle HuggingFace cold-start delays.
-   */
-  generate: (imageFile: File, prompt: string) => {
-    const formData = new FormData();
-    formData.append('image', imageFile);
-    formData.append('prompt', prompt);
-    return uploadFetch<{ success: boolean; data: { imageUrl: string } }>(
-      '/image-gen/generate',
-      formData,
-      150_000 // 2.5 min — model can take time to warm up
-    );
-  },
+export const loansApi = {
+  apply: (data: {
+    loanType: string;
+    amount: number;
+    tenure: number;
+    purpose: string;
+    employmentType: string;
+    monthlyIncome: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    country: string;
+    documents?: string[];
+  }) => api.post('/loans', data),
+  myApplications: () => api.get('/loans/my'),
+  getApplication: (id: string) => api.get(`/loans/${id}`),
+  // Admin
+  adminList: (params?: { status?: string; page?: number }) => api.get('/loans/admin/all', { params }),
+  adminReview: (id: string, data: { status: string; adminNote: string; approvedAmount?: number; interestRate?: number }) =>
+    api.patch(`/loans/admin/${id}/review`, data),
+  adminStats: () => api.get('/loans/admin/stats'),
 };
 
 export interface BankAccount {

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
-  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban, Hammer,
+  ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban, Hammer, Banknote,
   PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,7 @@ const posterNavItems: NavItem[] = [
   { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
   { href: ROUTES.PROJECT_TRACKING, label: 'Project Tracking', icon: Radio },
   { href: ROUTES.BUILD_PLANNER, label: 'Build Planner', icon: Hammer },
+  { href: ROUTES.LOANS, label: 'Loans', icon: Banknote },
   { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];
@@ -46,6 +47,7 @@ const contractorNavItems: NavItem[] = [
   { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
   { href: ROUTES.PROJECT_TRACKING, label: 'Project Tracking', icon: Radio },
   { href: ROUTES.PROJECT_MANAGER, label: 'Project Manager', icon: FolderKanban },
+  { href: ROUTES.LOANS, label: 'Loans', icon: Banknote },
   { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];
@@ -78,6 +80,7 @@ const adminNavSections: NavSection[] = [
     label: 'Actions',
     items: [
       { href: '/admin/deposits', label: 'Deposit Requests', icon: BanknoteIcon },
+      { href: '/admin/loans', label: 'Loan Applications', icon: Banknote },
       { href: '/admin/disputes', label: 'Disputes', icon: AlertCircle },
     ],
   },

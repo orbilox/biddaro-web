@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  HardHat, Menu, X, LayoutDashboard, Sparkles, Wand2,
+  HardHat, Menu, X, LayoutDashboard, Sparkles,
   MapPin, Crown, ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -57,7 +57,7 @@ export function Navbar() {
     { href: ROUTES.OPEN_JOBS,    label: 'Find Jobs' },
     { href: ROUTES.PREMIUM,      label: 'Premium',      icon: Crown,     isPro: true },
     { href: ROUTES.AI_ASSISTANT, label: 'AI Assistant', icon: Sparkles,  isNew: true },
-    { href: ROUTES.AI_IMAGE,     label: 'AI Image',     icon: Wand2,     isNew: true },
+    { href: '/loans',            label: 'Loans',        icon: undefined,  isNew: true },
   ];
 
   return (

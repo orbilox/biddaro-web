@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { ToastContainer } from '@/components/ui/Toast';
 
@@ -25,11 +26,23 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
   },
+  verification: {
+    google: 'XApdMDXmwz__ZV_qS8Oi5vWfzhUo-FstK6hi8Hn05mA',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="scroll-smooth">
+      <head>
+        <Script async src="https://www.googletagmanager.com/gtag/js?id=G-DCZLVPPVF2" strategy="afterInteractive" />
+        <Script id="google-analytics" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-DCZLVPPVF2');
+        `}</Script>
+      </head>
       <body>
         {children}
         <ToastContainer />
