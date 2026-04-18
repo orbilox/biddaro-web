@@ -7,7 +7,7 @@ export function Footer() {
   return (
     <footer className="bg-dark-900 text-dark-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-8">
 
           {/* Brand */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
@@ -32,6 +32,24 @@ export function Footer() {
                 { label: 'Post a Job',   href: '#' },
                 { label: 'Premium',      href: '/premium' },
                 { label: 'Pricing',      href: '#' },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Resources */}
+          <div>
+            <h4 className="text-white font-semibold text-sm mb-4">Resources</h4>
+            <ul className="space-y-2">
+              {[
+                { label: 'Help Center',     href: '/guide' },
+                { label: 'How It Works',    href: '/guide#getting-started' },
+                { label: 'For Job Posters', href: '/guide#posters' },
+                { label: 'For Contractors', href: '/guide#contractors' },
+                { label: 'Loans Guide',     href: '/guide#loans' },
               ].map(({ label, href }) => (
                 <li key={label}>
                   <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
@@ -123,6 +141,7 @@ export function Footer() {
             <Link href="/ai" className="hover:text-white transition-colors">⚡ AI Tools</Link>
             <Link href="/blog" className="hover:text-white transition-colors">📝 Blog</Link>
             <Link href="/hire" className="hover:text-white transition-colors">👷 Find Contractors</Link>
+            <Link href="/guide" className="hover:text-white transition-colors">📖 Help Guide</Link>
             <Link href="/html-sitemap" className="hover:text-white transition-colors">🗺️ Site Map</Link>
           </div>
         </div>
