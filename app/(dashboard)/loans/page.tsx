@@ -152,7 +152,7 @@ export default function LoansPage() {
     phone: '',
     address: '',
     city: '',
-    country: user?.country || '',
+    country: '',
   });
 
   useEffect(() => {
