@@ -146,7 +146,7 @@ export default function AdminLoansPage() {
     }
     setReviewing(true);
     try {
-      const payload: Record<string, string | number> = {
+      const payload: { status: string; adminNote: string; approvedAmount?: number; interestRate?: number } = {
         status: reviewStatus,
         adminNote: adminNote.trim(),
       };
