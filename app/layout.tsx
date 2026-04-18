@@ -13,12 +13,13 @@ export const metadata: Metadata = {
   authors: [{ name: 'Biddaro' }],
   icons: {
     icon: [
+      { url: '/favicon.ico', type: 'image/x-icon' },
       { url: '/icon', type: 'image/png', sizes: '32x32' },
     ],
     apple: [
       { url: '/apple-icon', type: 'image/png', sizes: '180x180' },
     ],
-    shortcut: '/icon',
+    shortcut: '/favicon.ico',
   },
   openGraph: {
     title: 'Biddaro – Construction Marketplace',
