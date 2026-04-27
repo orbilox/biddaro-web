@@ -47,6 +47,8 @@ export const authApi = {
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.put('/auth/change-password', data),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+  sendOtp: (email: string) => api.post('/auth/send-otp', { email }),
+  verifyOtp: (email: string, code: string) => api.post('/auth/verify-otp', { email, code }),
 };
 
 // ─── Jobs ─────────────────────────────────────────────────────────────────────

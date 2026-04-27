@@ -24,7 +24,7 @@ interface RegisterForm {
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setUser } = useAuthStore();
+  useAuthStore(); // store available for post-verification login
   const [role, setRole] = useState<'job_poster' | 'contractor'>(
     searchParams.get('type') === 'contractor' ? 'contractor' : 'job_poster'
   );
@@ -41,7 +41,7 @@ function RegisterForm() {
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true);
     try {
-      const res = await authApi.register({
+      await authApi.register({
         email: data.email,
         password: data.password,
         firstName: data.firstName,
@@ -49,10 +49,8 @@ function RegisterForm() {
         role,
         country: data.country,
       });
-      const { user, accessToken } = res.data.data;
-      setUser(user, accessToken);
-      toast.success('Account created!', `Welcome to Biddaro, ${user.firstName}!`);
-      router.push(ROUTES.DASHBOARD);
+      toast.success('Check your email!', `We sent a 6-digit code to ${data.email}`);
+      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
     } catch (err: any) {
       toast.error('Registration failed', err?.response?.data?.message || 'Please try again.');
     } finally {
