@@ -46,26 +46,6 @@ export default function LoginPage() {
     }
   };
 
-  // Demo credentials handler
-  const loginAs = async (type: 'poster' | 'contractor') => {
-    const demo = {
-      poster: { email: 'alice@example.com', password: 'password123' },
-      contractor: { email: 'bob@example.com', password: 'password123' },
-    };
-    setLoading(true);
-    try {
-      const res = await authApi.login(demo[type]);
-      const { user, accessToken } = res.data.data;
-      setUser(user, accessToken);
-      toast.success('Welcome back!', `Good to see you, ${user.firstName}.`);
-      router.push(ROUTES.DASHBOARD);
-    } catch (err: any) {
-      toast.error('Login failed', err?.response?.data?.message || 'Invalid credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="w-full max-w-md">
       <div className="bg-white rounded-2xl border border-gray-200 shadow-card p-8">
@@ -73,31 +53,6 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-dark-900">Welcome back</h1>
           <p className="text-dark-500 text-sm mt-1.5">Sign in to your Biddaro account</p>
-        </div>
-
-        {/* Demo buttons */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <button
-            onClick={() => loginAs('poster')}
-            className="text-xs py-2.5 px-4 rounded-lg border border-gray-200 hover:border-brand-300 hover:bg-brand-50 text-dark-600 hover:text-brand-600 transition-all font-medium"
-          >
-            📋 Demo Job Poster
-          </button>
-          <button
-            onClick={() => loginAs('contractor')}
-            className="text-xs py-2.5 px-4 rounded-lg border border-gray-200 hover:border-brand-300 hover:bg-brand-50 text-dark-600 hover:text-brand-600 transition-all font-medium"
-          >
-            ⚡ Demo Contractor
-          </button>
-        </div>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-3 text-xs text-dark-400">or sign in with email</span>
-          </div>
         </div>
 
         {/* Form */}
