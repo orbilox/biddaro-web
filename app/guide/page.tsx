@@ -8,6 +8,7 @@ import {
   Crown, Star, TrendingUp, Radio, Hammer, FolderKanban, Banknote, Bot,
   MessageSquare, ShieldAlert, ArrowRight, ChevronDown, Lightbulb, Info,
   Zap, BadgeCheck, DollarSign, Clock, Building2, User, Menu, X,
+  Mic, Paperclip, History, RefreshCw, Copy, Sparkles,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -183,6 +184,102 @@ function DashboardMockup({ items }: { items: { icon: string; label: string }[] }
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── AI Tools Accordion ───────────────────────────────────────────────────────
+
+const AI_TOOLS = [
+  {
+    emoji: '💰', name: 'Construction Cost Estimator', slug: 'construction-cost-estimator',
+    desc: 'Get accurate cost estimates for any construction project in India by location and type.',
+    samples: ['How much to build a 1000 sq ft house in Pune?', 'What\'s the cost of laying an RCC slab?', 'Estimate flooring cost for 500 sq ft'],
+  },
+  {
+    emoji: '🏠', name: 'Renovation Planner', slug: 'renovation-planner',
+    desc: 'Plan your renovation room by room with material suggestions and realistic timelines.',
+    samples: ['Plan a bathroom renovation under ₹2 lakhs', 'Kitchen renovation checklist', 'How long does a full home renovation take?'],
+  },
+  {
+    emoji: '👷', name: 'Contractor Finder', slug: 'contractor-finder',
+    desc: 'Describe your job and get matched with the right contractor category and what to look for when hiring.',
+    samples: ['What type of contractor do I need for waterproofing?', 'How to choose between 3 electricians?', 'Questions to ask before hiring a plumber'],
+  },
+  {
+    emoji: '🧱', name: 'Material Calculator', slug: 'material-calculator',
+    desc: 'Calculate exact quantities of cement, bricks, tiles, sand, steel, and more for your project.',
+    samples: ['How many bricks for a 10×12 room?', 'Cement bags needed for 500 sq ft RCC slab', 'Tiles needed for 200 sq ft floor'],
+  },
+  {
+    emoji: '🧭', name: 'Vastu Consultant', slug: 'vastu-consultant',
+    desc: 'Get Vastu-compliant layout recommendations for homes and offices based on direction and room type.',
+    samples: ['Which direction should the main entrance face?', 'Vastu tips for kitchen placement', 'Best direction for master bedroom'],
+  },
+  {
+    emoji: '📐', name: 'House Plan Advisor', slug: 'house-plan-advisor',
+    desc: 'Get layout and design suggestions tailored to your plot size and family needs.',
+    samples: ['2BHK plan for 30×40 plot', 'How to maximize space in a 600 sq ft apartment?', 'Open floor plan vs traditional layout'],
+  },
+  {
+    emoji: '📊', name: 'Budget Planner', slug: 'budget-planner',
+    desc: 'Build a detailed construction or renovation budget with itemised cost breakdowns.',
+    samples: ['Budget breakdown for ₹30 lakh home construction', 'How to allocate renovation budget by room?', 'Hidden costs to budget for in construction'],
+  },
+  {
+    emoji: '📋', name: 'Permits Guide', slug: 'permits-guide-india',
+    desc: 'Understand what building permits are needed for your project and location across India.',
+    samples: ['What permits do I need to build a house in Bangalore?', 'How to get a building plan approved?', 'Timeline for construction permit approval'],
+  },
+];
+
+function AiToolsAccordion() {
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
+  return (
+    <div className="space-y-2">
+      {AI_TOOLS.map((tool) => {
+        const isOpen = openSlug === tool.slug;
+        return (
+          <div key={tool.slug} className="border border-gray-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setOpenSlug(isOpen ? null : tool.slug)}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-xl flex-shrink-0">{tool.emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800">{tool.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{tool.desc}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Link
+                  href={`/ai/${tool.slug}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs text-brand-600 font-medium hover:text-brand-700 border border-brand-200 rounded-lg px-2.5 py-1 bg-white hover:bg-brand-50 transition-colors"
+                >
+                  Try Free →
+                </Link>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+            {isOpen && (
+              <div className="px-4 py-3 bg-white border-t border-gray-100">
+                <p className="text-xs text-gray-600 mb-3">{tool.desc}</p>
+                <p className="text-xs font-semibold text-gray-700 mb-2">Sample questions you can ask:</p>
+                <ul className="space-y-1">
+                  {tool.samples.map((q) => (
+                    <li key={q} className="flex items-start gap-2 text-xs text-gray-600">
+                      <span className="text-brand-500 mt-0.5 flex-shrink-0">›</span>{q}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-gray-400 mt-3">URL: <code className="bg-gray-100 rounded px-1">/ai/{tool.slug}</code></p>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -875,23 +972,91 @@ export default function GuidePage() {
 
             {/* 27 — AI Assistant */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <SectionHeader id="ai-assistant" icon={Bot} number={27} title="AI Assistant" subtitle="Biddaro's AI tools help you plan projects, estimate costs, navigate regulations, and find the right contractor — all powered by AI." />
-              <div className="grid sm:grid-cols-2 gap-3 my-4">
-                {[
-                  { tool: '💰 Cost Estimator', desc: 'Get accurate construction cost estimates for any Indian city or project type.' },
-                  { tool: '🏠 Renovation Planner', desc: 'Plan your renovation with room-by-room breakdowns and material suggestions.' },
-                  { tool: '🧭 Vastu Consultant', desc: 'Get Vastu-compliant layout recommendations for homes and offices.' },
-                  { tool: '👷 Contractor Finder', desc: 'Describe your job and get matched with the right contractor category.' },
-                  { tool: '🧱 Material Calculator', desc: 'Calculate quantities of cement, bricks, tiles, and more for your project.' },
-                  { tool: '📋 Permits Guide', desc: 'Understand what building permits are needed for your specific project and location.' },
-                ].map(({ tool, desc }) => (
-                  <div key={tool} className="bg-gray-50 border border-gray-200 rounded-xl p-3">
-                    <p className="text-sm font-semibold text-gray-800 mb-1">{tool}</p>
-                    <p className="text-xs text-gray-500">{desc}</p>
+              <SectionHeader id="ai-assistant" icon={Bot} number={27} title="AI Assistant" subtitle="Biddaro offers two complementary AI experiences: a full-featured general-purpose chat assistant and 8 purpose-built tools — all free, no login required." />
+
+              {/* Sub-section A — Overview banner */}
+              <div className="bg-gradient-to-r from-brand-50 to-blue-50 border border-brand-200 rounded-xl p-5 my-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 mb-1">Two ways to use Biddaro AI</p>
+                    <p className="text-xs text-gray-500">Full chat assistant with memory · 8 specialised expert tools</p>
                   </div>
-                ))}
+                  <div className="flex gap-3 flex-wrap">
+                    <Link href="/ai-assistant" className="inline-flex items-center gap-2 bg-brand-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
+                      <Sparkles className="w-4 h-4" />Open AI Assistant
+                    </Link>
+                    <Link href="/ai" className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                      Browse All Tools <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+                <p className="text-xs text-green-700 font-medium mt-3 flex items-center gap-1">
+                  <BadgeCheck className="w-3.5 h-3.5" /> No login required — 100% free
+                </p>
               </div>
-              <Info2>AI tools are accessible at <strong>/ai</strong> — no login required. Use them to prepare before posting a job or bidding on a project.</Info2>
+
+              {/* Sub-section B — Full AI Assistant */}
+              <div className="mt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">Full AI Assistant — General-Purpose Chat</h4>
+                    <p className="text-xs text-gray-500">Remembers your conversation · Best for complex, multi-topic questions</p>
+                  </div>
+                </div>
+                <Steps steps={[
+                  'Go to <strong>/ai-assistant</strong> from the top navbar (or click "Open AI Assistant" above).',
+                  'Start a new conversation — click <strong>+ New Chat</strong> in the left sidebar.',
+                  'Type your question in the chat box and press <strong>Enter</strong> or click <strong>Send</strong>.',
+                  'To attach a photo or document, click the <strong>paperclip icon</strong> — supports images, PDFs, up to 20 MB.',
+                  'To use voice input, click the <strong>microphone icon</strong> and speak your question.',
+                  'Your conversation history is saved automatically — find past chats in the <strong>left sidebar</strong>.',
+                  'Hover over any AI reply to <strong>Copy</strong> or <strong>Regenerate</strong> the response.',
+                ]} />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                  {[
+                    { icon: History, label: 'Conversation History', desc: 'All chats saved automatically' },
+                    { icon: Paperclip, label: 'File & Image Upload', desc: 'Photos, PDFs up to 20 MB' },
+                    { icon: Mic, label: 'Voice Input', desc: 'Speak instead of type' },
+                    { icon: RefreshCw, label: 'Regenerate & Copy', desc: 'Retry or copy any reply' },
+                  ].map(({ icon: Icon, label, desc }) => (
+                    <div key={label} className="bg-purple-50 border border-purple-100 rounded-xl p-3 text-center">
+                      <Icon className="w-5 h-5 text-purple-600 mx-auto mb-1.5" />
+                      <p className="text-xs font-semibold text-gray-800">{label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                    </div>
+                  ))}
+                </div>
+                <Tip>Use the full AI assistant for complex questions that span multiple topics — it remembers everything you said in the conversation.</Tip>
+              </div>
+
+              {/* Sub-section C — 8 Specialised Tools */}
+              <div className="mt-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">8 Specialised Expert Tools</h4>
+                    <p className="text-xs text-gray-500">Each pre-configured with deep knowledge for a specific construction topic</p>
+                  </div>
+                </div>
+                <AiToolsAccordion />
+              </div>
+
+              {/* Sub-section D — Pro Tips */}
+              <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
+                  <Lightbulb className="w-4 h-4" /> Pro Tips
+                </p>
+                <ul className="space-y-1.5 text-xs text-amber-900">
+                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Use specialised tools first — they give more focused, expert-level answers than the general assistant.</li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Upload photos to the full AI assistant for personalised renovation advice based on your actual space.</li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> After using AI tools, post your job on Biddaro to get real contractor bids based on your AI estimates.</li>
+                </ul>
+              </div>
             </div>
 
             {/* 28 — Messages */}
