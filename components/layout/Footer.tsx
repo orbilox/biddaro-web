@@ -103,10 +103,11 @@ export function Footer() {
             <h4 className="text-white font-semibold text-sm mb-4">Company</h4>
             <ul className="space-y-2">
               {[
-                { label: 'About Us', href: '#' },
-                { label: 'Blog',     href: '/blog' },
-                { label: 'Careers',  href: '#' },
-                { label: 'Contact',  href: '#' },
+                { label: 'About Us',  href: '#' },
+                { label: 'Blog',      href: '/blog' },
+                { label: 'Investors', href: '/investors' },
+                { label: 'Careers',   href: '#' },
+                { label: 'Contact',   href: '#' },
               ].map(({ label, href }) => (
                 <li key={label}>
                   <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
