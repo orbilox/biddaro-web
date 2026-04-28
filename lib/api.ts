@@ -548,4 +548,11 @@ export const addonsApi = {
   check: (slug: string) => api.get(`/addons/${slug}`),
 };
 
+// ─── Contact ──────────────────────────────────────────────────────────────────
+
+export const contactApi = {
+  submit: (data: { name: string; email: string; subject: string; message: string }) =>
+    api.post('/contact', data),
+};
+
 export default api;

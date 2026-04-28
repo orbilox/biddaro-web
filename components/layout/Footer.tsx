@@ -27,11 +27,11 @@ export function Footer() {
             <h4 className="text-white font-semibold text-sm mb-4">Platform</h4>
             <ul className="space-y-2">
               {[
-                { label: 'How It Works', href: '#' },
-                { label: 'Browse Jobs',  href: '#' },
-                { label: 'Post a Job',   href: '#' },
+                { label: 'How It Works', href: '/how-it-works' },
+                { label: 'Browse Jobs',  href: '/open-jobs' },
+                { label: 'Post a Job',   href: '/jobs/post' },
                 { label: 'Premium',      href: '/premium' },
-                { label: 'Pricing',      href: '#' },
+                { label: 'Pricing',      href: '/pricing' },
               ].map(({ label, href }) => (
                 <li key={label}>
                   <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
@@ -103,11 +103,11 @@ export function Footer() {
             <h4 className="text-white font-semibold text-sm mb-4">Company</h4>
             <ul className="space-y-2">
               {[
-                { label: 'About Us',  href: '#' },
+                { label: 'About Us',  href: '/about' },
                 { label: 'Blog',      href: '/blog' },
                 { label: 'Investors', href: '/investors' },
-                { label: 'Careers',   href: '#' },
-                { label: 'Contact',   href: '#' },
+                { label: 'Careers',   href: '/contact?subject=Careers' },
+                { label: 'Contact',   href: '/contact' },
               ].map(({ label, href }) => (
                 <li key={label}>
                   <Link href={href} className="text-sm hover:text-white transition-colors">{label}</Link>
