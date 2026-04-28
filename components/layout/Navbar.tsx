@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 // ─── Country hub entries for the dropdown ─────────────────────────────────────
 
@@ -183,11 +184,14 @@ export function Navbar() {
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
             {mounted && isAuthenticated ? (
-              <Link href={ROUTES.DASHBOARD}>
-                <Button size="sm" rightIcon={<LayoutDashboard className="w-4 h-4" />}>
-                  Go to Dashboard
-                </Button>
-              </Link>
+              <>
+                <NotificationDropdown solid={solid} />
+                <Link href={ROUTES.DASHBOARD}>
+                  <Button size="sm" rightIcon={<LayoutDashboard className="w-4 h-4" />}>
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              </>
             ) : (
               <>
                 <Link
@@ -282,11 +286,20 @@ export function Navbar() {
 
             <hr className="my-2 border-gray-100" />
             {mounted && isAuthenticated ? (
-              <Link href={ROUTES.DASHBOARD} onClick={() => setMobileOpen(false)}>
-                <Button fullWidth size="sm" rightIcon={<LayoutDashboard className="w-4 h-4" />}>
-                  Go to Dashboard
-                </Button>
-              </Link>
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/notifications"
+                  onClick={() => setMobileOpen(false)}
+                  className="px-3 py-2.5 text-sm font-medium text-dark-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
+                >
+                  <span>🔔</span> Notifications
+                </Link>
+                <Link href={ROUTES.DASHBOARD} onClick={() => setMobileOpen(false)}>
+                  <Button fullWidth size="sm" rightIcon={<LayoutDashboard className="w-4 h-4" />}>
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              </div>
             ) : (
               <>
                 <Link
