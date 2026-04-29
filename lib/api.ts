@@ -64,6 +64,8 @@ export const jobsApi = {
   myJobs: (params?: Record<string, string | number>) => api.get('/jobs/my', { params }),
   estimate: (data: Record<string, unknown>) => api.post('/jobs/estimate', data),
   getBids: (jobId: string) => api.get(`/jobs/${jobId}/bids`),
+  recommended: () => api.get('/jobs/recommended'),
+  bidInsights: (jobId: string) => api.get(`/jobs/${jobId}/bid-insights`),
 };
 
 // ─── Bids ─────────────────────────────────────────────────────────────────────

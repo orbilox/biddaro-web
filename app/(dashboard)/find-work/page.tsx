@@ -5,7 +5,7 @@ import {
   Search, MapPin, DollarSign, Users, Clock, X,
   Briefcase, Loader2, SlidersHorizontal, CheckCircle,
   AlertCircle, Calendar, TrendingUp, Zap, RefreshCw,
-  Crown, Lock, Building2,
+  Crown, Lock, Building2, Sparkles, ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
@@ -466,6 +466,26 @@ export default function FindWorkPage() {
   // Bid modal
   const [bidJob, setBidJob]           = useState<Job | null>(null);
 
+  // Recommended jobs
+  const [recommendedJobs, setRecommendedJobs] = useState<Job[]>([]);
+  const [recommendedLoading, setRecommendedLoading] = useState(false);
+  const [recommendedSkills, setRecommendedSkills] = useState<string[]>([]);
+
+  // ── Fetch recommended jobs (contractor only) ───────────────────────────────
+
+  useEffect(() => {
+    if (user?.role !== 'contractor') return;
+    setRecommendedLoading(true);
+    jobsApi.recommended()
+      .then(res => {
+        const d = res.data.data;
+        setRecommendedJobs(d.jobs ?? []);
+        setRecommendedSkills(d.skillsUsed ?? []);
+      })
+      .catch(() => {/* silent — recommendations are non-critical */})
+      .finally(() => setRecommendedLoading(false));
+  }, [user?.role]);
+
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
   const fetchJobs = useCallback(async (f: Filters, p: number) => {
@@ -643,6 +663,102 @@ export default function FindWorkPage() {
           </div>
         )}
       </div>
+
+      {/* ── Recommended for You (contractors only) ──────────────────────────── */}
+      {user?.role === 'contractor' && (recommendedLoading || recommendedJobs.length > 0) && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-brand-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-dark-900">Recommended for You</h2>
+                {recommendedSkills.length > 0 && (
+                  <p className="text-xs text-dark-400">
+                    Based on your skills: {recommendedSkills.slice(0, 3).join(', ')}
+                    {recommendedSkills.length > 3 ? ` +${recommendedSkills.length - 3} more` : ''}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Horizontal scroll strip */}
+          <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+            {recommendedLoading
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 w-72 bg-white rounded-xl border border-gray-200 p-4 animate-pulse space-y-3"
+                  >
+                    <div className="flex gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-gray-200" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-3.5 bg-gray-200 rounded w-4/5" />
+                        <div className="h-3 bg-gray-200 rounded w-2/5" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="h-3 bg-gray-200 rounded" />
+                      <div className="h-3 bg-gray-200 rounded w-5/6" />
+                    </div>
+                    <div className="h-7 bg-gray-200 rounded" />
+                  </div>
+                ))
+              : recommendedJobs.map(job => {
+                  const alreadyBid = bidJobIds.has(job.id);
+                  return (
+                    <div
+                      key={job.id}
+                      className="flex-shrink-0 w-72 bg-white rounded-xl border border-gray-200 hover:border-brand-300 hover:shadow-card-hover transition-all duration-200 flex flex-col"
+                    >
+                      <div className="p-4 flex-1">
+                        <div className="flex items-start gap-2.5 mb-2">
+                          <div className="w-9 h-9 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center flex-shrink-0 text-lg select-none">
+                            {getCategoryEmoji(job.category)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Link
+                              href={ROUTES.JOB_DETAIL(job.id)}
+                              className="font-semibold text-dark-900 leading-snug line-clamp-2 hover:text-brand-600 transition-colors text-xs"
+                            >
+                              {job.title}
+                            </Link>
+                            <Badge variant="default" size="sm" className="mt-1">{job.category}</Badge>
+                          </div>
+                        </div>
+                        <p className="text-xs text-dark-500 line-clamp-2 mb-3">{job.description}</p>
+                        <div className="flex items-center justify-between text-xs text-dark-400">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" /> {job.location}
+                          </span>
+                          <span className="font-semibold text-dark-900">{formatCurrency(job.budget)}</span>
+                        </div>
+                      </div>
+                      <div className="px-4 pb-3 pt-0 flex gap-2">
+                        <Link href={ROUTES.JOB_DETAIL(job.id)} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full text-xs">
+                            View
+                          </Button>
+                        </Link>
+                        {alreadyBid ? (
+                          <Button size="sm" variant="ghost" className="flex-1 text-xs text-green-600 cursor-default" disabled leftIcon={<CheckCircle className="w-3.5 h-3.5 text-green-500" />}>
+                            Bid Placed
+                          </Button>
+                        ) : (
+                          <Button size="sm" className="flex-1 text-xs" onClick={() => setBidJob(job)}>
+                            Bid
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+            }
+          </div>
+        </div>
+      )}
 
       {/* ── Filter bar ──────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
