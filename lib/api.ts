@@ -555,4 +555,15 @@ export const contactApi = {
     api.post('/contact', data),
 };
 
+// ─── Payments (Stripe) ────────────────────────────────────────────────────────
+
+export const paymentsApi = {
+  /** Create a Stripe Checkout session for wallet top-up. Returns { url, sessionId }. */
+  createCheckoutSession: (amount: number) =>
+    api.post<{ success: boolean; data: { url: string; sessionId: string } }>(
+      '/payments/create-checkout-session',
+      { amount },
+    ),
+};
+
 export default api;

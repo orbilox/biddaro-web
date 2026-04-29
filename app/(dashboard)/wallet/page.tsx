@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Wallet, ArrowDownLeft, ArrowUpRight, TrendingUp, Shield,
   Plus, Download, Loader2, Clock, CheckCircle, XCircle,
-  Copy, Upload, Building2, Hash, User, ChevronRight,
+  Copy, Upload, Building2, Hash, User, ChevronRight, CreditCard,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -11,7 +11,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { toast } from '@/store/uiStore';
-import { walletApi, depositRequestsApi, uploadApi, bankSettingsApi, BankAccount } from '@/lib/api';
+import { walletApi, depositRequestsApi, uploadApi, bankSettingsApi, paymentsApi, BankAccount } from '@/lib/api';
 import type { Transaction, Wallet as WalletType, WalletStats } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -131,8 +131,9 @@ export default function WalletPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
 
-  // ── Add Funds / Bank Transfer modal ──
+  // ── Add Funds modal ──
   const [depositOpen, setDepositOpen] = useState(false);
+  const [depositMethod, setDepositMethod] = useState<'card' | 'bank'>('card');
   const [depositStep, setDepositStep] = useState<1 | 2>(1);
   const [banks, setBanks] = useState<BankAccount[]>([]);
   const [selectedBank, setSelectedBank] = useState<BankAccount | null>(null);
@@ -147,6 +148,10 @@ export default function WalletPage() {
   const [uploading, setUploading]   = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Card deposit ──
+  const [cardAmount, setCardAmount] = useState('');
+  const [cardLoading, setCardLoading] = useState(false);
 
   // ── Load data ──
   const loadWallet = async () => {
@@ -180,7 +185,38 @@ export default function WalletPage() {
     }
   };
 
-  useEffect(() => { loadWallet(); }, []);
+  useEffect(() => {
+    loadWallet();
+    // Detect Stripe payment success redirect
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('deposit_success') === 'true') {
+        toast.success('Payment successful! 🎉', 'Your wallet will be credited shortly.');
+        window.history.replaceState({}, '', '/wallet');
+      }
+    }
+  }, []);
+
+  // ── Card (Stripe) deposit ──
+  const handleCardDeposit = async () => {
+    const num = parseFloat(cardAmount);
+    if (!num || num < 10) { toast.error('Invalid amount', 'Minimum deposit is $10.'); return; }
+    if (num > 5000) { toast.error('Amount too large', 'Maximum single deposit is $5,000.'); return; }
+    setCardLoading(true);
+    try {
+      const res = await paymentsApi.createCheckoutSession(num);
+      const url = res.data?.data?.url;
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast.error('Checkout failed', 'Could not create payment session. Please try again.');
+      }
+    } catch (err: any) {
+      toast.error('Checkout failed', err?.response?.data?.message || 'Please try again.');
+    } finally {
+      setCardLoading(false);
+    }
+  };
 
   // ── Withdraw ──
   const handleWithdraw = async () => {
@@ -203,8 +239,10 @@ export default function WalletPage() {
 
   // ── Open deposit modal (reset) ──
   const openDeposit = () => {
+    setDepositMethod('card');
     setDepositStep(1);
     setSelectedBank(banks[0] ?? null);
+    setCardAmount('');
     setTxAmount('');
     setTxId('');
     setSenderName('');
@@ -375,42 +413,125 @@ export default function WalletPage() {
         )}
       </div>
 
-      {/* ── Add Funds Modal (multi-step bank transfer) ─────────────────────── */}
+      {/* ── Add Funds Modal ────────────────────────────────────────────────── */}
       <Modal
         open={depositOpen}
         onClose={() => setDepositOpen(false)}
-        title="Add Funds via Bank Transfer"
+        title="Add Funds"
         size="lg"
         footer={
-          <div className="flex gap-3 justify-between items-center w-full">
-            {depositStep === 2 ? (
-              <>
-                <button
-                  onClick={() => setDepositStep(1)}
-                  className="text-sm text-dark-400 hover:text-dark-700 transition-colors flex items-center gap-1"
-                >
-                  ← Back
-                </button>
-                <Button
-                  onClick={handleSubmitDeposit}
-                  loading={submitting}
-                  disabled={!txAmount || !txId || !screenshot}
-                >
-                  {uploading ? 'Uploading…' : 'Submit Request'}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => setDepositOpen(false)}>Cancel</Button>
-                <Button onClick={() => setDepositStep(2)} disabled={!selectedBank}>
-                  I&apos;ve Made the Transfer
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </>
-            )}
-          </div>
+          depositMethod === 'card' ? (
+            <div className="flex gap-3 justify-end w-full">
+              <Button variant="outline" onClick={() => setDepositOpen(false)}>Cancel</Button>
+              <Button
+                onClick={handleCardDeposit}
+                loading={cardLoading}
+                disabled={!cardAmount || parseFloat(cardAmount) < 10}
+                leftIcon={<CreditCard className="w-4 h-4" />}
+              >
+                {cardLoading ? 'Redirecting…' : 'Pay with Card'}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-3 justify-between items-center w-full">
+              {depositStep === 2 ? (
+                <>
+                  <button
+                    onClick={() => setDepositStep(1)}
+                    className="text-sm text-dark-400 hover:text-dark-700 transition-colors flex items-center gap-1"
+                  >
+                    ← Back
+                  </button>
+                  <Button
+                    onClick={handleSubmitDeposit}
+                    loading={submitting}
+                    disabled={!txAmount || !txId || !screenshot}
+                  >
+                    {uploading ? 'Uploading…' : 'Submit Request'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setDepositOpen(false)}>Cancel</Button>
+                  <Button onClick={() => setDepositStep(2)} disabled={!selectedBank}>
+                    I&apos;ve Made the Transfer
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </>
+              )}
+            </div>
+          )
         }
       >
+        {/* ── Payment method tabs ── */}
+        <div className="flex rounded-xl border border-gray-200 overflow-hidden mb-5">
+          {[
+            { id: 'card' as const, label: 'Pay with Card', icon: CreditCard },
+            { id: 'bank' as const, label: 'Bank Transfer', icon: Building2 },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => { setDepositMethod(id); setDepositStep(1); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                depositMethod === id
+                  ? 'bg-brand-500 text-white'
+                  : 'text-dark-500 hover:bg-gray-50'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Card payment form ── */}
+        {depositMethod === 'card' ? (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 bg-blue-50 rounded-xl px-4 py-3">
+              <CreditCard className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-blue-800 mb-1">Secure card payment via Stripe</p>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  Enter the amount below and you&apos;ll be redirected to Stripe&apos;s secure checkout.
+                  Funds are credited instantly after payment.
+                </p>
+              </div>
+            </div>
+
+            <Input
+              label="Amount (USD)"
+              type="number"
+              placeholder="50.00"
+              leftIcon={<span className="text-dark-400 text-sm">$</span>}
+              value={cardAmount}
+              onChange={(e) => setCardAmount(e.target.value)}
+              hint="Min $10 · Max $5,000 per transaction"
+            />
+
+            {/* Quick amount chips */}
+            <div className="flex flex-wrap gap-2">
+              {[50, 100, 200, 500].map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => setCardAmount(String(amt))}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    cardAmount === String(amt)
+                      ? 'border-brand-500 bg-brand-50 text-brand-600 font-semibold'
+                      : 'border-gray-200 text-dark-500 hover:border-brand-300'
+                  }`}
+                >
+                  ${amt}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-xs text-dark-400 flex items-center gap-1.5">
+              <span>🔒</span>
+              Secured by Stripe. We never see your card details.
+            </p>
+          </div>
+        ) : (<>
         {/* ── Step progress indicator ── */}
         <div className="flex items-center gap-2 mb-5">
           {['Bank Details', 'Upload Proof'].map((label, i) => {
@@ -603,6 +724,7 @@ export default function WalletPage() {
             </div>
           </div>
         )}
+        </>)}
       </Modal>
 
       {/* ── Withdraw Modal ────────────────────────────────────────────────── */}
