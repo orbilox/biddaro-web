@@ -157,9 +157,9 @@ export default function PublicProfilePage() {
   const skills        = tryParse<string>(profile.skills as string | undefined);
   const languages     = tryParse<string>(profile.languages as string | undefined);
 
-  const avgRating = reviews.length
+  const avgRating: number = reviews.length
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-    : (profile.rating as number) ?? 0;
+    : Number(profile.rating ?? 0);
 
   // Rating distribution (1–5)
   const dist = [5, 4, 3, 2, 1].map((star) => {
@@ -208,15 +208,15 @@ export default function PublicProfilePage() {
               )}
 
               {/* Rating summary */}
-              {avgRating > 0 && (
+              {avgRating > 0 ? (
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <Stars rating={avgRating} />
                   <span className="text-sm font-bold text-dark-900">{avgRating.toFixed(1)}</span>
                   <span className="text-xs text-dark-400">({reviews.length} review{reviews.length !== 1 ? 's' : ''})</span>
                 </div>
-              )}
+              ) : null}
 
-              {profile.isVerified && (
+              {!!profile.isVerified && (
                 <div className="flex items-center justify-center mb-4">
                   <Badge variant="success" size="sm">
                     <CheckCircle className="w-3 h-3 mr-1" /> Verified
@@ -253,19 +253,19 @@ export default function PublicProfilePage() {
             {/* Details */}
             <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3 text-sm">
               <h3 className="font-semibold text-dark-900 text-sm">Details</h3>
-              {profile.location && (
+              {!!profile.location && (
                 <div className="flex items-center gap-2.5 text-dark-600">
                   <MapPin className="w-4 h-4 text-dark-400 shrink-0" />
                   <span>{profile.location as string}</span>
                 </div>
               )}
-              {profile.phone && (
+              {!!profile.phone && (
                 <div className="flex items-center gap-2.5 text-dark-600">
                   <Phone className="w-4 h-4 text-dark-400 shrink-0" />
                   <span>{profile.phone as string}</span>
                 </div>
               )}
-              {profile.website && (
+              {!!profile.website && (
                 <div className="flex items-center gap-2.5">
                   <Globe className="w-4 h-4 text-dark-400 shrink-0" />
                   <a
@@ -278,25 +278,25 @@ export default function PublicProfilePage() {
                   </a>
                 </div>
               )}
-              {isContractor && profile.hourlyRate && (
+              {isContractor && !!profile.hourlyRate && (
                 <div className="flex items-center gap-2.5 text-dark-600">
                   <DollarSign className="w-4 h-4 text-dark-400 shrink-0" />
                   <span>{formatCurrency(profile.hourlyRate as number)}/hr</span>
                 </div>
               )}
-              {isContractor && profile.yearsExperience && (
+              {isContractor && !!profile.yearsExperience && (
                 <div className="flex items-center gap-2.5 text-dark-600">
                   <Clock className="w-4 h-4 text-dark-400 shrink-0" />
                   <span>{profile.yearsExperience as number} years experience</span>
                 </div>
               )}
-              {isContractor && profile.licenseNumber && (
+              {isContractor && !!profile.licenseNumber && (
                 <div className="flex items-center gap-2.5 text-dark-600">
                   <Shield className="w-4 h-4 text-dark-400 shrink-0" />
                   <span>License: {profile.licenseNumber as string}</span>
                 </div>
               )}
-              {isContractor && profile.serviceRadius && (
+              {isContractor && !!profile.serviceRadius && (
                 <div className="flex items-center gap-2.5 text-dark-600">
                   <MapPin className="w-4 h-4 text-dark-400 shrink-0" />
                   <span>Service radius: {profile.serviceRadius as number} miles</span>
@@ -335,7 +335,7 @@ export default function PublicProfilePage() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Bio */}
-            {profile.bio && (
+            {!!profile.bio && (
               <Section title="About">
                 <p className="text-sm text-dark-600 leading-relaxed">{profile.bio as string}</p>
               </Section>
@@ -435,12 +435,12 @@ export default function PublicProfilePage() {
                     <span className="ml-2 text-sm font-normal text-dark-400">({reviews.length})</span>
                   )}
                 </h2>
-                {avgRating > 0 && (
+                {avgRating > 0 ? (
                   <div className="flex items-center gap-2">
                     <Stars rating={avgRating} size="md" />
                     <span className="text-2xl font-extrabold text-dark-900">{avgRating.toFixed(1)}</span>
                   </div>
-                )}
+                ) : null}
               </div>
 
               {reviews.length === 0 ? (

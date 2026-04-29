@@ -349,6 +349,7 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: string;
+  job?: { id: string; title: string };
 }
 
 
