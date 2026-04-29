@@ -14,6 +14,7 @@ import { JobCard } from '@/components/jobs/JobCard';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { ROUTES } from '@/lib/constants';
 import { jobsApi, bidsApi, walletApi, usersApi } from '@/lib/api';
+import { OnboardingBanner } from '@/components/onboarding/OnboardingBanner';
 import type { Job, Bid, Transaction } from '@/types';
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
@@ -132,6 +133,9 @@ export default function DashboardPage() {
           </Link>
         )}
       </div>
+
+      {/* Onboarding banner — shown until dismissed or all steps done */}
+      <OnboardingBanner />
 
       {/* Stats */}
       {loading ? (
