@@ -39,6 +39,7 @@ export const authApi = {
     lastName: string;
     role: string;
     country?: string;
+    referralCode?: string;
   }) => api.post('/auth/register', data),
   login: (data: { email: string; password: string }) => api.post('/auth/login', data),
   logout: () => api.post('/auth/logout'),
@@ -193,6 +194,13 @@ export const disputesApi = {
   respond: (id: string, response: string) => api.post(`/disputes/${id}/respond`, { response }),
   resolve: (id: string, resolution: string, outcome: string) =>
     api.post(`/disputes/${id}/resolve`, { resolution, outcome }),
+};
+
+// ─── Referral ─────────────────────────────────────────────────────────────────
+
+export const referralApi = {
+  myInfo:  () => api.get('/referral/my'),
+  stats:   () => api.get('/referral/stats'),
 };
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────

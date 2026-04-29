@@ -28,6 +28,7 @@ function RegisterForm() {
   const [role, setRole] = useState<'job_poster' | 'contractor'>(
     searchParams.get('type') === 'contractor' ? 'contractor' : 'job_poster'
   );
+  const referralCode = searchParams.get('ref') || undefined;
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -48,6 +49,7 @@ function RegisterForm() {
         lastName: data.lastName,
         role,
         country: data.country,
+        ...(referralCode ? { referralCode } : {}),
       });
       toast.success('Check your email!', `We sent a 6-digit code to ${data.email}`);
       router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
