@@ -120,6 +120,9 @@ function MessagesInner() {
   const [fallbackUser, setFallbackUser] = useState<Partial<User> | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Track the last message id we saw in the active thread to avoid redundant scroll
+  const lastMsgIdRef = useRef<string | null>(null);
+  const activeOtherUserIdRef = useRef<string | null>(null);
 
   // ── Load conversation list ──────────────────────────────────────────────────
   const loadConversations = useCallback(async () => {
@@ -137,6 +140,9 @@ function MessagesInner() {
 
   useEffect(() => {
     loadConversations();
+    // Poll conversation list every 30 s so sidebar stays fresh
+    const id = setInterval(loadConversations, 30_000);
+    return () => clearInterval(id);
   }, [loadConversations]);
 
   // ── Pre-select conversation from ?userId query param ───────────────────────
@@ -166,11 +172,13 @@ function MessagesInner() {
     const load = async () => {
       setLoadingThread(true);
       setThreadMessages([]);
+      lastMsgIdRef.current = null;
       try {
         const res = await messagesApi.getThread(activeOtherUserId);
         const data = res.data.data;
-        // getMessages returns a paginated result: { data: [...messages], pagination: {...} }
-        setThreadMessages(data.data || (Array.isArray(data) ? data : []));
+        const msgs: Message[] = data.data || (Array.isArray(data) ? data : []);
+        setThreadMessages(msgs);
+        lastMsgIdRef.current = msgs[msgs.length - 1]?.id ?? null;
 
         // Mark as read and update unread count locally
         messagesApi.markRead(activeOtherUserId).catch(() => null);
@@ -188,6 +196,37 @@ function MessagesInner() {
 
     load();
   }, [activeOtherUserId]);
+
+  // ── Poll active thread every 5 s for new messages ─────────────────────────
+  useEffect(() => {
+    activeOtherUserIdRef.current = activeOtherUserId;
+  }, [activeOtherUserId]);
+
+  useEffect(() => {
+    const pollThread = async () => {
+      const otherId = activeOtherUserIdRef.current;
+      if (!otherId) return;
+      try {
+        const res = await messagesApi.getThread(otherId);
+        const data = res.data.data;
+        const msgs: Message[] = data.data || (Array.isArray(data) ? data : []);
+        const latestId = msgs[msgs.length - 1]?.id ?? null;
+        if (latestId && latestId !== lastMsgIdRef.current) {
+          setThreadMessages(msgs);
+          lastMsgIdRef.current = latestId;
+          messagesApi.markRead(otherId).catch(() => null);
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.otherUserId === otherId ? { ...c, unreadCount: 0 } : c
+            )
+          );
+        }
+      } catch { /* silent — don't toast on background poll failures */ }
+    };
+
+    const id = setInterval(pollThread, 5_000);
+    return () => clearInterval(id);
+  }, []); // mount-only — uses refs to access latest activeOtherUserId
 
   // ── Scroll to bottom on new messages ───────────────────────────────────────
   useEffect(() => {

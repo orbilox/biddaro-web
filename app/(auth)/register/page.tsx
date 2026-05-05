@@ -179,9 +179,9 @@ function RegisterForm() {
 
           <p className="text-xs text-dark-400 leading-relaxed">
             By creating an account, you agree to our{' '}
-            <a href="#" className="text-brand-600 underline">Terms of Service</a>{' '}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">Terms of Service</a>{' '}
             and{' '}
-            <a href="#" className="text-brand-600 underline">Privacy Policy</a>.
+            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">Privacy Policy</a>.
           </p>
 
           <Button type="submit" fullWidth loading={loading} size="md">

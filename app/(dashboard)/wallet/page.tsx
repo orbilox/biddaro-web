@@ -36,7 +36,7 @@ const txTypeConfig: Record<string, { label: string; icon: React.ElementType; col
   refund:     { label: 'Refund',     icon: ArrowDownLeft, color: 'text-blue-600 bg-blue-50',    sign: '+' },
 };
 
-function TransactionRow({ tx }: { tx: Transaction }) {
+function TransactionRow({ tx, currency = 'USD' }: { tx: Transaction; currency?: string }) {
   const cfg = txTypeConfig[tx.type] ?? txTypeConfig.credit;
   const Icon = cfg.icon;
   const isCredit = tx.type === 'credit' || tx.type === 'refund';
@@ -51,7 +51,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       </div>
       <div className="text-right flex-shrink-0">
         <p className={`font-semibold ${isCredit ? 'text-green-600' : 'text-dark-700'}`}>
-          {cfg.sign}{formatCurrency(tx.amount)}
+          {cfg.sign}{formatCurrency(tx.amount, currency)}
         </p>
         <Badge variant={tx.status === 'completed' ? 'success' : tx.status === 'pending' ? 'warning' : 'danger'} size="sm">
           {tx.status}
@@ -62,7 +62,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
 }
 
 // ─── Deposit Request row ──────────────────────────────────────────────────────
-function DepositRequestRow({ req }: { req: DepositRequest }) {
+function DepositRequestRow({ req, currency = 'USD' }: { req: DepositRequest; currency?: string }) {
   const statusConfig = {
     pending:  { icon: Clock,         color: 'text-yellow-600 bg-yellow-50', badge: 'warning' as const,  label: 'Pending Review' },
     approved: { icon: CheckCircle,   color: 'text-green-600 bg-green-50',   badge: 'success' as const,  label: 'Approved' },
@@ -85,7 +85,7 @@ function DepositRequestRow({ req }: { req: DepositRequest }) {
         )}
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="font-semibold text-dark-900">{formatCurrency(req.amount)}</p>
+        <p className="font-semibold text-dark-900">{formatCurrency(req.amount, currency)}</p>
         <Badge variant={cfg.badge} size="sm">{cfg.label}</Badge>
       </div>
     </div>
@@ -152,6 +152,13 @@ export default function WalletPage() {
   // ── Card deposit ──
   const [cardAmount, setCardAmount] = useState('');
   const [cardLoading, setCardLoading] = useState(false);
+
+  // Derive wallet currency (falls back to USD before wallet loads)
+  const currency = wallet?.currency ?? 'USD';
+  const CURRENCY_SYMBOLS: Record<string, string> = {
+    USD: '$', AED: 'د.إ', SGD: 'S$', INR: '₹', EUR: '€', GBP: '£',
+  };
+  const currencySymbol = CURRENCY_SYMBOLS[currency] ?? currency;
 
   // ── Load data ──
   const loadWallet = async () => {
@@ -226,7 +233,7 @@ export default function WalletPage() {
     setWithdrawing(true);
     try {
       await walletApi.withdraw(num);
-      toast.success('Withdrawal initiated', `${formatCurrency(num)} will arrive in 1–3 business days.`);
+      toast.success('Withdrawal initiated', `${formatCurrency(num, currency)} will arrive in 1–3 business days.`);
       setWithdrawOpen(false);
       setWithdrawAmount('');
       loadWallet();
@@ -337,7 +344,7 @@ export default function WalletPage() {
               <Badge variant="default" className="bg-white/20 text-white border-0 text-xs">Available</Badge>
             </div>
             <p className="text-white/70 text-sm mb-1">Available Balance</p>
-            <p className="text-3xl font-bold">{formatCurrency(wallet?.balance ?? 0)}</p>
+            <p className="text-3xl font-bold">{formatCurrency(wallet?.balance ?? 0, currency)}</p>
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
@@ -348,7 +355,7 @@ export default function WalletPage() {
               <Badge variant="warning" size="sm">In Escrow</Badge>
             </div>
             <p className="text-dark-400 text-sm mb-1">Pending Release</p>
-            <p className="text-2xl font-bold text-dark-900">{formatCurrency(wallet?.pendingBalance ?? 0)}</p>
+            <p className="text-2xl font-bold text-dark-900">{formatCurrency(wallet?.pendingBalance ?? 0, currency)}</p>
             <p className="text-xs text-dark-400 mt-2">Released on milestone approval</p>
           </div>
 
@@ -359,7 +366,7 @@ export default function WalletPage() {
               </div>
             </div>
             <p className="text-dark-400 text-sm mb-1">Total Earned</p>
-            <p className="text-2xl font-bold text-dark-900">{formatCurrency(wallet?.totalEarned ?? 0)}</p>
+            <p className="text-2xl font-bold text-dark-900">{formatCurrency(wallet?.totalEarned ?? 0, currency)}</p>
           </div>
         </div>
       )}
@@ -368,9 +375,9 @@ export default function WalletPage() {
       {walletStats && !loading && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'This Month', value: formatCurrency(walletStats.thisMonthEarnings ?? 0), sub: 'Earnings' },
-            { label: 'Platform Fees', value: formatCurrency(walletStats.thisMonthFees ?? 0), sub: 'This month' },
-            { label: 'Pending', value: formatCurrency(walletStats.pendingBalance ?? 0), sub: 'In escrow' },
+            { label: 'This Month', value: formatCurrency(walletStats.thisMonthEarnings ?? 0, currency), sub: 'Earnings' },
+            { label: 'Platform Fees', value: formatCurrency(walletStats.thisMonthFees ?? 0, currency), sub: 'This month' },
+            { label: 'Pending', value: formatCurrency(walletStats.pendingBalance ?? 0, currency), sub: 'In escrow' },
             { label: 'Transactions', value: String(transactions.length), sub: 'Total' },
           ].map((s) => (
             <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4">
@@ -389,7 +396,7 @@ export default function WalletPage() {
             <Clock className="w-4 h-4 text-yellow-500" />
             Bank Transfer Requests
           </h2>
-          {depositReqs.map((req) => <DepositRequestRow key={req.id} req={req} />)}
+          {depositReqs.map((req) => <DepositRequestRow key={req.id} req={req} currency={currency} />)}
         </div>
       )}
 
@@ -409,7 +416,7 @@ export default function WalletPage() {
         ) : transactions.length === 0 ? (
           <p className="text-sm text-dark-400 text-center py-8">No transactions yet.</p>
         ) : (
-          transactions.map((tx) => <TransactionRow key={tx.id} tx={tx} />)
+          transactions.map((tx) => <TransactionRow key={tx.id} tx={tx} currency={currency} />)
         )}
       </div>
 
@@ -499,13 +506,13 @@ export default function WalletPage() {
             </div>
 
             <Input
-              label="Amount (USD)"
+              label={`Amount (${currency})`}
               type="number"
               placeholder="50.00"
-              leftIcon={<span className="text-dark-400 text-sm">$</span>}
+              leftIcon={<span className="text-dark-400 text-sm">{currencySymbol}</span>}
               value={cardAmount}
               onChange={(e) => setCardAmount(e.target.value)}
-              hint="Min $10 · Max $5,000 per transaction"
+              hint={`Min ${currencySymbol}10 · Max ${currencySymbol}5,000 per transaction`}
             />
 
             {/* Quick amount chips */}
@@ -521,7 +528,7 @@ export default function WalletPage() {
                       : 'border-gray-200 text-dark-500 hover:border-brand-300'
                   }`}
                 >
-                  ${amt}
+                  {currencySymbol}{amt}
                 </button>
               ))}
             </div>
@@ -648,10 +655,10 @@ export default function WalletPage() {
             {/* Amount + TxID in a row */}
             <div className="grid grid-cols-2 gap-3">
               <Input
-                label="Amount Sent (USD)"
+                label={`Amount Sent (${currency})`}
                 type="number"
                 placeholder="0.00"
-                leftIcon={<span className="text-dark-400 text-sm">$</span>}
+                leftIcon={<span className="text-dark-400 text-sm">{currencySymbol}</span>}
                 value={txAmount}
                 onChange={(e) => setTxAmount(e.target.value)}
                 hint="Exact amount sent"
@@ -742,16 +749,16 @@ export default function WalletPage() {
         <div className="space-y-4">
           <div className="bg-gray-50 rounded-xl p-3 text-sm">
             <p className="text-dark-400 text-xs">Available balance</p>
-            <p className="font-bold text-dark-900 text-lg">{formatCurrency(wallet?.balance ?? 0)}</p>
+            <p className="font-bold text-dark-900 text-lg">{formatCurrency(wallet?.balance ?? 0, currency)}</p>
           </div>
           <Input
-            label="Withdrawal Amount (USD)"
+            label={`Withdrawal Amount (${currency})`}
             type="number"
             placeholder="0.00"
-            leftIcon={<span className="text-dark-400 text-sm">$</span>}
+            leftIcon={<span className="text-dark-400 text-sm">{currencySymbol}</span>}
             value={withdrawAmount}
             onChange={(e) => setWithdrawAmount(e.target.value)}
-            hint={`Max: ${formatCurrency(wallet?.balance ?? 0)}`}
+            hint={`Max: ${formatCurrency(wallet?.balance ?? 0, currency)}`}
           />
           <div className="bg-yellow-50 rounded-xl p-3 text-xs text-yellow-700">
             Withdrawals take 1–3 business days. A small processing fee may apply.

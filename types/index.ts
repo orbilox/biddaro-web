@@ -262,6 +262,7 @@ export interface Wallet {
   balance: number;
   pendingBalance: number;
   totalEarned: number;
+  currency: string;
   createdAt: string;
   updatedAt: string;
 }
