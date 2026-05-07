@@ -151,6 +151,186 @@ const WHY_NOW = [
   { icon: '🌐', title: 'No global multi-market player', desc: 'Houzz, Thumbtack, UrbanClap — all single-market. We are building the first cross-border construction marketplace.' },
 ];
 
+// ─── 100 Pain Points ──────────────────────────────────────────────────────────
+
+interface PainPoint {
+  emoji: string;
+  problem: string;
+  solvedBy: string;
+}
+
+interface PainCategory {
+  title: string;
+  icon: string;
+  points: PainPoint[];
+}
+
+const CONTRACTOR_PAINS: PainCategory[] = [
+  {
+    title: 'Finding & Winning Work',
+    icon: '🔍',
+    points: [
+      { emoji: '📭', problem: 'No steady pipeline — feast or famine between jobs', solvedBy: 'Live job feed with real-time bid alerts' },
+      { emoji: '👻', problem: 'Clients ghost after receiving quotes', solvedBy: 'Verified job posters with identity checks' },
+      { emoji: '🏆', problem: 'Can\'t compete with larger firms professionally', solvedBy: 'Premium profile with ratings, portfolio, and certifications' },
+      { emoji: '📍', problem: 'Travel far just to give a site quote', solvedBy: 'Location-filtered job feed — bid near you' },
+      { emoji: '🤷', problem: 'Lost bids with zero feedback', solvedBy: 'Bid analytics showing why you lost vs. won' },
+      { emoji: '🕵️', problem: 'No way to screen if a client is serious', solvedBy: 'Job poster verification + deposit confirmation' },
+      { emoji: '💬', problem: 'Clients share contact details to avoid platform', solvedBy: 'Messaging locked inside platform until contract signed' },
+      { emoji: '📉', problem: 'Underbid jobs due to poor cost estimation', solvedBy: 'AI Cost Estimator with live material prices' },
+      { emoji: '🌍', problem: 'No visibility to high-value international clients', solvedBy: '4-country marketplace — IN, AE, SG, US' },
+      { emoji: '📢', problem: 'No platform to build a brand as a solo contractor', solvedBy: 'Public contractor profile with SEO-indexed pages' },
+    ],
+  },
+  {
+    title: 'Payments & Finance',
+    icon: '💰',
+    points: [
+      { emoji: '⏳', problem: 'Paid late or not at all after completing work', solvedBy: 'Escrow wallet releases funds on milestone approval' },
+      { emoji: '🚫', problem: 'Clients dispute work to avoid full payment', solvedBy: 'Built-in dispute arbitration with admin resolution' },
+      { emoji: '📃', problem: 'No official invoice or receipt system', solvedBy: 'Auto-generated transaction records and receipts' },
+      { emoji: '🏦', problem: 'No business loans without collateral', solvedBy: 'Embedded working capital & equipment loans' },
+      { emoji: '💵', problem: 'Cash payments with no paper trail', solvedBy: 'All payments digital — wallet to wallet' },
+      { emoji: '📈', problem: 'Inflation erodes fixed-price contracts mid-project', solvedBy: 'Milestone-based contracts allow re-negotiation terms' },
+      { emoji: '🪙', problem: 'No credit history to grow the business', solvedBy: 'Platform transaction history builds credit profile' },
+      { emoji: '💸', problem: 'Material costs overshoot agreed budget', solvedBy: 'Material cost tracker integrated with build planner' },
+      { emoji: '🆘', problem: 'No emergency working capital mid-project', solvedBy: 'Fast-track working capital loan inside the platform' },
+      { emoji: '🧾', problem: 'Tax and compliance paperwork is overwhelming', solvedBy: 'Downloadable transaction history for accountants' },
+    ],
+  },
+  {
+    title: 'Contracts & Legal',
+    icon: '📑',
+    points: [
+      { emoji: '🤝', problem: 'Verbal deals with no written agreement', solvedBy: 'Digital contract generated in seconds at bid acceptance' },
+      { emoji: '⚖️', problem: 'Disputes take months in court', solvedBy: 'In-platform dispute resolution — resolved in days' },
+      { emoji: '🔄', problem: 'Client changes scope without extra payment', solvedBy: 'Contract change-order system with digital sign-off' },
+      { emoji: '📋', problem: 'No standard milestone sign-off format', solvedBy: 'Milestone approval flow with photo proof upload' },
+      { emoji: '🏗️', problem: 'Building NOC documentation is manual', solvedBy: 'Digital NOC certificate generated on contract completion' },
+      { emoji: '❌', problem: 'No penalty for clients who cancel last-minute', solvedBy: 'Cancellation policy enforced in smart contract terms' },
+      { emoji: '🔒', problem: 'No mechanism to protect IP or work designs', solvedBy: 'Timestamped document vault per project' },
+      { emoji: '📜', problem: 'Post-construction warranty has no formal record', solvedBy: 'Warranty terms embedded in contract as a clause' },
+      { emoji: '🔑', problem: 'Hard to verify client owns the property', solvedBy: 'Job poster property verification step in onboarding' },
+      { emoji: '🏛️', problem: 'Clients post jobs without proper permits', solvedBy: 'Pre-job permit checklist enforced before posting' },
+    ],
+  },
+  {
+    title: 'Operations & Growth',
+    icon: '🛠️',
+    points: [
+      { emoji: '📱', problem: 'Checking 5 different apps daily for leads', solvedBy: 'Single platform for jobs, bids, contracts, payments' },
+      { emoji: '🗓️', problem: 'Hard to manage multiple sites simultaneously', solvedBy: 'Project Manager with multi-project dashboard' },
+      { emoji: '📦', problem: 'Material delivery tracking is disconnected', solvedBy: 'Build Planner with material checklist and tracking' },
+      { emoji: '👷', problem: 'Hard to find specialty subcontractors quickly', solvedBy: 'Contractor directory filterable by trade and location' },
+      { emoji: '📊', problem: 'No data on earnings, performance, or trends', solvedBy: 'Contractor analytics dashboard with monthly stats' },
+      { emoji: '🌐', problem: 'Language barriers on multinational job sites', solvedBy: 'Platform supports English; multilingual UI roadmap' },
+      { emoji: '🏋️', problem: 'Training and certification costs unsubsidised', solvedBy: 'Premium plan covers add-on certification uploads' },
+      { emoji: '📸', problem: 'No digital portfolio to show past work', solvedBy: 'Portfolio section with images, value, and year per project' },
+      { emoji: '⚡', problem: 'Seasonal income with no buffer', solvedBy: 'Wallet balance + construction loans bridge slow seasons' },
+      { emoji: '🔧', problem: 'Hard to upsell or expand within a client project', solvedBy: 'In-contract "request scope extension" feature' },
+    ],
+  },
+  {
+    title: 'Trust & Reputation',
+    icon: '⭐',
+    points: [
+      { emoji: '⭐', problem: 'No verified reviews from real clients', solvedBy: 'Reviews only unlocked after contract completion' },
+      { emoji: '😡', problem: 'Fake reviews from competitors', solvedBy: 'Reviews tied to verified contracts — unfakeable' },
+      { emoji: '🛡️', problem: 'No insurance coverage if accident on site', solvedBy: 'Add-on site insurance available in the marketplace' },
+      { emoji: '🎯', problem: 'Premium clients don\'t trust solo contractors', solvedBy: 'Badge system: verified, insured, top-rated' },
+      { emoji: '🔍', problem: 'Clients can\'t see real work history', solvedBy: 'Linked contract history visible on public profile' },
+      { emoji: '🏆', problem: 'No industry certification recognition', solvedBy: 'Certification upload with issuer and expiry tracking' },
+      { emoji: '😤', problem: 'One bad review tanks entire reputation', solvedBy: 'Dispute flow to contest unfair reviews with evidence' },
+      { emoji: '👥', problem: 'Impossible to get references for first few jobs', solvedBy: 'Starter badge for new contractors to build trust' },
+      { emoji: '🌟', problem: 'Government and corporate clients demand premium proof', solvedBy: 'Premium badge unlocks Government/Corporate job visibility' },
+      { emoji: '📰', problem: 'No platform to build a public professional presence', solvedBy: 'SEO-indexed contractor pages rank on Google search' },
+    ],
+  },
+];
+
+const CLIENT_PAINS: PainCategory[] = [
+  {
+    title: 'Finding a Contractor',
+    icon: '🔎',
+    points: [
+      { emoji: '😰', problem: 'Don\'t know which contractor to trust', solvedBy: 'Verified profiles with ratings, reviews & work history' },
+      { emoji: '📞', problem: 'Weeks of calls with no serious responses', solvedBy: 'Post once — verified contractors bid within hours' },
+      { emoji: '🌆', problem: 'Can\'t find good contractors in a new city', solvedBy: 'Location-based contractor discovery in 4 countries' },
+      { emoji: '🎰', problem: 'Wildly different quotes with no way to compare', solvedBy: 'Side-by-side bid comparison with breakdown' },
+      { emoji: '🤥', problem: 'References are manipulated or fake', solvedBy: 'Reviews tied to real completed contracts only' },
+      { emoji: '⚠️', problem: 'Can\'t verify if contractor is licensed', solvedBy: 'License number upload + government ID verification' },
+      { emoji: '🚨', problem: 'Scam contractors take deposit and disappear', solvedBy: 'Escrow — funds never go directly to contractor' },
+      { emoji: '🏢', problem: 'Specialty trades (plumbing, electrical) hard to find', solvedBy: 'Category filter for 14+ trade specialties' },
+      { emoji: '🌐', problem: 'No single place to post jobs to multiple contractors', solvedBy: 'One job post → all verified contractors in your area bid' },
+      { emoji: '🏷️', problem: 'Don\'t know what a fair price should be', solvedBy: 'AI Cost Estimator shows market range before you post' },
+    ],
+  },
+  {
+    title: 'Payments & Money',
+    icon: '💳',
+    points: [
+      { emoji: '💸', problem: 'Paid contractor in full and work stopped halfway', solvedBy: 'Milestone escrow — pay per phase, not upfront' },
+      { emoji: '🏧', problem: 'All cash payments — no receipts or records', solvedBy: 'Wallet-to-wallet payments with full transaction history' },
+      { emoji: '🚫', problem: 'Can\'t get a refund if work is substandard', solvedBy: 'Escrow holds funds until milestone approval' },
+      { emoji: '🧮', problem: 'Hidden costs revealed mid-project', solvedBy: 'Fixed-scope contract with change-order approval flow' },
+      { emoji: '💰', problem: 'Construction finance is complex to get', solvedBy: 'Embedded renovation and home construction loans' },
+      { emoji: '🔢', problem: 'Multiple payments to multiple parties — no tracking', solvedBy: 'Single wallet handles all project payments' },
+      { emoji: '📊', problem: 'Can\'t get a breakdown of labour vs. material costs', solvedBy: 'Bid breakdown view shows labour + material line items' },
+      { emoji: '💳', problem: 'Overpaying because you don\'t know market rates', solvedBy: 'Market rate benchmarks shown alongside each bid' },
+      { emoji: '🏦', problem: 'Renovation loans have complex approval processes', solvedBy: '5-minute in-platform loan application with fast approval' },
+      { emoji: '📑', problem: 'No formal invoice to claim tax deductions', solvedBy: 'Auto-generated digital invoices per milestone' },
+    ],
+  },
+  {
+    title: 'Project Visibility',
+    icon: '👁️',
+    points: [
+      { emoji: '🙈', problem: 'No visibility on project progress when away from site', solvedBy: 'Project Tracking with photo updates and % completion' },
+      { emoji: '📲', problem: 'Everything managed over WhatsApp — chaos', solvedBy: 'In-app messaging, documents, and milestones in one place' },
+      { emoji: '📸', problem: 'Can\'t track if materials delivered match what was ordered', solvedBy: 'Build Planner with material checklist and photo proof' },
+      { emoji: '🗓️', problem: 'Project runs months over time with no accountability', solvedBy: 'Milestone due dates with contractor accountability' },
+      { emoji: '🔍', problem: 'Can\'t read construction drawings or plans', solvedBy: 'AI Construction Guide explains documents in plain language' },
+      { emoji: '📋', problem: 'No standard format for milestone sign-offs', solvedBy: 'Digital milestone approval with proof upload' },
+      { emoji: '📁', problem: 'No central place to store all project documents', solvedBy: 'Document vault per contract — contracts, permits, photos' },
+      { emoji: '🔄', problem: 'Design changes cause chaos with no cost clarity', solvedBy: 'Change order system: scope change → new quote → approval' },
+      { emoji: '🤔', problem: 'Multiple contractors needed but no coordination tool', solvedBy: 'Multi-contractor project view under one job' },
+      { emoji: '⏱️', problem: 'Weather delays cause disputes over timeline', solvedBy: 'Contract force majeure clause handles delays formally' },
+    ],
+  },
+  {
+    title: 'Quality & Trust',
+    icon: '🛡️',
+    points: [
+      { emoji: '🧱', problem: 'Contractor uses cheap materials but charges premium', solvedBy: 'Material specification locked in contract terms' },
+      { emoji: '🏚️', problem: 'Renovation takes 3x longer than promised', solvedBy: 'Timeline milestones with penalties for overrun' },
+      { emoji: '🧹', problem: 'Site safety standards not maintained', solvedBy: 'Safety compliance checklist mandatory before milestone sign-off' },
+      { emoji: '❌', problem: 'Contractor refuses to redo substandard work', solvedBy: 'Dispute resolution with admin arbitration and evidence upload' },
+      { emoji: '🔐', problem: 'Hiring unlicensed workers creates legal liability', solvedBy: 'Only verified contractors can accept jobs' },
+      { emoji: '📝', problem: 'No paper trail — verbal agreements gone wrong', solvedBy: 'Every agreement is a timestamped digital contract' },
+      { emoji: '⭐', problem: 'Can\'t rate or review contractors reliably', solvedBy: 'Post-completion review tied to the contract — verified' },
+      { emoji: '😤', problem: 'Afraid to report bad contractors with no protection', solvedBy: 'Anonymous reporting with platform investigation' },
+      { emoji: '🎭', problem: 'Contractor sends different team than who was vetted', solvedBy: 'Named contractor must be primary — subbing rules enforced' },
+      { emoji: '📐', problem: 'Can\'t tell if finished work meets spec or code', solvedBy: 'Completion photos compared against original scope doc' },
+    ],
+  },
+  {
+    title: 'Knowledge & Planning',
+    icon: '🧠',
+    points: [
+      { emoji: '🤯', problem: 'No idea what a project should realistically cost', solvedBy: 'AI Cost Estimator by project type, size, and location' },
+      { emoji: '🏠', problem: 'Don\'t know which materials are the right quality', solvedBy: 'AI Material Advisor suggests specs for your budget' },
+      { emoji: '📏', problem: 'Hard to plan a renovation without expert guidance', solvedBy: 'AI Renovation Planner with room-by-room breakdown' },
+      { emoji: '📜', problem: 'Don\'t know what permits and approvals are needed', solvedBy: 'Country-specific permit checklist in job posting flow' },
+      { emoji: '🌿', problem: 'Environmental compliance is unknown territory', solvedBy: 'Compliance guide per market built into the platform' },
+      { emoji: '🏛️', problem: 'Hard to get NOC documentation', solvedBy: 'Auto-generated NOC certificate on contract completion' },
+      { emoji: '🔢', problem: 'Impossible to estimate material quantities accurately', solvedBy: 'AI Material Calculator gives quantities from dimensions' },
+      { emoji: '🗺️', problem: 'Don\'t know if a contractor covers your location', solvedBy: 'Contractor service radius set on profile — filter by map' },
+      { emoji: '🏗️', problem: 'Can\'t coordinate architect, engineer, and contractor', solvedBy: 'Multi-role project with separate access per stakeholder' },
+      { emoji: '🎯', problem: 'Renovation loan approved but don\'t know where to start', solvedBy: 'Post-loan onboarding flow connects to verified contractors' },
+    ],
+  },
+];
+
 const FAQS = [
   {
     q: 'What stage is Biddaro at?',
@@ -175,6 +355,194 @@ const FAQS = [
 ];
 
 // ─── Components ────────────────────────────────────────────────────────────────
+
+function PainPointsSection() {
+  const [activeTab, setActiveTab] = useState<'contractor' | 'client'>('contractor');
+  const [openCategory, setOpenCategory] = useState<number | null>(0);
+
+  const categories = activeTab === 'contractor' ? CONTRACTOR_PAINS : CLIENT_PAINS;
+  const isContractor = activeTab === 'contractor';
+
+  return (
+    <section className="py-20 bg-white">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <span className="text-brand-600 text-sm font-semibold uppercase tracking-widest">Deep Problem Validation</span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-3">
+            100 Real Problems.<br />
+            <span className="text-brand-500">One Platform Solves Them All.</span>
+          </h2>
+          <p className="text-gray-500 mt-4 max-w-2xl mx-auto text-sm leading-relaxed">
+            Every problem below was identified through real interviews with contractors and homeowners across India, UAE, Singapore, and the US.
+            Biddaro was built specifically to eliminate each one.
+          </p>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <button
+            onClick={() => { setActiveTab('contractor'); setOpenCategory(0); }}
+            className={`flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
+              isContractor
+                ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
+                : 'bg-white border-gray-200 text-gray-500 hover:border-orange-300'
+            }`}
+          >
+            <span className="text-lg">👷</span>
+            50 Contractor Pain Points
+          </button>
+          <button
+            onClick={() => { setActiveTab('client'); setOpenCategory(0); }}
+            className={`flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
+              !isContractor
+                ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200'
+                : 'bg-white border-gray-200 text-gray-500 hover:border-blue-300'
+            }`}
+          >
+            <span className="text-lg">🏠</span>
+            50 Client Pain Points
+          </button>
+        </div>
+
+        {/* Summary bar */}
+        <div className={`rounded-2xl p-5 mb-8 flex flex-wrap items-center gap-4 ${
+          isContractor ? 'bg-orange-50 border border-orange-100' : 'bg-blue-50 border border-blue-100'
+        }`}>
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl ${
+            isContractor ? 'bg-orange-100' : 'bg-blue-100'
+          }`}>
+            {isContractor ? '👷' : '🏠'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`font-bold text-sm ${isContractor ? 'text-orange-900' : 'text-blue-900'}`}>
+              {isContractor ? 'Contractors — The Supply Side' : 'Job Posters / Homeowners — The Demand Side'}
+            </p>
+            <p className={`text-xs mt-0.5 ${isContractor ? 'text-orange-700' : 'text-blue-700'}`}>
+              {isContractor
+                ? '50M+ construction workers in India alone. Globally underserved, unbanked, and unprotected. Biddaro gives them a professional platform.'
+                : '1.4B households globally need construction work. They face trust, quality, and payment risk at every stage. Biddaro eliminates every one.'}
+            </p>
+          </div>
+          <div className={`text-3xl font-extrabold flex-shrink-0 ${isContractor ? 'text-orange-500' : 'text-blue-600'}`}>
+            50 problems
+          </div>
+        </div>
+
+        {/* Accordion categories */}
+        <div className="space-y-3">
+          {categories.map((cat, catIdx) => {
+            const isOpen = openCategory === catIdx;
+            return (
+              <div key={cat.title} className={`rounded-2xl border overflow-hidden transition-all ${
+                isOpen
+                  ? isContractor ? 'border-orange-200' : 'border-blue-200'
+                  : 'border-gray-100 hover:border-gray-200'
+              }`}>
+                {/* Category header */}
+                <button
+                  onClick={() => setOpenCategory(isOpen ? null : catIdx)}
+                  className={`w-full flex items-center justify-between gap-4 px-6 py-4 text-left transition-colors ${
+                    isOpen
+                      ? isContractor ? 'bg-orange-50' : 'bg-blue-50'
+                      : 'bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{cat.icon}</span>
+                    <div>
+                      <span className="font-bold text-gray-900 text-sm">{cat.title}</span>
+                      <span className="ml-2 text-xs text-gray-400">10 problems</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      isOpen
+                        ? isContractor ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {catIdx * 10 + 1}–{catIdx * 10 + 10}
+                    </span>
+                    {isOpen
+                      ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                      : <ChevronDown className="w-4 h-4 text-gray-400" />
+                    }
+                  </div>
+                </button>
+
+                {/* Problems grid */}
+                {isOpen && (
+                  <div className="bg-white border-t border-gray-100 p-4">
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {cat.points.map((point, pIdx) => (
+                        <div
+                          key={pIdx}
+                          className={`rounded-xl border p-4 ${
+                            isContractor
+                              ? 'border-orange-100 bg-orange-50/40'
+                              : 'border-blue-100 bg-blue-50/40'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="text-xl flex-shrink-0 mt-0.5">{point.emoji}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className={`text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 ${
+                                  isContractor ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+                                }`}>
+                                  {catIdx * 10 + pIdx + 1}
+                                </span>
+                                <p className="text-sm font-semibold text-gray-800 leading-tight">{point.problem}</p>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                                <p className="text-xs text-gray-500 leading-snug">
+                                  <span className="font-medium text-green-700">Biddaro: </span>
+                                  {point.solvedBy}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bottom callout */}
+        <div className="mt-10 grid sm:grid-cols-3 gap-5">
+          {[
+            {
+              icon: '🎯',
+              title: 'Both sides protected',
+              desc: 'Biddaro is the only platform in the market that solves for both parties simultaneously — not just the demand side.',
+            },
+            {
+              icon: '🔗',
+              title: 'Every feature maps to a real pain',
+              desc: 'We didn\'t build features and then find problems. Every module was designed to eliminate a specific, validated pain point.',
+            },
+            {
+              icon: '🚀',
+              title: '100 reasons users won\'t leave',
+              desc: 'When you solve this many problems, switching cost becomes extremely high. This is our retention moat.',
+            },
+          ].map(({ icon, title, desc }) => (
+            <div key={title} className="bg-gray-50 rounded-2xl border border-gray-100 p-6 text-center">
+              <div className="text-3xl mb-3">{icon}</div>
+              <h4 className="font-bold text-gray-900 text-sm mb-2">{title}</h4>
+              <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -424,6 +792,9 @@ export default function InvestorsPage() {
           </div>
         </div>
       </section>
+
+      {/* ── 100 Pain Points ───────────────────────────────────────────────── */}
+      <PainPointsSection />
 
       {/* ── Use of Funds ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-gray-900 text-white">
