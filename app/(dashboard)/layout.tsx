@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { PageLoader } from '@/components/shared/LoadingSpinner';
 import { ROUTES } from '@/lib/constants';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { PushNotificationBanner } from '@/components/notifications/PushNotificationBanner';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -30,5 +31,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   // Still in first-paint / Zustand rehydrating — show loader, never redirect
   if (!mounted || !isAuthenticated) return <PageLoader />;
 
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return (
+    <>
+      <DashboardLayout>{children}</DashboardLayout>
+      <PushNotificationBanner />
+    </>
+  );
 }

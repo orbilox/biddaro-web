@@ -33,13 +33,10 @@ export function usePushNotifications() {
         const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
         await navigator.serviceWorker.ready;
 
-        // Check current permission — don't prompt automatically; let the user do it
-        // We only subscribe if permission is already granted
-        if (Notification.permission === 'default') {
-          // Ask for permission once
-          const permission = await Notification.requestPermission();
-          if (permission !== 'granted') return;
-        }
+        // Only subscribe if the user has ALREADY granted permission.
+        // Never call requestPermission() automatically — browsers require a real
+        // user gesture (button click) to show the full permission dialog.
+        // The dashboard PushNotificationBanner handles the prompt on button click.
         if (Notification.permission !== 'granted') return;
 
         if (cancelled) return;
