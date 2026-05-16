@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   FileText, CheckCircle, Clock, AlertCircle, DollarSign,
-  Loader2, Lock, Unlock, Star,
+  Loader2, Lock, Unlock, Star, Download,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +18,33 @@ import { contractsApi, reviewsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import type { Contract } from '@/types';
+
+// ─── CSV Export ───────────────────────────────────────────────────────────────
+function exportContractsCSV(contracts: Contract[], isPoster: boolean) {
+  const rows = [
+    ['Date', 'Job Title', 'Status', 'Amount', 'Currency', isPoster ? 'Contractor' : 'Client'],
+    ...contracts.map(c => {
+      const other = isPoster ? c.contractor : c.poster;
+      const otherName = other ? `${other.firstName} ${other.lastName}`.trim() : '';
+      return [
+        new Date(c.createdAt).toLocaleDateString(),
+        c.job?.title || '',
+        c.status,
+        (c.totalAmount ?? 0).toFixed(2),
+        c.currency || 'USD',
+        otherName,
+      ];
+    }),
+  ];
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `biddaro-contracts-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // ─── Milestone Progress ───────────────────────────────────────────────────────
 
@@ -320,9 +347,19 @@ export default function ContractsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Contracts</h1>
-        <p className="page-subtitle">Manage your active and past contracts</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="page-title">Contracts</h1>
+          <p className="page-subtitle">Manage your active and past contracts</p>
+        </div>
+        {contracts.length > 0 && (
+          <button
+            onClick={() => exportContractsCSV(contracts, isPoster)}
+            className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1 mt-1"
+          >
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </button>
+        )}
       </div>
 
       {/* Summary */}

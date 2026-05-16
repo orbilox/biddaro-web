@@ -123,10 +123,14 @@ export const clarificationsApi = {
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export const notificationsApi = {
-  list:        (params?: Record<string, string | number>) => api.get('/notifications', { params }),
-  unreadCount: ()        => api.get('/notifications/unread-count'),
-  markRead:    (id: string) => api.post(`/notifications/${id}/read`),
-  markAllRead: ()        => api.post('/notifications/read-all'),
+  list:          (params?: Record<string, string | number>) => api.get('/notifications', { params }),
+  unreadCount:   () => api.get('/notifications/unread-count'),
+  markRead:      (id: string) => api.post(`/notifications/${id}/read`),
+  markAllRead:   () => api.post('/notifications/read-all'),
+  vapidPublicKey: () => api.get<{ success: boolean; data: { publicKey: string } }>('/notifications/vapid-public-key'),
+  subscribePush:  (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+    api.post('/notifications/subscribe-push', sub),
+  unsubscribePush: (endpoint: string) => api.post('/notifications/unsubscribe-push', { endpoint }),
 };
 
 // ─── Messages ─────────────────────────────────────────────────────────────────

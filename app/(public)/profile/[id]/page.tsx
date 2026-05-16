@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   MapPin, Phone, Globe, Star, Briefcase, Award, CheckCircle,
   ArrowLeft, MessageSquare, Clock, DollarSign, Calendar,
-  Languages, Shield, ExternalLink, Loader2, AlertCircle, LogIn, Crown,
+  Languages, Shield, ExternalLink, Loader2, AlertCircle, LogIn, Crown, BadgeCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -355,6 +355,11 @@ export default function PublicProfilePage() {
                   {contractor.isVerified && (
                     <span className="text-xs bg-brand-50 text-brand-700 border border-brand-200 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
                       <Shield className="w-2.5 h-2.5" />Verified
+                    </span>
+                  )}
+                  {contractor.verificationStatus === 'verified' && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      <BadgeCheck className="w-3.5 h-3.5" /> Verified
                     </span>
                   )}
                 </div>

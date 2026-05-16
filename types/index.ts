@@ -46,6 +46,10 @@ export interface User {
   bio?: string;
   skills?: string | string[];       // JSON string or parsed array
   licenseNumber?: string;
+  idDocUrl?: string;
+  tradeLicenseUrl?: string;
+  insuranceCertUrl?: string;
+  verificationStatus?: 'none' | 'pending' | 'verified' | 'rejected';
   yearsExperience?: number;
   isVerified: boolean;
   isPremium?: boolean;

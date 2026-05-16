@@ -5,10 +5,12 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/authStore';
 import { PageLoader } from '@/components/shared/LoadingSpinner';
 import { ROUTES } from '@/lib/constants';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
+  usePushNotifications();
 
   // `mounted` becomes true only after the first paint — by which point Zustand
   // has already rehydrated from localStorage (microtask) and `isAuthenticated`

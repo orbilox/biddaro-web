@@ -363,6 +363,14 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarRef = useRef<HTMLInputElement>(null);
 
+  // ── Verification document uploads ─────────────────────────────────────────
+  const [uploadingIdDoc, setUploadingIdDoc] = useState(false);
+  const [uploadingTradeLicense, setUploadingTradeLicense] = useState(false);
+  const [uploadingInsurance, setUploadingInsurance] = useState(false);
+  const idDocRef = useRef<HTMLInputElement>(null);
+  const tradeLicenseRef = useRef<HTMLInputElement>(null);
+  const insuranceRef = useRef<HTMLInputElement>(null);
+
   // ── Load data on mount ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
@@ -603,6 +611,7 @@ export default function ProfilePage() {
               {isContractor && <Tab value="portfolio" icon={<ImageIcon className="w-3.5 h-3.5" />} count={portfolio.length}>Portfolio</Tab>}
               {isContractor && <Tab value="history" icon={<Briefcase className="w-3.5 h-3.5" />} count={workHistory.length}>Work History</Tab>}
               <Tab value="reviews" icon={<Star className="w-3.5 h-3.5" />} count={reviews.length}>Reviews</Tab>
+              {isContractor && <Tab value="verification" icon={<Shield className="w-3.5 h-3.5" />}>Verification</Tab>}
             </TabList>
 
             <div className="mt-5 space-y-4">
@@ -1017,6 +1026,214 @@ export default function ProfilePage() {
                   </div>
                 )}
               </TabPanel>
+
+              {/* ── Verification ─────────────────────────────────────────────── */}
+              {isContractor && (
+                <TabPanel value="verification">
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <SectionCard title="Contractor Verification">
+                      <p className="text-sm text-dark-500 mb-4">
+                        Upload your documents to get a Verified badge visible on your public profile.
+                        Documents are reviewed within 1–3 business days.
+                      </p>
+
+                      {/* Current status badge */}
+                      <div className="flex items-center gap-2 mb-5">
+                        <span className="text-sm font-medium text-dark-700">Verification Status:</span>
+                        {user?.verificationStatus === 'verified' && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                            <CheckCircle className="w-3.5 h-3.5" /> Verified
+                          </span>
+                        )}
+                        {user?.verificationStatus === 'pending' && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 border border-yellow-200">
+                            <Clock className="w-3.5 h-3.5" /> Pending Review
+                          </span>
+                        )}
+                        {user?.verificationStatus === 'rejected' && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                            <X className="w-3.5 h-3.5" /> Rejected
+                          </span>
+                        )}
+                        {(!user?.verificationStatus || user?.verificationStatus === 'none') && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                            Not Submitted
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Verified banner */}
+                      {user?.verificationStatus === 'verified' && (
+                        <div className="mb-5 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                          <p className="text-sm font-semibold text-green-800">
+                            Your profile is Verified ✓ — clients can see your badge on your public profile.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Document upload sections */}
+                      <div className="space-y-4">
+
+                        {/* Government ID */}
+                        <div className="border border-gray-200 rounded-xl p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-dark-900">Government ID / Passport</p>
+                              <p className="text-xs text-dark-400 mt-0.5">Upload a clear photo of your national ID or passport.</p>
+                            </div>
+                            {user?.idDocUrl ? (
+                              <a href={user.idDocUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline flex-shrink-0">
+                                <CheckCircle className="w-3.5 h-3.5 text-green-500" /> View
+                              </a>
+                            ) : (
+                              <span className="text-xs text-dark-400">—</span>
+                            )}
+                          </div>
+                          <div className="mt-3">
+                            {uploadingIdDoc ? (
+                              <p className="text-xs text-dark-400 animate-pulse">Uploading…</p>
+                            ) : (
+                              <Button
+                                size="xs"
+                                variant="outline"
+                                leftIcon={<Plus className="w-3.5 h-3.5" />}
+                                onClick={() => idDocRef.current?.click()}
+                              >
+                                {user?.idDocUrl ? 'Replace' : 'Upload'} ID
+                              </Button>
+                            )}
+                            <input
+                              ref={idDocRef}
+                              type="file"
+                              accept="image/*,.pdf"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setUploadingIdDoc(true);
+                                try {
+                                  const res = await uploadApi.single(file);
+                                  await doSave({ idDocUrl: res.data.data.url }, () => {}, 'ID Document');
+                                } catch { toast.error('Upload failed', 'Please try again.'); }
+                                finally { setUploadingIdDoc(false); e.target.value = ''; }
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Trade License */}
+                        <div className="border border-gray-200 rounded-xl p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-dark-900">Trade License / Contractor License</p>
+                              <p className="text-xs text-dark-400 mt-0.5">Upload your trade or contractor license document.</p>
+                            </div>
+                            {user?.tradeLicenseUrl ? (
+                              <a href={user.tradeLicenseUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline flex-shrink-0">
+                                <CheckCircle className="w-3.5 h-3.5 text-green-500" /> View
+                              </a>
+                            ) : (
+                              <span className="text-xs text-dark-400">—</span>
+                            )}
+                          </div>
+                          <div className="mt-3">
+                            {uploadingTradeLicense ? (
+                              <p className="text-xs text-dark-400 animate-pulse">Uploading…</p>
+                            ) : (
+                              <Button
+                                size="xs"
+                                variant="outline"
+                                leftIcon={<Plus className="w-3.5 h-3.5" />}
+                                onClick={() => tradeLicenseRef.current?.click()}
+                              >
+                                {user?.tradeLicenseUrl ? 'Replace' : 'Upload'} License
+                              </Button>
+                            )}
+                            <input
+                              ref={tradeLicenseRef}
+                              type="file"
+                              accept="image/*,.pdf"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setUploadingTradeLicense(true);
+                                try {
+                                  const res = await uploadApi.single(file);
+                                  await doSave({ tradeLicenseUrl: res.data.data.url }, () => {}, 'Trade License');
+                                } catch { toast.error('Upload failed', 'Please try again.'); }
+                                finally { setUploadingTradeLicense(false); e.target.value = ''; }
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Insurance Certificate */}
+                        <div className="border border-gray-200 rounded-xl p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-dark-900">Insurance Certificate</p>
+                              <p className="text-xs text-dark-400 mt-0.5">Upload proof of your liability or contractor insurance.</p>
+                            </div>
+                            {user?.insuranceCertUrl ? (
+                              <a href={user.insuranceCertUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline flex-shrink-0">
+                                <CheckCircle className="w-3.5 h-3.5 text-green-500" /> View
+                              </a>
+                            ) : (
+                              <span className="text-xs text-dark-400">—</span>
+                            )}
+                          </div>
+                          <div className="mt-3">
+                            {uploadingInsurance ? (
+                              <p className="text-xs text-dark-400 animate-pulse">Uploading…</p>
+                            ) : (
+                              <Button
+                                size="xs"
+                                variant="outline"
+                                leftIcon={<Plus className="w-3.5 h-3.5" />}
+                                onClick={() => insuranceRef.current?.click()}
+                              >
+                                {user?.insuranceCertUrl ? 'Replace' : 'Upload'} Insurance
+                              </Button>
+                            )}
+                            <input
+                              ref={insuranceRef}
+                              type="file"
+                              accept="image/*,.pdf"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setUploadingInsurance(true);
+                                try {
+                                  const res = await uploadApi.single(file);
+                                  await doSave({ insuranceCertUrl: res.data.data.url }, () => {}, 'Insurance Certificate');
+                                } catch { toast.error('Upload failed', 'Please try again.'); }
+                                finally { setUploadingInsurance(false); e.target.value = ''; }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Submit for verification button */}
+                      {user?.idDocUrl && user?.tradeLicenseUrl && user?.insuranceCertUrl && user?.verificationStatus !== 'verified' && user?.verificationStatus !== 'pending' && (
+                        <div className="mt-5 pt-4 border-t border-gray-100">
+                          <p className="text-xs text-dark-500 mb-3">All 3 documents uploaded. Submit for admin review.</p>
+                          <Button
+                            leftIcon={<Shield className="w-4 h-4" />}
+                            onClick={() => doSave({ verificationStatus: 'pending' }, () => {}, 'Verification')}
+                          >
+                            Submit for Verification
+                          </Button>
+                        </div>
+                      )}
+                    </SectionCard>
+                  </div>
+                </TabPanel>
+              )}
 
             </div>
           </Tabs>

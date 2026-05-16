@@ -15,6 +15,7 @@ import { formatCurrency, timeAgo } from '@/lib/utils';
 import { ROUTES } from '@/lib/constants';
 import { jobsApi, bidsApi, walletApi, usersApi } from '@/lib/api';
 import { OnboardingBanner } from '@/components/onboarding/OnboardingBanner';
+import { ProfileCompletionCard } from '@/components/dashboard/ProfileCompletionCard';
 import type { Job, Bid, Transaction } from '@/types';
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
@@ -136,6 +137,9 @@ export default function DashboardPage() {
 
       {/* Onboarding banner — shown until dismissed or all steps done */}
       <OnboardingBanner />
+
+      {/* Profile completion — contractors only */}
+      {user?.role === 'contractor' && <ProfileCompletionCard user={user} />}
 
       {/* Stats */}
       {loading ? (

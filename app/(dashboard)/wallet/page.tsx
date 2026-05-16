@@ -119,6 +119,29 @@ function CopyField({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ─── CSV Export ───────────────────────────────────────────────────────────────
+function exportTransactionsCSV(txs: Transaction[], currency: string) {
+  const rows = [
+    ['Date', 'Description', 'Type', 'Amount', 'Currency', 'Status'],
+    ...txs.map(tx => [
+      new Date(tx.createdAt).toLocaleDateString(),
+      tx.description || tx.type,
+      tx.type,
+      tx.amount.toFixed(2),
+      currency,
+      tx.status,
+    ]),
+  ];
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `biddaro-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function WalletPage() {
   const [wallet, setWallet]         = useState<WalletType | null>(null);
@@ -408,10 +431,14 @@ export default function WalletPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-dark-900">Transaction History</h2>
-          <Button variant="ghost" size="sm" disabled>
-            <Download className="w-4 h-4 mr-1.5" />
-            Export CSV
-          </Button>
+          {transactions.length > 0 && (
+            <button
+              onClick={() => exportTransactionsCSV(transactions, currency)}
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+            >
+              <Download className="w-3.5 h-3.5" /> Export CSV
+            </button>
+          )}
         </div>
         {loading ? (
           <div className="flex justify-center py-8">

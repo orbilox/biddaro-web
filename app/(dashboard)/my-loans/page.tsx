@@ -4,7 +4,7 @@ import {
   Building2, Wrench, Package, Briefcase, User,
   Calculator, CheckCircle, Clock, XCircle, DollarSign,
   ChevronRight, ArrowRight, FileText, Upload, AlertCircle,
-  TrendingUp, Shield, Zap, BadgeCheck,
+  TrendingUp, Shield, Zap, BadgeCheck, Calendar, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
@@ -12,6 +12,7 @@ import { loansApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
+import { track } from '@/lib/analytics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LoanApplication {
@@ -129,6 +130,7 @@ export default function LoansPage() {
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedSchedule, setExpandedSchedule] = useState<string | null>(null);
 
   // Calculator state
   const [calcAmount, setCalcAmount] = useState(100000);
@@ -175,6 +177,7 @@ export default function LoansPage() {
       return;
     }
     setSubmitting(true);
+    track.loanApplicationStarted({ loanType: form.loanType, amount: parseFloat(form.amount) });
     try {
       await loansApi.apply({
         ...form,
@@ -182,6 +185,7 @@ export default function LoansPage() {
         tenure: parseInt(form.tenure),
         monthlyIncome: parseFloat(form.monthlyIncome),
       });
+      track.loanApplicationSubmitted({ loanType: form.loanType, amount: parseFloat(form.amount), tenure: parseInt(form.tenure) });
       toast.success('Application submitted!', 'We will review your loan application within 2–5 business days.');
       setActiveTab('myloans');
       setForm(f => ({ ...f, amount: '', tenure: '', purpose: '', phone: '', address: '', city: '' }));
@@ -478,19 +482,68 @@ export default function LoansPage() {
                     </div>
 
                     {(app.status === 'approved' || app.status === 'disbursed') && app.approvedAmount && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-3 gap-4">
-                        <div>
-                          <p className="text-xs text-dark-400">Approved Amount</p>
-                          <p className="font-semibold text-green-600">{formatCurrency(app.approvedAmount)}</p>
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="grid grid-cols-3 gap-4 mb-3">
+                          <div>
+                            <p className="text-xs text-dark-400">Approved Amount</p>
+                            <p className="font-semibold text-green-600">{formatCurrency(app.approvedAmount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-dark-400">Interest Rate</p>
+                            <p className="font-semibold text-dark-900">{app.interestRate}% p.a.</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-dark-400">Monthly EMI</p>
+                            <p className="font-semibold text-amber-600">{app.emiAmount ? formatCurrency(app.emiAmount) : '—'}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs text-dark-400">Interest Rate</p>
-                          <p className="font-semibold text-dark-900">{app.interestRate}% p.a.</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-dark-400">Monthly EMI</p>
-                          <p className="font-semibold text-amber-600">{app.emiAmount ? formatCurrency(app.emiAmount) : '—'}</p>
-                        </div>
+                        {/* Repayment schedule toggle */}
+                        <button
+                          onClick={() => setExpandedSchedule(expandedSchedule === app.id ? null : app.id)}
+                          className="flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-700 font-medium mt-1"
+                        >
+                          <Calendar className="w-3.5 h-3.5" />
+                          View Repayment Schedule
+                          {expandedSchedule === app.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        </button>
+                        {expandedSchedule === app.id && app.interestRate && app.emiAmount && (
+                          <div className="mt-3 rounded-xl border border-gray-200 overflow-hidden">
+                            <div className="bg-gray-50 px-4 py-2 grid grid-cols-4 text-xs font-semibold text-dark-500 border-b border-gray-200">
+                              <span>Month</span><span>EMI</span><span>Principal</span><span>Interest</span>
+                            </div>
+                            <div className="divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                              {(() => {
+                                const r = (app.interestRate) / 100 / 12;
+                                let balance = app.approvedAmount;
+                                const rows = [];
+                                const startDate = new Date(app.createdAt);
+                                for (let i = 1; i <= Math.min(app.tenure, 12); i++) {
+                                  const interest = balance * r;
+                                  const principal = (app.emiAmount ?? 0) - interest;
+                                  balance = Math.max(0, balance - principal);
+                                  const due = new Date(startDate);
+                                  due.setMonth(due.getMonth() + i);
+                                  rows.push(
+                                    <div key={i} className="px-4 py-2 grid grid-cols-4 text-xs text-dark-700">
+                                      <span className="text-dark-500">{due.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}</span>
+                                      <span className="font-medium">{formatCurrency(app.emiAmount ?? 0)}</span>
+                                      <span className="text-green-600">{formatCurrency(principal)}</span>
+                                      <span className="text-red-500">{formatCurrency(interest)}</span>
+                                    </div>
+                                  );
+                                }
+                                if (app.tenure > 12) {
+                                  rows.push(
+                                    <div key="more" className="px-4 py-2 text-xs text-dark-400 text-center">
+                                      + {app.tenure - 12} more months · Total payable: {formatCurrency((app.emiAmount ?? 0) * app.tenure)}
+                                    </div>
+                                  );
+                                }
+                                return rows;
+                              })()}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
