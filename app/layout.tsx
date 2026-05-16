@@ -11,13 +11,20 @@ export const metadata: Metadata = {
   description: 'Connect with skilled contractors and post construction jobs on Biddaro – the leading construction marketplace.',
   keywords: ['construction', 'contractors', 'bidding', 'marketplace', 'home improvement'],
   authors: [{ name: 'Biddaro' }],
+  manifest: '/manifest.json',
+  themeColor: '#f97316',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Biddaro',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', type: 'image/x-icon' },
-      { url: '/icon', type: 'image/png', sizes: '32x32' },
+      { url: '/icons/icon-192.png', type: 'image/png', sizes: '192x192' },
     ],
     apple: [
-      { url: '/apple-icon', type: 'image/png', sizes: '180x180' },
+      { url: '/icons/apple-icon-180.png', type: 'image/png', sizes: '180x180' },
     ],
     shortcut: '/favicon.ico',
   },
