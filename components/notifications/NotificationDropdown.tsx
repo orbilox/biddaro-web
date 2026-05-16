@@ -21,22 +21,29 @@ interface Notification {
 // ─── Icon helpers per notification type ──────────────────────────────────────
 
 function notifColor(type: string): string {
-  if (type.includes('bid'))      return 'bg-blue-100 text-blue-600';
-  if (type.includes('contract')) return 'bg-green-100 text-green-600';
-  if (type.includes('dispute'))  return 'bg-red-100 text-red-600';
-  if (type.includes('payment') || type.includes('wallet')) return 'bg-amber-100 text-amber-600';
-  if (type.includes('message'))  return 'bg-purple-100 text-purple-600';
+  if (type.includes('bid'))                             return 'bg-blue-100 text-blue-600';
+  if (type.includes('contract') || type.includes('milestone')) return 'bg-green-100 text-green-600';
+  if (type.includes('dispute'))                         return 'bg-red-100 text-red-600';
+  if (type.includes('payment') || type.includes('wallet') ||
+      type.includes('deposit') || type.includes('loan'))return 'bg-amber-100 text-amber-600';
+  if (type.includes('message'))                         return 'bg-purple-100 text-purple-600';
   return 'bg-brand-100 text-brand-600';
 }
 
 function notifEmoji(type: string): string {
-  if (type.includes('bid'))      return '📋';
-  if (type.includes('contract')) return '📝';
-  if (type.includes('dispute'))  return '⚠️';
+  if (type.includes('bid'))                              return '📋';
+  if (type.includes('milestone'))                        return '🏁';
+  if (type.includes('contract'))                         return '📝';
+  if (type.includes('dispute'))                          return '⚠️';
+  if (type.includes('deposit_approved'))                 return '✅';
+  if (type.includes('deposit_rejected'))                 return '❌';
+  if (type.includes('deposit'))                          return '💳';
+  if (type.includes('loan_approved') || type.includes('loan_disbursed')) return '💸';
+  if (type.includes('loan_rejected'))                    return '❌';
+  if (type.includes('loan'))                             return '🏦';
   if (type.includes('payment') || type.includes('wallet')) return '💰';
-  if (type.includes('message'))  return '💬';
-  if (type.includes('review'))   return '⭐';
-  if (type.includes('milestone'))return '🏁';
+  if (type.includes('message'))                          return '💬';
+  if (type.includes('review'))                           return '⭐';
   return '🔔';
 }
 

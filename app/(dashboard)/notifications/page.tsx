@@ -41,7 +41,8 @@ function getTypeStyle(type: string): { Icon: React.ElementType; color: string } 
   if (
     type.startsWith('wallet_') ||
     type.startsWith('deposit_') ||
-    type.startsWith('withdrawal_')
+    type.startsWith('withdrawal_') ||
+    type.startsWith('loan_')
   )
     return { Icon: Wallet, color: 'text-amber-400 bg-amber-400/10' };
   return { Icon: Bell, color: 'text-dark-400 bg-dark-600' };
