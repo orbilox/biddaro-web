@@ -7,6 +7,7 @@ import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { ROUTES } from '@/lib/constants';
+import { track } from '@/lib/analytics';
 
 // ─── Inner component (needs searchParams) ─────────────────────────────────────
 
@@ -87,6 +88,8 @@ function VerifyEmailForm() {
       const { user, accessToken } = res.data.data;
       setUser(user, accessToken);
       setVerified(true);
+      track.otpVerified();
+      track.signUp({ role: user.role, country: user.country });
       toast.success('Email verified!', `Welcome to Biddaro, ${user.firstName}!`);
       setTimeout(() => router.push(ROUTES.DASHBOARD), 1200);
     } catch (err: any) {
@@ -114,6 +117,7 @@ function VerifyEmailForm() {
     setResendLoading(true);
     try {
       await authApi.sendOtp(email);
+      track.otpResend({ email });
       toast.success('Code resent!', 'Check your inbox for the new 6-digit code.');
       setCooldown(60);
       setDigits(Array(6).fill(''));

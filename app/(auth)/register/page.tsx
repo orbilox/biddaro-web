@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { ROUTES, SUPPORTED_COUNTRIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { track } from '@/lib/analytics';
 
 interface RegisterForm {
   firstName: string;
@@ -41,6 +42,7 @@ function RegisterForm() {
 
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true);
+    track.beginRegistration();
     try {
       await authApi.register({
         email: data.email,

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { toast } from '@/store/uiStore';
 import { walletApi, depositRequestsApi, uploadApi, bankSettingsApi, paymentsApi, BankAccount } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import type { Transaction, Wallet as WalletType, WalletStats } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -209,6 +210,7 @@ export default function WalletPage() {
     const num = parseFloat(cardAmount);
     if (!num || num < 10) { toast.error('Invalid amount', 'Minimum deposit is $10.'); return; }
     if (num > 5000) { toast.error('Amount too large', 'Maximum single deposit is $5,000.'); return; }
+    track.depositInitiated({ amount: num, currency });
     setCardLoading(true);
     try {
       const res = await paymentsApi.createCheckoutSession(num);
@@ -233,6 +235,7 @@ export default function WalletPage() {
     setWithdrawing(true);
     try {
       await walletApi.withdraw(num);
+      track.withdrawalRequested({ amount: num, currency });
       toast.success('Withdrawal initiated', `${formatCurrency(num, currency)} will arrive in 1–3 business days.`);
       setWithdrawOpen(false);
       setWithdrawAmount('');
@@ -293,6 +296,7 @@ export default function WalletPage() {
         senderBank: senderBank.trim() || undefined,
       });
 
+      track.depositRequested({ amount: num, currency });
       toast.success('Request submitted!', 'Your deposit will be reviewed within 1–24 hours.');
       setDepositOpen(false);
       loadWallet();

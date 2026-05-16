@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Avatar } from '@/components/ui/Avatar';
 import { jobsApi, bidsApi } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { formatCurrency, timeAgo } from '@/lib/utils';
@@ -259,6 +260,12 @@ function BidModal({ job, open, onClose, onSuccess, isPremium }: BidModalProps) {
         proposal: proposal.trim(),
         ...(days ? { estimatedDays: parseInt(days, 10) } : {}),
         ...(isPremium && isGovCorp ? { isPriority: true } : {}),
+      });
+      track.bidSubmitted({
+        jobId: job.id,
+        bidAmount: parseFloat(amount),
+        currency: job.currency || 'USD',
+        estimatedDays: days ? parseInt(days, 10) : undefined,
       });
       toast.success('Bid submitted!', `Your bid of ${formatCurrency(parseFloat(amount))} has been sent to the client.`);
       onSuccess(job.id);
@@ -526,6 +533,19 @@ export default function FindWorkPage() {
   const patch = (update: Partial<Filters>) => {
     setFilters(f => ({ ...f, ...update }));
     setPage(1);
+    // Track filter / search events
+    if ('search' in update && update.search) {
+      track.jobSearch({ search: update.search, category: undefined, location: undefined });
+    }
+    if ('category' in update && update.category) {
+      track.filterApplied({ filterType: 'category', filterValue: update.category });
+    }
+    if ('location' in update && update.location) {
+      track.filterApplied({ filterType: 'location', filterValue: update.location });
+    }
+    if ('budgetKey' in update && update.budgetKey) {
+      track.filterApplied({ filterType: 'budget', filterValue: update.budgetKey });
+    }
   };
 
   const handleBudgetChange = (val: string) => {

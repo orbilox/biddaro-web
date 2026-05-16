@@ -13,6 +13,7 @@ import { JOB_CATEGORIES, TIMELINE_OPTIONS, SKILLS, PROJECT_TYPES, ROUTES, CURREN
 import { toast } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
 import { jobsApi, uploadApi } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
 interface PostJobForm {
   title: string;
@@ -179,6 +180,13 @@ export default function PostJobPage() {
         documents: documentUrls,
       });
 
+      track.jobPosted({
+        category: data.category,
+        budget: Number(data.budget),
+        currency: data.currency || 'USD',
+        location: data.location,
+        projectType: data.projectType || 'standard',
+      });
       toast.success('Job posted!', 'Contractors will start bidding soon.');
       router.push(ROUTES.MY_JOBS);
     } catch (err: unknown) {

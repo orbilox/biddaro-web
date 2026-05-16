@@ -21,6 +21,7 @@ import {
   type ContractorPremiumStatus,
 } from '@/lib/api';
 import type { Wallet } from '@/types';
+import { track } from '@/lib/analytics';
 
 // ─── Local-storage helpers (graceful fallback until backend is live) ──────────
 // Key is scoped per user so different contractor accounts stay independent.
@@ -176,7 +177,7 @@ export default function PremiumPage() {
     }
   }, [isContractor, uid]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); track.subscriptionPageViewed(); }, [load]);
 
   async function handleSubscribe() {
     const amount = planAmount(selectedPlan);
@@ -192,6 +193,7 @@ export default function PremiumPage() {
     setSubscribing(true);
     try {
       await premiumApi.subscribe(selectedPlan);
+      track.subscriptionPurchased({ plan: selectedPlan, billingCycle: selectedPlan, value: amount });
       toast.success(`Welcome to Biddaro Premium (${PLAN_LABELS[selectedPlan]})! 🎉`);
       setConfirmModal(false);
       clearLocalSub(uid); // API worked, no need for local fallback
@@ -229,6 +231,7 @@ export default function PremiumPage() {
         setLocalSub(uid, { ...simStatus, history: [subscription, ...prevHistory] });
         setStatus(simStatus);
         setHistory([subscription, ...prevHistory]);
+        track.subscriptionPurchased({ plan: selectedPlan, billingCycle: selectedPlan, value: amount });
         toast.success(`Welcome to Biddaro Premium (${PLAN_LABELS[selectedPlan]})! 🎉`);
         setConfirmModal(false);
 
@@ -414,7 +417,7 @@ export default function PremiumPage() {
             ))}
           </div>
           <div className="mt-6 flex items-center gap-4 flex-wrap">
-            <Button onClick={() => setConfirmModal(true)} className="flex items-center gap-2">
+            <Button onClick={() => { track.subscriptionStarted({ plan: selectedPlan, billingCycle: selectedPlan, value: planAmount(selectedPlan) }); setConfirmModal(true); }} className="flex items-center gap-2">
               <Crown className="w-4 h-4" />
               Upgrade to Premium — {formatCurrency(planAmount(selectedPlan))}
             </Button>

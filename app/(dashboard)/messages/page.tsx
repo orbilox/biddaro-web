@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { timeAgo } from '@/lib/utils';
 import { messagesApi, usersApi } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import type { Conversation, Message, User } from '@/types';
@@ -271,6 +272,7 @@ function MessagesInner() {
       const sent: Message = res.data.data;
       // Replace optimistic with real message
       setThreadMessages((prev) => prev.map((m) => (m.id === optimistic.id ? sent : m)));
+      track.messageSent({});
       // Reload conversations to get accurate last message + ensure conv appears in list
       loadConversations();
     } catch (err: unknown) {

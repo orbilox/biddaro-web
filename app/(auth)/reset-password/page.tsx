@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { authApi } from '@/lib/api';
 import { ROUTES } from '@/lib/constants';
+import { track } from '@/lib/analytics';
 
 // ─── Inner component (needs useSearchParams, must be inside Suspense) ─────────
 
@@ -41,6 +42,7 @@ function ResetPasswordForm() {
     setServerError('');
     try {
       await authApi.resetPassword({ token, newPassword: data.newPassword });
+      track.passwordReset();
       setDone(true);
     } catch (err: unknown) {
       const msg =

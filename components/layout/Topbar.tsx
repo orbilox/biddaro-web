@@ -13,6 +13,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { ROUTES } from '@/lib/constants';
 import { notificationsApi } from '@/lib/api';
 import type { Notification, NotificationType } from '@/types';
+import { track } from '@/lib/analytics';
 
 // ─── Notification icon + colour by type ──────────────────────────────────────
 
@@ -342,7 +343,7 @@ export function Topbar({ title }: TopbarProps) {
                 </Link>
                 <hr className="my-1 border-gray-100" />
                 <button
-                  onClick={() => { logout(); setMenuOpen(false); }}
+                  onClick={() => { track.logout(); logout(); setMenuOpen(false); }}
                   className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
                 >
                   Sign Out

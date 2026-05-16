@@ -17,6 +17,7 @@ import { formatCurrency, timeAgo } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { usersApi, reviewsApi, uploadApi } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import { SKILLS, JOB_CATEGORIES, ROUTES } from '@/lib/constants';
 import type { Review, PortfolioItem, Certification, WorkHistoryItem } from '@/types';
 
@@ -391,6 +392,7 @@ export default function ProfilePage() {
     try {
       const res = await usersApi.update(payload);
       setUser(res.data.data, token ?? '');
+      track.profileUpdated({ section: label });
       toast.success(`${label} saved`, 'Your changes are live.');
     } catch (err: any) {
       toast.error('Save failed', err?.response?.data?.message ?? 'Please try again.');
@@ -426,6 +428,7 @@ export default function ProfilePage() {
     setUploadingAvatar(true);
     try {
       const res = await uploadApi.single(file);
+      track.profilePhotoUploaded();
       await doSave({ profileImage: res.data.data.url }, () => {}, 'Photo');
     } catch { toast.error('Upload failed', 'Please try again.'); }
     finally { setUploadingAvatar(false); }

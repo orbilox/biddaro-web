@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/Input';
 import { formatCurrency, getStatusLabel } from '@/lib/utils';
 import { ROUTES } from '@/lib/constants';
 import { contractsApi, disputesApi, uploadApi, reviewsApi, clarificationsApi } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import type { Contract, Milestone, ClarificationRequest } from '@/types';
@@ -854,6 +855,7 @@ export default function ContractDetailPage() {
     try {
       const res = await contractsApi.startMilestone(contract.id, milestoneIndex);
       setContract(res.data.data);
+      track.milestoneStarted({ contractId: contract.id, milestoneIndex });
       toast.success('Milestone Started', `You have started milestone ${milestoneIndex + 1}.`);
     } catch (err: any) {
       toast.error('Failed to start milestone', err?.response?.data?.message || 'Please try again.');
@@ -883,6 +885,8 @@ export default function ContractDetailPage() {
       setContract(res.data.data);
       setProofModalOpen(false);
       setProofFiles([]);
+      const proofMs = contract.milestones?.[proofMilestoneIdx];
+      track.milestoneCompleted({ contractId: contract.id, milestoneIndex: proofMilestoneIdx, amount: proofMs?.amount ?? 0 });
       toast.success('Submitted for Review 📋', 'The client will review and release your payment.');
     } catch (err: any) {
       toast.error('Failed to submit', err?.response?.data?.message || 'Please try again.');
@@ -907,6 +911,7 @@ export default function ContractDetailPage() {
       setContract(res.data.data);
       setApproveModalOpen(false);
       const m = milestones[approveMilestoneIdx];
+      track.milestoneApproved({ contractId: contract.id, milestoneIndex: approveMilestoneIdx, amount: m?.amount ?? 0 });
       toast.success('Payment Released! 💰', `${formatCurrency(m?.amount ?? 0)} sent to contractor.`);
     } catch (err: any) {
       toast.error('Failed to release payment', err?.response?.data?.message || 'Please try again.');
@@ -922,6 +927,7 @@ export default function ContractDetailPage() {
     setSubmittingDispute(true);
     try {
       await disputesApi.create({ contractId: contract.id, reason: disputeReason, description: disputeDesc });
+      track.disputeRaised({ contractId: contract.id, reason: disputeReason });
       toast.success('Dispute opened', 'Our team will review within 24 hours.');
       setDisputeOpen(false);
       setDisputeReason('');
@@ -1191,6 +1197,7 @@ export default function ContractDetailPage() {
                       await contractsApi.complete(contract.id);
                       const res = await contractsApi.get(contract.id);
                       setContract(res.data.data);
+                      track.contractCompleted({ contractId: contract.id, totalAmount: contract.totalAmount ?? 0 });
                       toast.success('Contract completed!', 'Payment has been released.');
                     } catch (err: any) {
                       toast.error('Failed', err?.response?.data?.message || 'Please try again.');
@@ -1403,7 +1410,7 @@ export default function ContractDetailPage() {
                       size="sm"
                       variant="outline"
                       fullWidth
-                      onClick={() => window.open(`/certificate/noc/${contract.id}`, '_blank')}
+                      onClick={() => { track.nocDownloaded({ contractId: contract.id }); window.open(`/certificate/noc/${contract.id}`, '_blank'); }}
                     >
                       <ExternalLink className="w-3.5 h-3.5 mr-2" />
                       View &amp; Download →

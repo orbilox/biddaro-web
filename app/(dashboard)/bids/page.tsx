@@ -11,6 +11,7 @@ import { formatCurrency, timeAgo, getStatusLabel } from '@/lib/utils';
 import { ROUTES } from '@/lib/constants';
 import { bidsApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
+import { track } from '@/lib/analytics';
 import type { Bid } from '@/types';
 
 function BidRow({ bid, onWithdraw }: { bid: Bid; onWithdraw: (id: string) => void }) {
@@ -22,6 +23,7 @@ function BidRow({ bid, onWithdraw }: { bid: Bid; onWithdraw: (id: string) => voi
     setWithdrawing(true);
     try {
       await bidsApi.withdraw(bid.id);
+      track.bidWithdrawn({ jobId: bid.jobId });
       toast.success('Bid withdrawn', 'Your bid has been withdrawn.');
       onWithdraw(bid.id);
     } catch (err: any) {

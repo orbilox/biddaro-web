@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp, Globe, Zap, Shield, Users, DollarSign,
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { track } from '@/lib/analytics';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -567,6 +568,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function InvestorsPage() {
+  useEffect(() => { track.investorsPageViewed(); }, []);
   return (
     <div className="min-h-screen bg-white">
       <Navbar />

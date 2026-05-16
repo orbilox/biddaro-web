@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { ROUTES } from '@/lib/constants';
+import { track } from '@/lib/analytics';
 
 interface NavItem {
   href: string;
@@ -333,7 +334,7 @@ export function Sidebar() {
                 />
               </button>
               <button
-                onClick={logout}
+                onClick={() => { track.logout(); logout(); }}
                 title="Logout"
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
               >

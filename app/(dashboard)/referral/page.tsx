@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { referralApi } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { formatCurrency, timeAgo } from '@/lib/utils';
@@ -69,6 +70,7 @@ export default function ReferralPage() {
     try {
       await navigator.clipboard.writeText(referralLink);
       setCopied(true);
+      track.referralLinkCopied();
       toast.success('Copied!', 'Your referral link is in the clipboard.');
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -85,6 +87,7 @@ export default function ReferralPage() {
           text: `I use Biddaro to find construction jobs and clients. Sign up with my link and we both get $10!`,
           url: referralLink,
         });
+        track.referralLinkShared();
       } catch {/* user cancelled */}
     } else {
       handleCopy();

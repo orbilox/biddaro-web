@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { authApi } from '@/lib/api';
 import { ROUTES } from '@/lib/constants';
+import { track } from '@/lib/analytics';
 
 export default function ForgotPasswordPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -18,6 +19,7 @@ export default function ForgotPasswordPage() {
     try {
       await authApi.forgotPassword(data.email);
     } catch {}
+    track.forgotPassword();
     setLoading(false);
     setSubmitted(true);
   };

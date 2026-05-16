@@ -10,6 +10,7 @@ import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { ROUTES } from '@/lib/constants';
+import { track } from '@/lib/analytics';
 
 interface LoginForm {
   email: string;
@@ -34,6 +35,7 @@ export default function LoginPage() {
       const res = await authApi.login(data);
       const { user, accessToken } = res.data.data;
       setUser(user, accessToken);
+      track.login({ role: user.role });
       toast.success('Welcome back!', `Good to see you, ${user.firstName}.`);
       router.push(ROUTES.DASHBOARD);
     } catch (err: any) {
