@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
   ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban, Hammer, Banknote,
-  PanelLeftClose, PanelLeftOpen, Gift,
+  PanelLeftClose, PanelLeftOpen, Gift, Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -35,6 +35,7 @@ const posterNavItems: NavItem[] = [
   { href: ROUTES.LOANS, label: 'Loans', icon: Banknote },
   { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: '/referral', label: 'Refer & Earn', icon: Gift },
+  { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];
 
@@ -52,6 +53,7 @@ const contractorNavItems: NavItem[] = [
   { href: ROUTES.LOANS, label: 'Loans', icon: Banknote },
   { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: '/referral', label: 'Refer & Earn', icon: Gift },
+  { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: ROUTES.PROFILE, label: 'Profile', icon: User },
 ];
 

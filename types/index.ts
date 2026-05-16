@@ -65,6 +65,7 @@ export interface User {
   website?:        string;
   languages?:      string | string[];
   serviceRadius?:  number;
+  notifPrefs?:     string; // JSON: { bids, contracts, messages, wallet, disputes }
   createdAt: string;
   updatedAt: string;
 }
