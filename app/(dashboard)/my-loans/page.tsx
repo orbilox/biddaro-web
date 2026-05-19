@@ -5,6 +5,7 @@ import {
   Calculator, CheckCircle, Clock, XCircle, DollarSign,
   ChevronRight, ArrowRight, FileText, Upload, AlertCircle,
   TrendingUp, Shield, Zap, BadgeCheck, Calendar, ChevronDown, ChevronUp,
+  IndianRupee,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
@@ -28,7 +29,7 @@ interface LoanApplication {
   createdAt: string;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Constants (INR amounts) ──────────────────────────────────────────────────
 const LOAN_TYPES = [
   {
     id: 'home_construction',
@@ -36,10 +37,10 @@ const LOAN_TYPES = [
     icon: Building2,
     color: 'amber',
     description: 'Finance your new home construction project from foundation to finish.',
-    maxAmount: 500000,
-    minAmount: 10000,
+    maxAmount: 40000000,   // ₹4 Crore
+    minAmount: 500000,     // ₹5 Lakh
     maxTenure: 240,
-    features: ['Up to $500K', 'Up to 20 years', 'From 8.5% p.a.', 'Quick approval'],
+    features: ['Up to ₹4 Crore', 'Up to 20 years', 'From 8.5% p.a.', 'Quick approval'],
   },
   {
     id: 'renovation',
@@ -47,10 +48,10 @@ const LOAN_TYPES = [
     icon: Wrench,
     color: 'blue',
     description: 'Upgrade and renovate your existing property with flexible financing.',
-    maxAmount: 200000,
-    minAmount: 5000,
+    maxAmount: 7500000,    // ₹75 Lakh
+    minAmount: 100000,     // ₹1 Lakh
     maxTenure: 120,
-    features: ['Up to $200K', 'Up to 10 years', 'From 9% p.a.', 'Minimal docs'],
+    features: ['Up to ₹75 Lakh', 'Up to 10 years', 'From 9% p.a.', 'Minimal docs'],
   },
   {
     id: 'equipment',
@@ -58,10 +59,10 @@ const LOAN_TYPES = [
     icon: Package,
     color: 'green',
     description: 'Purchase machinery, tools, and equipment for your construction business.',
-    maxAmount: 300000,
-    minAmount: 5000,
+    maxAmount: 15000000,   // ₹1.5 Crore
+    minAmount: 100000,     // ₹1 Lakh
     maxTenure: 84,
-    features: ['Up to $300K', 'Up to 7 years', 'From 10% p.a.', 'Asset-backed'],
+    features: ['Up to ₹1.5 Crore', 'Up to 7 years', 'From 10% p.a.', 'Asset-backed'],
   },
   {
     id: 'working_capital',
@@ -69,10 +70,10 @@ const LOAN_TYPES = [
     icon: Briefcase,
     color: 'purple',
     description: 'Short-term financing to cover day-to-day operational expenses.',
-    maxAmount: 100000,
-    minAmount: 2000,
+    maxAmount: 5000000,    // ₹50 Lakh
+    minAmount: 50000,      // ₹50K
     maxTenure: 36,
-    features: ['Up to $100K', 'Up to 3 years', 'From 11% p.a.', 'Instant disbursal'],
+    features: ['Up to ₹50 Lakh', 'Up to 3 years', 'From 11% p.a.', 'Instant disbursal'],
   },
   {
     id: 'personal',
@@ -80,10 +81,10 @@ const LOAN_TYPES = [
     icon: User,
     color: 'rose',
     description: 'Flexible personal loan for any construction-related financial need.',
-    maxAmount: 50000,
-    minAmount: 1000,
+    maxAmount: 500000,     // ₹5 Lakh
+    minAmount: 10000,      // ₹10K
     maxTenure: 60,
-    features: ['Up to $50K', 'Up to 5 years', 'From 12% p.a.', 'No collateral'],
+    features: ['Up to ₹5 Lakh', 'Up to 5 years', 'From 12% p.a.', 'No collateral'],
   },
 ];
 
@@ -119,7 +120,19 @@ function calcEMI(principal: number, ratePercent: number, months: number): number
 }
 
 function formatCurrency(n: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+}
+
+function formatLakh(n: number): string {
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(0)} Cr`;
+  if (n >= 100000)   return `₹${(n / 100000).toFixed(0)} L`;
+  if (n >= 1000)     return `₹${(n / 1000).toFixed(0)}K`;
+  return `₹${n}`;
+}
+
+// Application fee by loan type (INR)
+function getAppFee(loanType: string): number {
+  return loanType === 'personal' ? 50 : 100;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -132,8 +145,8 @@ export default function LoansPage() {
   const [submitting, setSubmitting] = useState(false);
   const [expandedSchedule, setExpandedSchedule] = useState<string | null>(null);
 
-  // Calculator state
-  const [calcAmount, setCalcAmount] = useState(100000);
+  // Calculator state (default: ₹10L, 9%, 10yr)
+  const [calcAmount, setCalcAmount] = useState(1000000);
   const [calcRate, setCalcRate] = useState(9);
   const [calcTenure, setCalcTenure] = useState(120);
   const emi = calcEMI(calcAmount, calcRate, calcTenure);
@@ -154,8 +167,18 @@ export default function LoansPage() {
     phone: '',
     address: '',
     city: '',
-    country: '',
+    country: 'IN',
   });
+
+  // Load Razorpay checkout script
+  useEffect(() => {
+    if (document.getElementById('razorpay-script')) return;
+    const s = document.createElement('script');
+    s.id = 'razorpay-script';
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'myloans') loadApplications();
@@ -176,22 +199,70 @@ export default function LoansPage() {
       toast.error('Missing fields', 'Please fill all required fields');
       return;
     }
+
     setSubmitting(true);
     track.loanApplicationStarted({ loanType: form.loanType, amount: parseFloat(form.amount) });
+
     try {
-      await loansApi.apply({
-        ...form,
-        amount: parseFloat(form.amount),
-        tenure: parseInt(form.tenure),
-        monthlyIncome: parseFloat(form.monthlyIncome),
+      // Step 1: Create Razorpay order for the application fee
+      const orderRes = await loansApi.createIndiaOrder(form.loanType);
+      const { orderId, amount: orderAmount, currency, key } = orderRes.data.data;
+      const fee = getAppFee(form.loanType);
+
+      // Step 2: Open Razorpay checkout modal
+      await new Promise<void>((resolve, reject) => {
+        const rzp = new (window as any).Razorpay({
+          key,
+          order_id:    orderId,
+          amount:      orderAmount,
+          currency,
+          name:        'Biddaro',
+          description: `Loan Eligibility Fee — ₹${fee}`,
+          theme:       { color: '#f97316' },
+          prefill: {
+            name:  `${form.firstName} ${form.lastName}`.trim(),
+            email: form.email,
+            contact: form.phone,
+          },
+          handler: async (response: {
+            razorpay_payment_id: string;
+            razorpay_order_id: string;
+            razorpay_signature: string;
+          }) => {
+            try {
+              // Step 3: Verify payment + submit application
+              await loansApi.applyIndia({
+                ...form,
+                amount:        parseFloat(form.amount),
+                tenure:        parseInt(form.tenure),
+                monthlyIncome: parseFloat(form.monthlyIncome),
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_signature:  response.razorpay_signature,
+              });
+              track.loanApplicationSubmitted({ loanType: form.loanType, amount: parseFloat(form.amount), tenure: parseInt(form.tenure) });
+              toast.success('Application submitted!', 'We will review your loan application within 2–5 business days.');
+              setActiveTab('myloans');
+              setForm(f => ({ ...f, amount: '', tenure: '', purpose: '', phone: '', address: '', city: '' }));
+              resolve();
+            } catch (err: any) {
+              toast.error('Submission failed', err?.response?.data?.message || 'Payment received but application failed. Please contact support.');
+              reject(err);
+            }
+          },
+          modal: {
+            ondismiss: () => reject(new Error('Payment cancelled')),
+          },
+        });
+        rzp.open();
       });
-      track.loanApplicationSubmitted({ loanType: form.loanType, amount: parseFloat(form.amount), tenure: parseInt(form.tenure) });
-      toast.success('Application submitted!', 'We will review your loan application within 2–5 business days.');
-      setActiveTab('myloans');
-      setForm(f => ({ ...f, amount: '', tenure: '', purpose: '', phone: '', address: '', city: '' }));
     } catch (err: any) {
-      toast.error('Submission failed', err?.response?.data?.message || 'Please try again');
-    } finally { setSubmitting(false); }
+      if (err?.message !== 'Payment cancelled') {
+        toast.error('Payment failed', err?.response?.data?.message || 'Please try again');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const selectedLoan = LOAN_TYPES.find(l => l.id === selectedType)!;
@@ -202,11 +273,11 @@ export default function LoansPage() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-amber-600" />
+            <IndianRupee className="w-5 h-5 text-amber-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-dark-900">Construction Loans</h1>
-            <p className="text-sm text-dark-500">Fast, flexible financing for your construction needs</p>
+            <p className="text-sm text-dark-500">Fast, flexible financing for your construction needs in India</p>
           </div>
         </div>
 
@@ -294,11 +365,11 @@ export default function LoansPage() {
                   <label className="text-sm font-medium text-dark-700 mb-1.5 block">
                     Loan Amount: <span className="text-amber-600">{formatCurrency(calcAmount)}</span>
                   </label>
-                  <input type="range" min={1000} max={500000} step={1000} value={calcAmount}
+                  <input type="range" min={10000} max={40000000} step={10000} value={calcAmount}
                     onChange={e => setCalcAmount(Number(e.target.value))}
                     className="w-full accent-amber-500" />
                   <div className="flex justify-between text-xs text-dark-400 mt-1">
-                    <span>$1K</span><span>$500K</span>
+                    <span>₹10K</span><span>₹4 Cr</span>
                   </div>
                 </div>
                 <div>
@@ -382,7 +453,7 @@ export default function LoansPage() {
           <div className="bg-white border border-gray-200 rounded-2xl p-6">
             <h2 className="font-semibold text-dark-900 mb-4">Loan Details</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="Loan Amount ($) *" type="number" placeholder="e.g. 50000"
+              <Input label="Loan Amount (₹) *" type="number" placeholder="e.g. 500000"
                 value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
               <Input label="Tenure (months) *" type="number" placeholder="e.g. 60"
                 value={form.tenure} onChange={e => setForm(f => ({ ...f, tenure: e.target.value }))} />
@@ -400,13 +471,13 @@ export default function LoansPage() {
           <div className="bg-white border border-gray-200 rounded-2xl p-6">
             <h2 className="font-semibold text-dark-900 mb-4">Personal & Financial Information</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="First Name *" placeholder="John"
+              <Input label="First Name *" placeholder="Rahul"
                 value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} />
-              <Input label="Last Name *" placeholder="Doe"
+              <Input label="Last Name *" placeholder="Sharma"
                 value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} />
               <Input label="Email *" type="email" placeholder="you@example.com"
                 value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-              <Input label="Phone *" placeholder="+1 234 567 8900"
+              <Input label="Phone *" placeholder="+91 98765 43210"
                 value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
               <Select label="Employment Type *"
                 value={form.employmentType} onChange={e => setForm(f => ({ ...f, employmentType: e.target.value }))}
@@ -416,15 +487,15 @@ export default function LoansPage() {
                   { value: 'business_owner', label: 'Business Owner' },
                   { value: 'contractor', label: 'Contractor / Freelancer' },
                 ]} />
-              <Input label="Monthly Income ($) *" type="number" placeholder="e.g. 5000"
+              <Input label="Monthly Income (₹) *" type="number" placeholder="e.g. 50000"
                 value={form.monthlyIncome} onChange={e => setForm(f => ({ ...f, monthlyIncome: e.target.value }))} />
               <div className="sm:col-span-2">
-                <Input label="Address *" placeholder="123 Main Street"
+                <Input label="Address *" placeholder="123, MG Road"
                   value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
               </div>
-              <Input label="City *" placeholder="New York"
+              <Input label="City *" placeholder="Mumbai"
                 value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} />
-              <Input label="Country *" placeholder="US"
+              <Input label="Country" placeholder="India"
                 value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} />
             </div>
           </div>
@@ -435,9 +506,19 @@ export default function LoansPage() {
             <p>Your application will be reviewed within 2–5 business days. We may contact you for additional documents. All information is kept strictly confidential.</p>
           </div>
 
-          <Button type="submit" loading={submitting} size="lg" className="w-full sm:w-auto">
-            Submit Loan Application <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
+          {/* Fee notice + Submit */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
+              <IndianRupee className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                <span className="font-semibold">₹{getAppFee(form.loanType)} eligibility check fee</span>
+                {' '}applies · Secure payment via Razorpay · Non-refundable
+              </span>
+            </div>
+            <Button type="submit" loading={submitting} size="lg" className="w-full sm:w-auto">
+              Pay ₹{getAppFee(form.loanType)} &amp; Submit Application <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
         </form>
       )}
 
@@ -450,7 +531,7 @@ export default function LoansPage() {
             </div>
           ) : applications.length === 0 ? (
             <div className="text-center py-16 bg-white border border-gray-200 rounded-2xl">
-              <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <IndianRupee className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-dark-600 font-medium">No loan applications yet</p>
               <p className="text-sm text-dark-400 mt-1 mb-4">Apply for your first loan to get started</p>
               <Button onClick={() => setActiveTab('apply')}>Apply Now</Button>
@@ -472,7 +553,7 @@ export default function LoansPage() {
                           </span>
                         </div>
                         <p className="text-sm text-dark-500">
-                          Applied: {new Date(app.createdAt).toLocaleDateString()} · {app.tenure} months
+                          Applied: {new Date(app.createdAt).toLocaleDateString('en-IN')} · {app.tenure} months
                         </p>
                       </div>
                       <div className="text-right">
@@ -525,7 +606,7 @@ export default function LoansPage() {
                                   due.setMonth(due.getMonth() + i);
                                   rows.push(
                                     <div key={i} className="px-4 py-2 grid grid-cols-4 text-xs text-dark-700">
-                                      <span className="text-dark-500">{due.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}</span>
+                                      <span className="text-dark-500">{due.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}</span>
                                       <span className="font-medium">{formatCurrency(app.emiAmount ?? 0)}</span>
                                       <span className="text-green-600">{formatCurrency(principal)}</span>
                                       <span className="text-red-500">{formatCurrency(interest)}</span>

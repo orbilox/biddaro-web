@@ -369,6 +369,13 @@ export const loansApi = {
   adminReview: (id: string, data: { status: string; adminNote: string; approvedAmount?: number; interestRate?: number }) =>
     api.patch(`/loans/admin/${id}/review`, data),
   adminStats: () => api.get('/loans/admin/stats'),
+  // ─── India Razorpay fee flow ─────────────────────────────────────────────
+  createIndiaOrder: (loanType: string) =>
+    api.post<{ success: boolean; data: { orderId: string; amount: number; currency: string; key: string } }>(
+      '/loans/india/order', { loanType }
+    ),
+  applyIndia: (data: Record<string, unknown>) =>
+    api.post('/loans/india/apply', data),
 };
 
 export interface BankAccount {
