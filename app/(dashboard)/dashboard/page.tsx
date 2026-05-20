@@ -13,9 +13,11 @@ import { Avatar } from '@/components/ui/Avatar';
 import { JobCard } from '@/components/jobs/JobCard';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { ROUTES } from '@/lib/constants';
-import { jobsApi, bidsApi, walletApi, usersApi } from '@/lib/api';
+import { jobsApi, bidsApi, walletApi, usersApi, loansApi } from '@/lib/api';
+import { PENDING_LOAN_KEY } from '@/app/loan-apply/page';
 import { OnboardingBanner } from '@/components/onboarding/OnboardingBanner';
 import { ProfileCompletionCard } from '@/components/dashboard/ProfileCompletionCard';
+import { toast } from '@/store/uiStore';
 import type { Job, Bid, Transaction } from '@/types';
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
@@ -50,6 +52,17 @@ function StatCard({ label, value, icon: Icon, sub, color }: StatCardProps) {
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const isPoster = user?.role === 'job_poster';
+
+  // ── Auto-submit pending India loan after registration from /loan-apply ──────
+  useEffect(() => {
+    const raw = sessionStorage.getItem(PENDING_LOAN_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(PENDING_LOAN_KEY);
+    loansApi.applyIndia(JSON.parse(raw))
+      .then(() => toast.success('Loan application submitted! We\'ll review it within 2–5 business days.'))
+      .catch(() => toast.error('Could not submit loan application. Please visit My Loans to retry.'));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
