@@ -376,6 +376,14 @@ export const loansApi = {
     ),
   applyIndia: (data: Record<string, unknown>) =>
     api.post('/loans/india/apply', data),
+  // Submit inquiry immediately after payment (no auth)
+  submitInquiry: (data: Record<string, unknown>) =>
+    api.post('/loans/india/inquiry', data),
+  // Admin inquiries
+  adminListInquiries: (params?: { status?: string; page?: number }) =>
+    api.get('/loans/admin/inquiries', { params }),
+  adminUpdateInquiry: (id: string, data: { status?: string; adminNote?: string }) =>
+    api.patch(`/loans/admin/inquiries/${id}`, data),
 };
 
 export interface BankAccount {

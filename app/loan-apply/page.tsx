@@ -156,17 +156,24 @@ export default function LoanApplyPage() {
             email:   form.email,
             contact: form.phone,
           },
-          handler: (response: PaymentProof) => {
-            sessionStorage.setItem(PENDING_LOAN_KEY, JSON.stringify({
+          handler: async (response: PaymentProof) => {
+            const payload = {
               ...form,
               amount:        parseFloat(form.amount),
               tenure:        parseInt(form.tenure),
               monthlyIncome: parseFloat(form.monthlyIncome),
               country:       'IN',
+              feePaid:       orderAmount,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id:   response.razorpay_order_id,
               razorpay_signature:  response.razorpay_signature,
-            }));
+            };
+
+            // Save to DB immediately (no auth needed) so admin can see it right away
+            try { await loansApi.submitInquiry(payload); } catch { /* non-blocking */ }
+
+            // Also store in sessionStorage for dashboard auto-submit after registration
+            sessionStorage.setItem(PENDING_LOAN_KEY, JSON.stringify(payload));
             router.push('/register');
             resolve();
           },

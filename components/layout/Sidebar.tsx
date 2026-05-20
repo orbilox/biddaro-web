@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
   ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban, Hammer, Banknote,
-  PanelLeftClose, PanelLeftOpen, Gift, Bell,
+  PanelLeftClose, PanelLeftOpen, Gift, Bell, IndianRupee,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -86,6 +86,7 @@ const adminNavSections: NavSection[] = [
     items: [
       { href: '/admin/deposits', label: 'Deposit Requests', icon: BanknoteIcon },
       { href: '/admin/loans', label: 'Loan Applications', icon: Banknote },
+      { href: '/admin/loan-inquiries', label: 'Loan Inquiries', icon: IndianRupee },
       { href: '/admin/disputes', label: 'Disputes', icon: AlertCircle },
     ],
   },
