@@ -8,8 +8,7 @@ import {
 } from 'lucide-react';
 import { loansApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-
-export const PENDING_LOAN_KEY = 'biddaro_pending_loan';
+import { PENDING_LOAN_KEY } from '@/lib/constants';
 
 // ─── Loan types ───────────────────────────────────────────────────────────────
 const LOAN_TYPES = [

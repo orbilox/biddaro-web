@@ -14,7 +14,7 @@ import { JobCard } from '@/components/jobs/JobCard';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { ROUTES } from '@/lib/constants';
 import { jobsApi, bidsApi, walletApi, usersApi, loansApi } from '@/lib/api';
-import { PENDING_LOAN_KEY } from '@/app/loan-apply/page';
+import { PENDING_LOAN_KEY } from '@/lib/constants';
 import { OnboardingBanner } from '@/components/onboarding/OnboardingBanner';
 import { ProfileCompletionCard } from '@/components/dashboard/ProfileCompletionCard';
 import { toast } from '@/store/uiStore';
