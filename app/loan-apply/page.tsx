@@ -65,7 +65,7 @@ export default function LoanApplyPage() {
   const [form, setForm] = useState({
     loanType:       'home_construction',
     amount:         '',
-    tenure:         '',
+    tenure:         '60',
     purpose:        '',
     employmentType: 'salaried',
     monthlyIncome:  '',
@@ -111,12 +111,7 @@ export default function LoanApplyPage() {
     switch (step) {
       case 2:
         if (!form.amount)  { setError('Please enter a loan amount.'); return false; }
-        if (!form.tenure)  { setError('Please enter the tenure in months.'); return false; }
         if (parseFloat(form.amount) < 10000)  { setError('Minimum loan amount is ₹10,000.'); return false; }
-        if (parseInt(form.tenure) < 6 || parseInt(form.tenure) > 360) {
-          setError('Tenure must be between 6 and 360 months.');
-          return false;
-        }
         return true;
       case 3:
         if (!form.purpose) { setError('Please tell us what the loan is for.'); return false; }
@@ -268,7 +263,7 @@ export default function LoanApplyPage() {
         {step === 2 && (
           <StepCard
             title="How much do you need?"
-            subtitle="Enter your desired loan amount and repayment period"
+            subtitle="Enter the loan amount you're looking for"
             dir={dir}
           >
             <div className="space-y-4">
@@ -280,14 +275,6 @@ export default function LoanApplyPage() {
                 onChange={v => setForm(f => ({ ...f, amount: v }))}
                 hint="Minimum ₹10,000"
                 autoFocus
-              />
-              <Field
-                label="Tenure (months)"
-                type="number"
-                placeholder="e.g. 60"
-                value={form.tenure}
-                onChange={v => setForm(f => ({ ...f, tenure: v }))}
-                hint="Between 6 and 360 months"
               />
             </div>
             {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
@@ -419,7 +406,6 @@ export default function LoanApplyPage() {
             <div className="space-y-2.5">
               <ReviewRow label="Loan Type"     value={selectedLoan.label} />
               <ReviewRow label="Amount"        value={`₹${parseInt(form.amount).toLocaleString('en-IN')}`} />
-              <ReviewRow label="Tenure"        value={`${form.tenure} months`} />
               <ReviewRow label="Purpose"       value={form.purpose} />
               <ReviewRow label="Employment"    value={form.employmentType.replace('_', ' ')} />
               <ReviewRow label="Monthly Income" value={`₹${parseInt(form.monthlyIncome).toLocaleString('en-IN')}`} />
