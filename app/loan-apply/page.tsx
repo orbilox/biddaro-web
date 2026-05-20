@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Building2, Wrench, Package, Briefcase, User,
+  Building2, Wrench, Package, Briefcase, User, Landmark,
   Shield, IndianRupee, Loader2, ChevronRight, ChevronLeft,
   CheckCircle,
 } from 'lucide-react';
@@ -16,6 +16,7 @@ const LOAN_TYPES = [
   { id: 'renovation',        label: 'Renovation',        icon: Wrench,    color: 'blue',   fee: 100, desc: 'Remodel or upgrade an existing property' },
   { id: 'equipment',         label: 'Equipment Finance', icon: Package,   color: 'green',  fee: 100, desc: 'Buy machinery or tools for your business' },
   { id: 'working_capital',   label: 'Working Capital',   icon: Briefcase, color: 'purple', fee: 100, desc: 'Fund day-to-day operations and cash flow' },
+  { id: 'business',          label: 'Business Loan',     icon: Landmark,  color: 'indigo', fee: 100, desc: 'Grow or expand your business' },
   { id: 'personal',          label: 'Personal Loan',     icon: User,      color: 'rose',   fee: 50,  desc: 'Flexible funds for personal needs' },
 ];
 
@@ -24,6 +25,7 @@ const COLOR_RING: Record<string, string> = {
   blue:   'ring-blue-400 bg-blue-50',
   green:  'ring-green-400 bg-green-50',
   purple: 'ring-purple-400 bg-purple-50',
+  indigo: 'ring-indigo-400 bg-indigo-50',
   rose:   'ring-rose-400 bg-rose-50',
 };
 const COLOR_ICON: Record<string, string> = {
@@ -31,6 +33,7 @@ const COLOR_ICON: Record<string, string> = {
   blue:   'text-blue-500',
   green:  'text-green-500',
   purple: 'text-purple-500',
+  indigo: 'text-indigo-500',
   rose:   'text-rose-500',
 };
 const COLOR_BG: Record<string, string> = {
@@ -38,6 +41,7 @@ const COLOR_BG: Record<string, string> = {
   blue:   'bg-blue-100',
   green:  'bg-green-100',
   purple: 'bg-purple-100',
+  indigo: 'bg-indigo-100',
   rose:   'bg-rose-100',
 };
 
