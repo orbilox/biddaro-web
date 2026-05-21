@@ -2,18 +2,22 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
-  Building2, Wrench, Package, Briefcase, User,
+  Building2, Wrench, Package, Briefcase, User, Landmark,
   Calculator, CheckCircle, ArrowRight, Shield, Zap,
   BadgeCheck, Clock, TrendingUp, ChevronDown, ChevronUp,
-  DollarSign, Star,
+  IndianRupee, Star, RefreshCw,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
-import { ROUTES } from '@/lib/constants';
-import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/lib/utils';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function inr(n: number): string {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency', currency: 'INR', maximumFractionDigits: 0,
+  }).format(n);
+}
 
 // ─── Loan Types ───────────────────────────────────────────────────────────────
 const LOAN_TYPES = [
@@ -23,10 +27,7 @@ const LOAN_TYPES = [
     icon: Building2,
     color: 'amber',
     description: 'Finance your new home construction project from foundation to finish.',
-    maxAmount: 500000,
-    rate: '8.5',
-    tenure: '20 years',
-    features: ['Up to $500K', 'Up to 20 years', 'From 8.5% p.a.', 'Quick approval'],
+    features: ['Up to ₹4 Crore', 'Up to 20 years', 'From 8.5% p.a.', 'Quick approval'],
   },
   {
     id: 'renovation',
@@ -34,10 +35,7 @@ const LOAN_TYPES = [
     icon: Wrench,
     color: 'blue',
     description: 'Upgrade and renovate your existing property with flexible financing.',
-    maxAmount: 200000,
-    rate: '9.5',
-    tenure: '10 years',
-    features: ['Up to $200K', 'Up to 10 years', 'From 9.5% p.a.', 'Flexible repayment'],
+    features: ['Up to ₹75 Lakh', 'Up to 10 years', 'From 9.5% p.a.', 'Flexible repayment'],
   },
   {
     id: 'equipment',
@@ -45,10 +43,7 @@ const LOAN_TYPES = [
     icon: Package,
     color: 'green',
     description: 'Purchase or lease construction equipment and machinery.',
-    maxAmount: 300000,
-    rate: '10',
-    tenure: '7 years',
-    features: ['Up to $300K', 'Up to 7 years', 'From 10% p.a.', 'Asset-backed'],
+    features: ['Up to ₹1.5 Crore', 'Up to 7 years', 'From 10% p.a.', 'Asset-backed'],
   },
   {
     id: 'working_capital',
@@ -56,10 +51,15 @@ const LOAN_TYPES = [
     icon: Briefcase,
     color: 'purple',
     description: 'Keep your construction projects running with working capital loans.',
-    maxAmount: 150000,
-    rate: '11',
-    tenure: '3 years',
-    features: ['Up to $150K', 'Up to 3 years', 'From 11% p.a.', 'Fast disbursement'],
+    features: ['Up to ₹50 Lakh', 'Up to 3 years', 'From 11% p.a.', 'Fast disbursement'],
+  },
+  {
+    id: 'business',
+    label: 'Business Loan',
+    icon: Landmark,
+    color: 'indigo',
+    description: 'Grow or expand your business with tailored business financing.',
+    features: ['Up to ₹2 Crore', 'Up to 5 years', 'From 10.5% p.a.', 'Minimal documents'],
   },
   {
     id: 'personal',
@@ -67,10 +67,7 @@ const LOAN_TYPES = [
     icon: User,
     color: 'rose',
     description: 'Flexible personal loans for contractors and construction professionals.',
-    maxAmount: 50000,
-    rate: '12',
-    tenure: '5 years',
-    features: ['Up to $50K', 'Up to 5 years', 'From 12% p.a.', 'No collateral'],
+    features: ['Up to ₹5 Lakh', 'Up to 5 years', 'From 12% p.a.', 'No collateral'],
   },
 ];
 
@@ -79,6 +76,7 @@ const COLORS: Record<string, string> = {
   blue:   'bg-blue-50 text-blue-700 border-blue-200',
   green:  'bg-green-50 text-green-700 border-green-200',
   purple: 'bg-purple-50 text-purple-700 border-purple-200',
+  indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   rose:   'bg-rose-50 text-rose-700 border-rose-200',
 };
 
@@ -87,6 +85,7 @@ const ICON_COLORS: Record<string, string> = {
   blue:   'bg-blue-100 text-blue-600',
   green:  'bg-green-100 text-green-600',
   purple: 'bg-purple-100 text-purple-600',
+  indigo: 'bg-indigo-100 text-indigo-600',
   rose:   'bg-rose-100 text-rose-600',
 };
 
@@ -98,12 +97,12 @@ function calcEMI(principal: number, ratePercent: number, months: number): number
 }
 
 function EMICalculator() {
-  const [amount, setAmount]   = useState(100000);
-  const [rate, setRate]       = useState(10);
-  const [tenure, setTenure]   = useState(60);
+  const [amount, setAmount] = useState(1000000);   // ₹10 Lakh
+  const [rate,   setRate]   = useState(10);
+  const [tenure, setTenure] = useState(60);
 
-  const emi   = calcEMI(amount, rate, tenure);
-  const total = emi * tenure;
+  const emi      = calcEMI(amount, rate, tenure);
+  const total    = emi * tenure;
   const interest = total - amount;
 
   return (
@@ -123,15 +122,15 @@ function EMICalculator() {
         <div>
           <div className="flex justify-between mb-2">
             <label className="text-sm font-medium text-gray-700">Loan Amount</label>
-            <span className="text-sm font-bold text-brand-600">{formatCurrency(amount)}</span>
+            <span className="text-sm font-bold text-brand-600">{inr(amount)}</span>
           </div>
           <input
-            type="range" min={5000} max={500000} step={5000}
+            type="range" min={50000} max={40000000} step={50000}
             value={amount} onChange={e => setAmount(+e.target.value)}
             className="w-full accent-brand-500"
           />
           <div className="flex justify-between text-xs text-gray-400 mt-1">
-            <span>$5K</span><span>$500K</span>
+            <span>₹50K</span><span>₹4 Cr</span>
           </div>
         </div>
 
@@ -172,17 +171,17 @@ function EMICalculator() {
       <div className="mt-6 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl p-5 text-white">
         <div className="text-center mb-4">
           <p className="text-sm opacity-80 mb-1">Monthly EMI</p>
-          <p className="text-4xl font-bold">{formatCurrency(emi)}</p>
+          <p className="text-4xl font-bold">{inr(emi)}</p>
           <p className="text-sm opacity-70 mt-1">per month</p>
         </div>
         <div className="grid grid-cols-2 gap-3 border-t border-white/20 pt-4">
           <div className="text-center">
             <p className="text-xs opacity-70 mb-0.5">Total Interest</p>
-            <p className="font-semibold">{formatCurrency(interest)}</p>
+            <p className="font-semibold">{inr(interest)}</p>
           </div>
           <div className="text-center">
             <p className="text-xs opacity-70 mb-0.5">Total Payable</p>
-            <p className="font-semibold">{formatCurrency(total)}</p>
+            <p className="font-semibold">{inr(total)}</p>
           </div>
         </div>
       </div>
@@ -192,11 +191,12 @@ function EMICalculator() {
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 const FAQS = [
-  { q: 'Who can apply for a loan?', a: 'Any registered contractor or job poster on Biddaro can apply. You need to have an active account and meet the basic income requirements.' },
-  { q: 'How long does approval take?', a: 'Most applications are reviewed within 2–5 business days. You will be notified via email once a decision is made.' },
-  { q: 'What documents are required?', a: 'Basic ID proof, income verification (salary slips / business statements), and any project-related documents for construction loans.' },
+  { q: 'Who can apply for a loan?', a: 'Any individual, contractor, or business owner in India can apply via our /loan-apply page. No prior registration needed — simply fill the form and subscribe.' },
+  { q: 'How does the ₹100/month subscription work?', a: 'After filling your loan enquiry form, you authorize a ₹100/month UPI AutoPay or card mandate via Razorpay. This covers your ongoing eligibility assessment and loan advisory. Cancel anytime from your Razorpay account.' },
+  { q: 'How long does approval take?', a: 'Most applications are reviewed within 2–5 business days. You will be notified via email and call once a decision is made.' },
+  { q: 'What documents are required?', a: 'Basic ID proof (Aadhaar / PAN), income verification (salary slips or business statements), and project-related documents for construction loans.' },
   { q: 'Is there a prepayment penalty?', a: 'No prepayment penalties. You can pay off your loan early at any time without extra charges.' },
-  { q: 'What happens after my loan is approved?', a: 'Once approved, you will see the disbursement details in your My Applications section. Funds are typically disbursed within 3–5 business days.' },
+  { q: 'What happens after I subscribe?', a: 'Our team contacts you within 1–2 business days to review your application, verify documents, and match you with the best lender for your profile.' },
 ];
 
 function FAQItem({ q, a }: { q: string; a: string }) {
@@ -208,7 +208,10 @@ function FAQItem({ q, a }: { q: string; a: string }) {
         className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
       >
         <span className="font-medium text-gray-900 pr-4">{q}</span>
-        {open ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+        {open
+          ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        }
       </button>
       {open && (
         <div className="px-4 pb-4 text-sm text-gray-600 border-t border-gray-100 pt-3">
@@ -221,9 +224,6 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function LoansLandingPage() {
-  const { isAuthenticated } = useAuthStore();
-  const applyLink = isAuthenticated ? ROUTES.LOANS : ROUTES.REGISTER;
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -235,19 +235,19 @@ export default function LoansLandingPage() {
             <div>
               <div className="inline-flex items-center gap-2 bg-brand-500/20 border border-brand-500/30 text-brand-300 text-sm font-medium px-3 py-1.5 rounded-full mb-6">
                 <Zap className="w-3.5 h-3.5" />
-                Construction Finance Made Simple
+                Construction Finance Made Simple · India
               </div>
               <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-5">
                 Loans Built for<br />
-                <span className="text-brand-400">Builders & Contractors</span>
+                <span className="text-brand-400">Builders &amp; Contractors</span>
               </h1>
               <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-                From home construction to equipment finance — get flexible loans tailored for the construction industry. Fast approval, competitive rates, no hassle.
+                From home construction to business loans — get flexible financing tailored for India&apos;s construction industry. Fast approval, competitive rates, no hassle.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link href={applyLink}>
-                  <Button size="lg" className="bg-brand-500 hover:bg-brand-600 text-white gap-2">
-                    Apply Now <ArrowRight className="w-4 h-4" />
+                <Link href="/loan-apply">
+                  <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
+                    Apply Now — ₹100/month <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
                 <a href="#calculator">
@@ -258,9 +258,9 @@ export default function LoansLandingPage() {
               </div>
               <div className="flex flex-wrap gap-6 mt-8">
                 {[
-                  { icon: Zap,       label: 'Fast approval in 2–5 days' },
-                  { icon: Shield,    label: 'Secure & transparent' },
-                  { icon: BadgeCheck,label: 'No hidden charges' },
+                  { icon: Zap,        label: 'Fast approval in 2–5 days' },
+                  { icon: Shield,     label: 'RBI-compliant & secure' },
+                  { icon: BadgeCheck, label: 'No hidden charges' },
                 ].map(({ icon: Icon, label }) => (
                   <div key={label} className="flex items-center gap-2 text-sm text-gray-300">
                     <Icon className="w-4 h-4 text-brand-400" />{label}
@@ -272,10 +272,10 @@ export default function LoansLandingPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4">
               {[
-                { value: '$500K',  label: 'Max Loan Amount',    icon: DollarSign,  color: 'text-amber-400' },
-                { value: '8.5%',   label: 'Starting Rate p.a.', icon: TrendingUp,  color: 'text-green-400' },
-                { value: '5 Types',label: 'Loan Products',      icon: Star,        color: 'text-blue-400' },
-                { value: '20 Yrs', label: 'Max Tenure',         icon: Clock,       color: 'text-purple-400' },
+                { value: '₹4 Crore',  label: 'Max Loan Amount',    icon: IndianRupee, color: 'text-amber-400' },
+                { value: '8.5%',      label: 'Starting Rate p.a.', icon: TrendingUp,  color: 'text-green-400' },
+                { value: '6 Types',   label: 'Loan Products',      icon: Star,        color: 'text-blue-400' },
+                { value: '20 Years',  label: 'Max Tenure',         icon: Clock,       color: 'text-purple-400' },
               ].map(({ value, label, icon: Icon, color }) => (
                 <div key={label} className="bg-white/10 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
                   <Icon className={`w-6 h-6 mb-3 ${color}`} />
@@ -287,6 +287,21 @@ export default function LoansLandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Subscription callout strip ─────────────────────────────────────── */}
+      <div className="bg-orange-500 text-white py-3 px-4">
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <RefreshCw className="w-4 h-4" />
+            <span>Subscribe for ₹100/month · Cancel anytime · Powered by Razorpay</span>
+          </div>
+          <Link href="/loan-apply">
+            <button className="text-sm font-semibold bg-white text-orange-600 px-4 py-1.5 rounded-full hover:bg-orange-50 transition-colors">
+              Start Now →
+            </button>
+          </Link>
+        </div>
+      </div>
 
       {/* ── Loan Types ────────────────────────────────────────────────────── */}
       <section className="py-16 px-4 bg-white">
@@ -312,7 +327,7 @@ export default function LoansLandingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href={applyLink} className="mt-4 block">
+                  <Link href="/loan-apply" className="mt-4 block">
                     <Button size="sm" variant="outline" className="w-full gap-1.5">
                       Apply <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -333,13 +348,13 @@ export default function LoansLandingPage() {
           </div>
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { step: '01', title: 'Create Account', desc: 'Sign up or log in to your Biddaro account to get started.' },
-              { step: '02', title: 'Choose Loan',    desc: 'Select the loan type that best fits your project needs.' },
-              { step: '03', title: 'Apply Online',   desc: 'Fill out the application form with your project and income details.' },
-              { step: '04', title: 'Get Funded',     desc: 'Receive a decision in 2–5 days and funds in your account.' },
+              { step: '01', title: 'Fill the Form',    desc: 'Choose your loan type and fill your details — takes less than 3 minutes.' },
+              { step: '02', title: 'Subscribe ₹100/mo', desc: 'Authorize a ₹100/month Razorpay subscription. Cancel anytime.' },
+              { step: '03', title: 'We Call You',      desc: 'Our loan advisor calls within 1–2 business days to review your case.' },
+              { step: '04', title: 'Get Funded',       desc: 'Approved applications get disbursed within 3–5 business days.' },
             ].map(({ step, title, desc }) => (
               <div key={step} className="text-center">
-                <div className="w-12 h-12 rounded-2xl bg-brand-500 text-white font-bold text-lg flex items-center justify-center mx-auto mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-orange-500 text-white font-bold text-lg flex items-center justify-center mx-auto mb-4">
                   {step}
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-2">{title}</h4>
@@ -362,11 +377,11 @@ export default function LoansLandingPage() {
             <div className="space-y-5">
               <h3 className="text-xl font-bold text-gray-900">Why Choose Biddaro Loans?</h3>
               {[
-                { icon: Zap,        title: 'Fast Processing',    desc: 'Applications reviewed within 2–5 business days with minimal paperwork.' },
-                { icon: Shield,     title: 'Secure & Trusted',   desc: 'Your data is fully protected and we partner only with verified lenders.' },
-                { icon: TrendingUp, title: 'Competitive Rates',  desc: 'Starting from 8.5% p.a. — among the best rates for construction finance.' },
-                { icon: CheckCircle,title: 'No Hidden Fees',     desc: 'Full transparency on all charges before you sign anything.' },
-                { icon: BadgeCheck, title: 'Industry Experts',   desc: 'Our team understands construction finance inside out.' },
+                { icon: Zap,         title: 'Fast Processing',   desc: 'Applications reviewed within 2–5 business days with minimal paperwork.' },
+                { icon: Shield,      title: 'Secure & Trusted',  desc: 'Your data is fully protected and we work only with verified lenders.' },
+                { icon: TrendingUp,  title: 'Competitive Rates', desc: 'Starting from 8.5% p.a. — among the best rates for construction finance in India.' },
+                { icon: CheckCircle, title: 'No Hidden Fees',    desc: 'Full transparency on all charges before you sign anything.' },
+                { icon: BadgeCheck,  title: 'Industry Experts',  desc: 'Our team understands India\'s construction finance market inside out.' },
               ].map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="flex gap-4">
                   <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center flex-shrink-0">
@@ -397,25 +412,21 @@ export default function LoansLandingPage() {
       </section>
 
       {/* ── CTA ───────────────────────────────────────────────────────────── */}
-      <section className="py-16 px-4 bg-gradient-to-br from-brand-600 to-brand-700 text-white">
+      <section className="py-16 px-4 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Fund Your Next Project?</h2>
-          <p className="text-brand-100 mb-8 text-lg">Join thousands of contractors who trust Biddaro for their construction finance needs.</p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Link href={applyLink}>
-              <Button size="lg" className="bg-white text-brand-700 hover:bg-gray-100 gap-2 font-semibold">
-                {isAuthenticated ? 'Apply Now' : 'Get Started for Free'}
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            {!isAuthenticated && (
-              <Link href={ROUTES.LOGIN}>
-                <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10">
-                  Sign In
-                </Button>
-              </Link>
-            )}
-          </div>
+          <p className="text-orange-100 mb-3 text-lg">
+            Subscribe for just ₹100/month and get connected to verified lenders within 2 business days.
+          </p>
+          <p className="text-sm text-orange-200 mb-8">
+            Auto-renewed monthly · Cancel anytime · Secured by Razorpay
+          </p>
+          <Link href="/loan-apply">
+            <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 gap-2 font-semibold">
+              Subscribe &amp; Apply Now — ₹100/month
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </section>
 
