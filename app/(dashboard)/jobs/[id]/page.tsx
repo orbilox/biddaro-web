@@ -19,6 +19,7 @@ import { toast } from '@/store/uiStore';
 import { jobsApi, bidsApi, uploadApi } from '@/lib/api';
 import { ROUTES } from '@/lib/constants';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
+import { pixelViewContent } from '@/lib/metaPixel';
 import type { Job, Bid, BidMilestone } from '@/types';
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -86,7 +87,13 @@ export default function JobDetailPage() {
           jobsApi.getBids(jobId),
         ]);
         if (jobRes.status === 'fulfilled') {
-          setJob(jobRes.value.data.data);
+          const jobData = jobRes.value.data.data;
+          setJob(jobData);
+          // Meta Pixel: ViewContent — contractor viewed a job listing
+          if (jobData) pixelViewContent({
+            contentName: jobData.title, contentCategory: jobData.category ?? 'job',
+            contentType: 'job_listing',
+          });
         } else {
           toast.error('Job not found', 'This job may have been removed.');
           router.push(ROUTES.JOBS);

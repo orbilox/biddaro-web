@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Building2, Wrench, Package, Briefcase, User, Landmark,
@@ -11,6 +11,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { pixelViewContent } from '@/lib/metaPixel';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function inr(n: number): string {
@@ -224,6 +225,10 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function LoansLandingPage() {
+  useEffect(() => {
+    pixelViewContent({ contentName: 'Loans Landing Page', contentCategory: 'loans', value: 100 });
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />

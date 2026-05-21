@@ -9,6 +9,7 @@ import {
 import { loansApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { PENDING_LOAN_KEY } from '@/lib/constants';
+import { pixelViewContent, pixelAddPaymentInfo, pixelLead, pixelSubscribe } from '@/lib/metaPixel';
 
 // ─── Loan types ───────────────────────────────────────────────────────────────
 const LOAN_TYPES = [
@@ -79,6 +80,11 @@ export default function LoanApplyPage() {
 
   const selectedLoan = LOAN_TYPES.find(l => l.id === form.loanType)!;
 
+  // ViewContent — user landed on the loan apply page
+  useEffect(() => {
+    pixelViewContent({ contentName: 'Loan Apply Form', contentCategory: 'loans', value: 100 });
+  }, []);
+
   // Load Razorpay script
   useEffect(() => {
     if (document.getElementById('rzp-script')) return;
@@ -141,6 +147,9 @@ export default function LoanApplyPage() {
       const subRes = await loansApi.createIndiaSubscription(form.loanType);
       const { subscriptionId, planId, key } = subRes.data.data;
 
+      // Browser pixel: user opened payment modal
+      pixelAddPaymentInfo({ value: 100, currency: 'INR', contentCategory: form.loanType });
+
       const subProof = await new Promise<SubProof>((resolve, reject) => {
         new (window as any).Razorpay({
           key,
@@ -157,6 +166,10 @@ export default function LoanApplyPage() {
           modal: { ondismiss: () => reject(new Error('cancelled')) },
         }).open();
       });
+
+      // Browser pixel: subscription authorized
+      pixelSubscribe();
+      pixelLead({ contentCategory: form.loanType });
 
       const payload = {
         ...form,
