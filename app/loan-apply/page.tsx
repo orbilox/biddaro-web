@@ -12,12 +12,12 @@ import { PENDING_LOAN_KEY } from '@/lib/constants';
 
 // ─── Loan types ───────────────────────────────────────────────────────────────
 const LOAN_TYPES = [
-  { id: 'home_construction', label: 'Home Construction', icon: Building2, color: 'amber',  fee: 100, desc: 'Build your dream home from the ground up' },
-  { id: 'renovation',        label: 'Renovation',        icon: Wrench,    color: 'blue',   fee: 100, desc: 'Remodel or upgrade an existing property' },
-  { id: 'equipment',         label: 'Equipment Finance', icon: Package,   color: 'green',  fee: 100, desc: 'Buy machinery or tools for your business' },
-  { id: 'working_capital',   label: 'Working Capital',   icon: Briefcase, color: 'purple', fee: 100, desc: 'Fund day-to-day operations and cash flow' },
-  { id: 'business',          label: 'Business Loan',     icon: Landmark,  color: 'indigo', fee: 100, desc: 'Grow or expand your business' },
-  { id: 'personal',          label: 'Personal Loan',     icon: User,      color: 'rose',   fee: 50,  desc: 'Flexible funds for personal needs' },
+  { id: 'home_construction', label: 'Home Construction', icon: Building2, color: 'amber',  desc: 'Build your dream home from the ground up' },
+  { id: 'renovation',        label: 'Renovation',        icon: Wrench,    color: 'blue',   desc: 'Remodel or upgrade an existing property' },
+  { id: 'equipment',         label: 'Equipment Finance', icon: Package,   color: 'green',  desc: 'Buy machinery or tools for your business' },
+  { id: 'working_capital',   label: 'Working Capital',   icon: Briefcase, color: 'purple', desc: 'Fund day-to-day operations and cash flow' },
+  { id: 'business',          label: 'Business Loan',     icon: Landmark,  color: 'indigo', desc: 'Grow or expand your business' },
+  { id: 'personal',          label: 'Personal Loan',     icon: User,      color: 'rose',   desc: 'Flexible funds for personal needs' },
 ];
 
 const COLOR_RING: Record<string, string> = {
@@ -45,10 +45,10 @@ const COLOR_BG: Record<string, string> = {
   rose:   'bg-rose-100',
 };
 
-interface PaymentProof {
-  razorpay_payment_id: string;
-  razorpay_order_id:   string;
-  razorpay_signature:  string;
+interface SubProof {
+  razorpay_payment_id:      string;
+  razorpay_subscription_id: string;
+  razorpay_signature:       string;
 }
 
 const TOTAL_STEPS = 7;
@@ -78,7 +78,6 @@ export default function LoanApplyPage() {
   });
 
   const selectedLoan = LOAN_TYPES.find(l => l.id === form.loanType)!;
-  const fee = selectedLoan.fee;
 
   // Load Razorpay script
   useEffect(() => {
@@ -134,53 +133,51 @@ export default function LoanApplyPage() {
     }
   }
 
-  // ── Pay + Redirect ──────────────────────────────────────────────────────────
+  // ── Subscribe ₹100/month + Redirect ─────────────────────────────────────────
   async function handlePay() {
     setError('');
     setPaying(true);
     try {
-      const res = await loansApi.createIndiaOrder(form.loanType);
-      const { orderId, amount: orderAmount, currency, key } = res.data.data;
+      const subRes = await loansApi.createIndiaSubscription(form.loanType);
+      const { subscriptionId, planId, key } = subRes.data.data;
 
-      await new Promise<void>((resolve, reject) => {
-        const rzp = new (window as any).Razorpay({
+      const subProof = await new Promise<SubProof>((resolve, reject) => {
+        new (window as any).Razorpay({
           key,
-          order_id:    orderId,
-          amount:      orderAmount,
-          currency,
-          name:        'Biddaro',
-          description: `Loan Eligibility Fee — ₹${fee}`,
-          theme:       { color: '#f97316' },
+          subscription_id: subscriptionId,
+          name:            'Biddaro',
+          description:     'Loan Eligibility — ₹100/month',
+          theme:           { color: '#f97316' },
           prefill: {
             name:    `${form.firstName} ${form.lastName}`.trim(),
             email:   form.email,
             contact: form.phone,
           },
-          handler: async (response: PaymentProof) => {
-            const payload = {
-              ...form,
-              amount:        parseFloat(form.amount),
-              tenure:        parseInt(form.tenure),
-              monthlyIncome: parseFloat(form.monthlyIncome),
-              country:       'IN',
-              feePaid:       orderAmount,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id:   response.razorpay_order_id,
-              razorpay_signature:  response.razorpay_signature,
-            };
-
-            // Save to DB immediately (no auth needed) so admin can see it right away
-            try { await loansApi.submitInquiry(payload); } catch { /* non-blocking */ }
-
-            // Also store in sessionStorage for dashboard auto-submit after registration
-            sessionStorage.setItem(PENDING_LOAN_KEY, JSON.stringify(payload));
-            router.push('/register');
-            resolve();
-          },
+          handler: resolve,
           modal: { ondismiss: () => reject(new Error('cancelled')) },
-        });
-        rzp.open();
+        }).open();
       });
+
+      const payload = {
+        ...form,
+        amount:        parseFloat(form.amount),
+        tenure:        parseInt(form.tenure),
+        monthlyIncome: parseFloat(form.monthlyIncome),
+        country:       'IN',
+        feePaid:       0,
+        razorpay_payment_id:    subProof.razorpay_payment_id,
+        razorpay_order_id:      '',
+        razorpay_signature:     subProof.razorpay_signature,
+        razorpaySubscriptionId: subProof.razorpay_subscription_id,
+        razorpayPlanId:         planId,
+      };
+
+      // Save to DB immediately (no auth needed) so admin can see it right away
+      try { await loansApi.submitInquiry(payload); } catch { /* non-blocking */ }
+
+      // Store in sessionStorage for dashboard auto-submit after registration
+      sessionStorage.setItem(PENDING_LOAN_KEY, JSON.stringify(payload));
+      router.push('/register');
     } catch (err: any) {
       if (err?.message !== 'cancelled') {
         setError('Payment failed. Please try again.');
@@ -254,9 +251,6 @@ export default function LoanApplyPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-gray-900 text-sm">{lt.label}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{lt.desc}</p>
-                    </div>
-                    <div className="flex-shrink-0 text-right">
-                      <span className="text-xs font-semibold text-orange-500">₹{lt.fee} fee</span>
                     </div>
                   </button>
                 );
@@ -406,7 +400,7 @@ export default function LoanApplyPage() {
         {step === 7 && (
           <StepCard
             title="Review your application"
-            subtitle="Everything looks good? Pay the eligibility fee to submit."
+            subtitle="Everything looks good? Subscribe to submit your application."
             dir={dir}
           >
             {/* Summary rows */}
@@ -422,16 +416,14 @@ export default function LoanApplyPage() {
               <ReviewRow label="Address"       value={`${form.address}, ${form.city}`} />
             </div>
 
-            {/* Fee callout */}
+            {/* Subscription callout */}
             <div className="mt-4 bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                <IndianRupee className="w-4 h-4 text-orange-600" />
-              </div>
+              <IndianRupee className="w-5 h-5 text-orange-500 flex-shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-orange-900">₹{fee} Eligibility Check Fee</p>
-                <p className="text-xs text-orange-600 mt-0.5">One-time · Non-refundable · Secured by Razorpay</p>
+                <p className="text-sm font-semibold text-orange-900">₹100/month subscription</p>
+                <p className="text-xs text-orange-600 mt-0.5">Auto-renewed monthly · Cancel anytime · Secured by Razorpay</p>
               </div>
-              <span className="ml-auto text-lg font-bold text-orange-600">₹{fee}</span>
+              <span className="ml-auto text-lg font-bold text-orange-600">₹100/mo</span>
             </div>
 
             {error && <p className="text-sm text-red-500 mt-2 text-center">{error}</p>}
@@ -443,8 +435,8 @@ export default function LoanApplyPage() {
               className="w-full mt-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 text-base transition-colors"
             >
               {paying
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> Opening payment…</>
-                : <><IndianRupee className="w-5 h-5" /> Pay ₹{fee} &amp; Submit Application</>
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> Opening Razorpay…</>
+                : <><IndianRupee className="w-5 h-5" /> Subscribe ₹100/month &amp; Submit</>
               }
             </button>
 

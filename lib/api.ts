@@ -374,6 +374,10 @@ export const loansApi = {
     api.post<{ success: boolean; data: { orderId: string; amount: number; currency: string; key: string } }>(
       '/loans/india/order', { loanType }
     ),
+  createIndiaSubscription: (loanType: string) =>
+    api.post<{ success: boolean; data: { subscriptionId: string; planId: string; key: string } }>(
+      '/loans/india/subscription', { loanType }
+    ),
   applyIndia: (data: Record<string, unknown>) =>
     api.post('/loans/india/apply', data),
   // Submit inquiry immediately after payment (no auth)
