@@ -24,6 +24,7 @@ function inr(n: number): string {
 const LOAN_TYPES = [
   {
     id: 'home_construction',
+    slug: 'home-construction',
     label: 'Home Construction',
     icon: Building2,
     color: 'amber',
@@ -32,6 +33,7 @@ const LOAN_TYPES = [
   },
   {
     id: 'renovation',
+    slug: 'renovation',
     label: 'Renovation Loan',
     icon: Wrench,
     color: 'blue',
@@ -40,22 +42,25 @@ const LOAN_TYPES = [
   },
   {
     id: 'equipment',
+    slug: 'equipment',
     label: 'Equipment Finance',
     icon: Package,
     color: 'green',
     description: 'Purchase or lease construction equipment and machinery.',
-    features: ['Up to ₹1.5 Crore', 'Up to 7 years', 'From 10% p.a.', 'Asset-backed'],
+    features: ['Up to ₹1.5 Crore', 'Up to 7 years', 'From 11% p.a.', 'Asset-backed'],
   },
   {
     id: 'working_capital',
+    slug: 'working-capital',
     label: 'Working Capital',
     icon: Briefcase,
     color: 'purple',
     description: 'Keep your construction projects running with working capital loans.',
-    features: ['Up to ₹50 Lakh', 'Up to 3 years', 'From 11% p.a.', 'Fast disbursement'],
+    features: ['Up to ₹50 Lakh', 'Up to 3 years', 'From 13% p.a.', 'Fast disbursement'],
   },
   {
     id: 'business',
+    slug: 'business',
     label: 'Business Loan',
     icon: Landmark,
     color: 'indigo',
@@ -64,11 +69,12 @@ const LOAN_TYPES = [
   },
   {
     id: 'personal',
+    slug: 'personal',
     label: 'Personal Loan',
     icon: User,
     color: 'rose',
     description: 'Flexible personal loans for contractors and construction professionals.',
-    features: ['Up to ₹5 Lakh', 'Up to 5 years', 'From 12% p.a.', 'No collateral'],
+    features: ['Up to ₹5 Lakh', 'Up to 5 years', 'From 14% p.a.', 'No collateral'],
   },
 ];
 
@@ -332,11 +338,18 @@ export default function LoansLandingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/loan-apply" className="mt-4 block">
-                    <Button size="sm" variant="outline" className="w-full gap-1.5">
-                      Apply <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
+                  <div className="mt-4 flex gap-2">
+                    <Link href={`/loans/${loan.slug}`} className="flex-1">
+                      <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs">
+                        Learn More
+                      </Button>
+                    </Link>
+                    <Link href="/loan-apply" className="flex-1">
+                      <Button size="sm" className="w-full gap-1.5 text-xs bg-orange-500 hover:bg-orange-600 text-white border-0">
+                        Apply <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               );
             })}

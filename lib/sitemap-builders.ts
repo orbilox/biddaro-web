@@ -36,6 +36,7 @@
 
 import { COST_SERVICES } from '@/lib/cost-data';
 import { JOB_CATEGORY_META, INDIA_LOCATIONS } from '@/lib/seo-data';
+import { LOAN_TYPES_SEO } from '@/lib/loan-data';
 import { getAllSlugs as getAskSlugs } from '@/lib/ask-data';
 import { UAE_LOCATIONS, UAE_JOB_CATEGORY_META } from '@/lib/seo-data-uae';
 import { UAE_COST_SERVICES } from '@/lib/cost-data-uae';
@@ -47,7 +48,7 @@ import { USA_LOCATIONS, USA_JOB_CATEGORY_META } from '@/lib/seo-data-usa';
 import { USA_COST_SERVICES } from '@/lib/cost-data-usa';
 
 export const SITEMAP_BASE = 'https://biddaro.com';
-export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] as const;
+export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21] as const;
 
 export interface SitemapEntry {
   url: string;
@@ -79,6 +80,9 @@ export function buildSitemap(id: number): SitemapEntry[] {
     case 16: return buildUSCostSitemap();
     case 17: return buildUAEArHireSitemap();
     case 18: return buildUAEArCostSitemap();
+    case 19: return buildLoanHubSitemap();
+    case 20: return buildLoanCitiesSitemap(0, 3);
+    case 21: return buildLoanCitiesSitemap(3, LOAN_TYPES_SEO.length);
     default: return [];
   }
 }
@@ -322,6 +326,28 @@ function buildUAEArHireSitemap(): SitemapEntry[] {
       entries.push(entry(`/uae/ar/hire/${cat.slug}/${emirate.slug}`, 0.75, 'weekly'));
       for (const city of emirate.cities) {
         entries.push(entry(`/uae/ar/hire/${cat.slug}/${emirate.slug}/${city.slug}`, 0.7, 'weekly'));
+      }
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemaps 19–21 — India Loan Pages ───────────────────────────────────────
+
+function buildLoanHubSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [entry('/loans', 0.9, 'weekly')];
+  for (const loan of LOAN_TYPES_SEO) {
+    entries.push(entry(`/loans/${loan.slug}`, 0.85, 'weekly'));
+  }
+  return entries;
+}
+
+function buildLoanCitiesSitemap(start: number, end: number): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const loan of LOAN_TYPES_SEO.slice(start, end)) {
+    for (const state of INDIA_LOCATIONS) {
+      for (const city of state.cities) {
+        entries.push(entry(`/loans/${loan.slug}/${city.slug}`, 0.8, 'monthly'));
       }
     }
   }
