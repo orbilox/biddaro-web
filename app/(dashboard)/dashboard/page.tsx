@@ -13,7 +13,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { JobCard } from '@/components/jobs/JobCard';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { ROUTES } from '@/lib/constants';
-import { jobsApi, bidsApi, walletApi, usersApi, loansApi } from '@/lib/api';
+import { jobsApi, bidsApi, walletApi, usersApi } from '@/lib/api';
 import { PENDING_LOAN_KEY } from '@/lib/constants';
 import { OnboardingBanner } from '@/components/onboarding/OnboardingBanner';
 import { ProfileCompletionCard } from '@/components/dashboard/ProfileCompletionCard';
@@ -53,14 +53,14 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const isPoster = user?.role === 'job_poster';
 
-  // ── Auto-submit pending India loan after registration from /loan-apply ──────
+  // ── Acknowledge pending India loan inquiry after registration from /loan-apply ─
+  // The inquiry was already saved to DB by submitInquiry before registration,
+  // so we just clear sessionStorage and show a confirmation toast.
   useEffect(() => {
     const raw = sessionStorage.getItem(PENDING_LOAN_KEY);
     if (!raw) return;
     sessionStorage.removeItem(PENDING_LOAN_KEY);
-    loansApi.applyIndia(JSON.parse(raw))
-      .then(() => toast.success('Loan application submitted! We\'ll review it within 2–5 business days.'))
-      .catch(() => toast.error('Could not submit loan application. Please visit My Loans to retry.'));
+    toast.success('Loan application received! We\'ll review it and call you within 2–5 business days.');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
