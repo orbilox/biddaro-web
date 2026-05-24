@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="628" viewBox="0 0 1200 628">
+  <defs>
+    <linearGradient id="liBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f1f5f9;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="liOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="liDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="628" fill="url(#liBg)"/>
+
+  <!-- Top accent -->
+  <rect x="0" y="0" width="1200" height="10" fill="url(#liOrange)"/>
+
+  <!-- Left dark panel -->
+  <rect x="0" y="10" width="480" height="618" fill="url(#liDark)"/>
+
+  <!-- Panel decorations -->
+  <circle cx="480" cy="628" r="300" fill="#f97316" opacity="0.08"/>
+  <circle cx="0" cy="0" r="150" fill="#f97316" opacity="0.06"/>
+
+  <!-- Logo on dark panel -->
+  <rect x="40" y="50" width="60" height="60" rx="14" fill="#f97316"/>
+  <text x="70" y="91" font-family="Arial, sans-serif" font-size="32" font-weight="900" fill="white" text-anchor="middle">B</text>
+  <text x="115" y="68" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="white">BIDDARO</text>
+  <text x="115" y="93" font-family="Arial, sans-serif" font-size="13" fill="#94a3b8">Business Finance Solutions</text>
+
+  <!-- Divider -->
+  <line x1="40" y1="140" x2="420" y2="140" stroke="#334155" stroke-width="1"/>
+
+  <!-- Big number -->
+  <text x="240" y="290" font-family="Arial, sans-serif" font-size="48" font-weight="600" fill="#94a3b8" text-anchor="middle">Business Loans at</text>
+  <text x="240" y="420" font-family="Arial, sans-serif" font-size="180" font-weight="900" fill="#f97316" text-anchor="middle">9%</text>
+  <text x="240" y="470" font-family="Arial, sans-serif" font-size="30" fill="#94a3b8" text-anchor="middle">Interest Per Annum</text>
+
+  <!-- Trust indicators -->
+  <rect x="40" y="510" width="150" height="60" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="115" y="536" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#f97316" text-anchor="middle">500+</text>
+  <text x="115" y="558" font-family="Arial, sans-serif" font-size="15" fill="#94a3b8" text-anchor="middle">Happy Clients</text>
+
+  <rect x="210" y="510" width="150" height="60" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="285" y="536" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#f97316" text-anchor="middle">₹50Cr+</text>
+  <text x="285" y="558" font-family="Arial, sans-serif" font-size="15" fill="#94a3b8" text-anchor="middle">Disbursed</text>
+
+  <!-- Right content panel -->
+  <!-- Tag badge -->
+  <rect x="520" y="50" width="220" height="36" rx="18" fill="#f97316" opacity="0.12"/>
+  <text x="630" y="74" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#ea580c" text-anchor="middle" letter-spacing="1">PROFESSIONAL OFFER</text>
+
+  <!-- Headline -->
+  <text x="520" y="145" font-family="Arial, sans-serif" font-size="52" font-weight="900" fill="#0f172a" letter-spacing="-1">Accelerate Your</text>
+  <text x="520" y="205" font-family="Arial, sans-serif" font-size="52" font-weight="900" fill="#0f172a" letter-spacing="-1">Business Growth</text>
+  <text x="520" y="265" font-family="Arial, sans-serif" font-size="52" font-weight="900" fill="#f97316" letter-spacing="-1">With Smart Loans</text>
+
+  <!-- Subtext -->
+  <text x="520" y="315" font-family="Arial, sans-serif" font-size="22" fill="#475569">Access capital at competitive 9% p.a. interest.</text>
+  <text x="520" y="344" font-family="Arial, sans-serif" font-size="22" fill="#475569">Built for entrepreneurs &amp; small businesses.</text>
+
+  <!-- Divider -->
+  <line x1="520" y1="370" x2="1160" y2="370" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- Feature grid -->
+  <!-- Row 1 -->
+  <rect x="520" y="390" width="30" height="30" rx="6" fill="#f97316"/>
+  <text x="535" y="411" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">✓</text>
+  <text x="565" y="411" font-family="Arial, sans-serif" font-size="20" fill="#334155" font-weight="600">Minimal documentation required</text>
+
+  <rect x="860" y="390" width="30" height="30" rx="6" fill="#f97316"/>
+  <text x="875" y="411" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">✓</text>
+  <text x="905" y="411" font-family="Arial, sans-serif" font-size="20" fill="#334155" font-weight="600">Dedicated loan manager</text>
+
+  <!-- Row 2 -->
+  <rect x="520" y="435" width="30" height="30" rx="6" fill="#f97316"/>
+  <text x="535" y="456" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">✓</text>
+  <text x="565" y="456" font-family="Arial, sans-serif" font-size="20" fill="#334155" font-weight="600">Approval within 24 hours</text>
+
+  <rect x="860" y="435" width="30" height="30" rx="6" fill="#f97316"/>
+  <text x="875" y="456" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">✓</text>
+  <text x="905" y="456" font-family="Arial, sans-serif" font-size="20" fill="#334155" font-weight="600">100% online application</text>
+
+  <!-- Row 3 -->
+  <rect x="520" y="480" width="30" height="30" rx="6" fill="#f97316"/>
+  <text x="535" y="501" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">✓</text>
+  <text x="565" y="501" font-family="Arial, sans-serif" font-size="20" fill="#334155" font-weight="600">Flexible repayment schedule</text>
+
+  <rect x="860" y="480" width="30" height="30" rx="6" fill="#f97316"/>
+  <text x="875" y="501" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">✓</text>
+  <text x="905" y="501" font-family="Arial, sans-serif" font-size="20" fill="#334155" font-weight="600">No prepayment penalty</text>
+
+  <!-- CTA row -->
+  <rect x="520" y="545" width="280" height="55" rx="28" fill="url(#liOrange)"/>
+  <text x="660" y="578" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="white" text-anchor="middle">Apply Now →</text>
+
+  <text x="820" y="575" font-family="Arial, sans-serif" font-size="20" fill="#94a3b8">|</text>
+  <text x="840" y="575" font-family="Arial, sans-serif" font-size="20" fill="#475569">biddaro.com</text>
+
+  <!-- Disclaimer -->
+  <text x="520" y="615" font-family="Arial, sans-serif" font-size="15" fill="#94a3b8">*Terms apply. Subject to credit assessment and eligibility.</text>
+</svg>

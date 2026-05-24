@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fff7ed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffedd5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="orangeGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1080" fill="url(#bgGrad2)"/>
+
+  <!-- Left orange sidebar -->
+  <rect x="0" y="0" width="180" height="1080" fill="url(#orangeGrad2)"/>
+
+  <!-- Sidebar decorations -->
+  <circle cx="90" cy="200" r="50" fill="white" opacity="0.15"/>
+  <circle cx="90" cy="880" r="70" fill="white" opacity="0.1"/>
+  <rect x="30" y="480" width="120" height="4" rx="2" fill="white" opacity="0.4"/>
+  <rect x="30" y="500" width="80" height="4" rx="2" fill="white" opacity="0.3"/>
+  <rect x="30" y="520" width="100" height="4" rx="2" fill="white" opacity="0.2"/>
+
+  <!-- Logo on sidebar -->
+  <text x="90" y="120" font-family="Arial, sans-serif" font-size="48" font-weight="900" fill="white" text-anchor="middle">B</text>
+  <text x="90" y="155" font-family="Arial, sans-serif" font-size="14" font-weight="600" fill="white" text-anchor="middle" letter-spacing="3">BIDDARO</text>
+
+  <!-- Main content area -->
+  <!-- Tag -->
+  <rect x="230" y="100" width="220" height="44" rx="22" fill="#f97316" opacity="0.15"/>
+  <text x="340" y="128" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#ea580c" text-anchor="middle" letter-spacing="1">BUSINESS LOAN</text>
+
+  <!-- Big Rate Display -->
+  <text x="230" y="280" font-family="Arial, sans-serif" font-size="56" font-weight="700" fill="#334155">Starting at just</text>
+  <text x="230" y="440" font-family="Arial, sans-serif" font-size="220" font-weight="900" fill="#f97316" letter-spacing="-8">9%</text>
+  <text x="700" y="440" font-family="Arial, sans-serif" font-size="48" font-weight="600" fill="#64748b">p.a.</text>
+
+  <!-- Divider -->
+  <line x1="230" y1="480" x2="900" y2="480" stroke="#e2e8f0" stroke-width="2"/>
+
+  <!-- Features row -->
+  <!-- Feature 1 -->
+  <rect x="230" y="510" width="60" height="60" rx="12" fill="#f97316"/>
+  <text x="260" y="551" font-family="Arial, sans-serif" font-size="28" fill="white" text-anchor="middle">✓</text>
+  <text x="305" y="535" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1e293b">Fast Approval</text>
+  <text x="305" y="562" font-family="Arial, sans-serif" font-size="18" fill="#64748b">Within 24 hours</text>
+
+  <!-- Feature 2 -->
+  <rect x="230" y="600" width="60" height="60" rx="12" fill="#f97316"/>
+  <text x="260" y="641" font-family="Arial, sans-serif" font-size="28" fill="white" text-anchor="middle">✓</text>
+  <text x="305" y="625" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1e293b">Flexible Tenure</text>
+  <text x="305" y="652" font-family="Arial, sans-serif" font-size="18" fill="#64748b">Up to 5 years</text>
+
+  <!-- Feature 3 -->
+  <rect x="230" y="690" width="60" height="60" rx="12" fill="#f97316"/>
+  <text x="260" y="731" font-family="Arial, sans-serif" font-size="28" fill="white" text-anchor="middle">✓</text>
+  <text x="305" y="715" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1e293b">No Hidden Charges</text>
+  <text x="305" y="742" font-family="Arial, sans-serif" font-size="18" fill="#64748b">100% transparent</text>
+
+  <!-- Feature 4 -->
+  <rect x="230" y="780" width="60" height="60" rx="12" fill="#f97316"/>
+  <text x="260" y="821" font-family="Arial, sans-serif" font-size="28" fill="white" text-anchor="middle">✓</text>
+  <text x="305" y="805" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1e293b">High Loan Amount</text>
+  <text x="305" y="832" font-family="Arial, sans-serif" font-size="18" fill="#64748b">Up to ₹50 Lakhs</text>
+
+  <!-- CTA -->
+  <rect x="230" y="900" width="400" height="80" rx="16" fill="url(#orangeGrad2)"/>
+  <text x="430" y="949" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="white" text-anchor="middle">Get Started Today →</text>
+
+  <text x="660" y="949" font-family="Arial, sans-serif" font-size="22" fill="#94a3b8" text-anchor="start">biddaro.com</text>
+</svg>

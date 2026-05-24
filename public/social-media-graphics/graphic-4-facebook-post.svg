@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="628" viewBox="0 0 1200 628">
+  <defs>
+    <linearGradient id="fbBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fbOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fb923c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fbPanel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="628" fill="url(#fbBg)"/>
+
+  <!-- Decorative large circle -->
+  <circle cx="1050" cy="314" r="400" fill="#f97316" opacity="0.05"/>
+  <circle cx="1050" cy="314" r="300" fill="#f97316" opacity="0.06"/>
+  <circle cx="150" cy="50" r="200" fill="#f97316" opacity="0.04"/>
+
+  <!-- Left orange panel -->
+  <rect x="0" y="0" width="420" height="628" fill="url(#fbPanel)"/>
+
+  <!-- Panel decoration circles -->
+  <circle cx="210" cy="500" r="250" fill="white" opacity="0.06"/>
+  <circle cx="420" cy="0" r="150" fill="white" opacity="0.08"/>
+
+  <!-- Logo on panel -->
+  <rect x="40" y="40" width="60" height="60" rx="14" fill="white" opacity="0.25"/>
+  <text x="70" y="82" font-family="Arial, sans-serif" font-size="32" font-weight="900" fill="white" text-anchor="middle">B</text>
+  <text x="115" y="60" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="white" opacity="0.9">BIDDARO</text>
+  <text x="115" y="85" font-family="Arial, sans-serif" font-size="13" fill="white" opacity="0.7">Business Finance</text>
+
+  <!-- Big % on panel -->
+  <text x="210" y="250" font-family="Arial, sans-serif" font-size="60" font-weight="700" fill="white" text-anchor="middle" opacity="0.9">Starting at</text>
+  <text x="210" y="400" font-family="Arial, sans-serif" font-size="200" font-weight="900" fill="white" text-anchor="middle" opacity="0.95">9%</text>
+  <text x="210" y="460" font-family="Arial, sans-serif" font-size="32" fill="white" text-anchor="middle" opacity="0.85">Interest Per Annum</text>
+
+  <!-- Panel bottom text -->
+  <rect x="60" y="540" width="300" height="44" rx="22" fill="white" opacity="0.2"/>
+  <text x="210" y="568" font-family="Arial, sans-serif" font-size="18" fill="white" font-weight="600" text-anchor="middle">✓ Zero Processing Fee</text>
+
+  <!-- Right content area -->
+  <!-- Headline -->
+  <text x="470" y="110" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#f97316" letter-spacing="4">BUSINESS LOAN OFFER</text>
+
+  <text x="470" y="190" font-family="Arial, sans-serif" font-size="68" font-weight="900" fill="white" letter-spacing="-1">Fund Your</text>
+  <text x="470" y="265" font-family="Arial, sans-serif" font-size="68" font-weight="900" fill="white" letter-spacing="-1">Business</text>
+  <text x="470" y="340" font-family="Arial, sans-serif" font-size="68" font-weight="900" fill="#f97316" letter-spacing="-1">Goals!</text>
+
+  <!-- Divider line -->
+  <line x1="470" y1="375" x2="1150" y2="375" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- 3 feature pills -->
+  <rect x="470" y="400" width="200" height="44" rx="22" fill="#1e293b"/>
+  <text x="570" y="428" font-family="Arial, sans-serif" font-size="18" fill="#94a3b8" text-anchor="middle">⚡ Fast Disbursement</text>
+
+  <rect x="690" y="400" width="200" height="44" rx="22" fill="#1e293b"/>
+  <text x="790" y="428" font-family="Arial, sans-serif" font-size="18" fill="#94a3b8" text-anchor="middle">🔒 Secure Process</text>
+
+  <rect x="910" y="400" width="220" height="44" rx="22" fill="#1e293b"/>
+  <text x="1020" y="428" font-family="Arial, sans-serif" font-size="18" fill="#94a3b8" text-anchor="middle">📋 Easy Paperwork</text>
+
+  <!-- Sub text -->
+  <text x="470" y="500" font-family="Arial, sans-serif" font-size="26" fill="#64748b">Apply online. Get approved in 24 hours.</text>
+  <text x="470" y="535" font-family="Arial, sans-serif" font-size="26" fill="#64748b">No hidden charges. No surprises.</text>
+
+  <!-- CTA -->
+  <rect x="470" y="565" width="280" height="52" rx="26" fill="url(#fbOrange)"/>
+  <text x="610" y="598" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="white" text-anchor="middle">Apply Now →</text>
+
+  <text x="800" y="598" font-family="Arial, sans-serif" font-size="20" fill="#475569">www.biddaro.com</text>
+</svg>

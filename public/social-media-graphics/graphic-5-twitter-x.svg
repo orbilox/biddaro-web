@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="twBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="twOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fb923c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="900" fill="url(#twBg)"/>
+
+  <!-- Top orange border strip -->
+  <rect x="0" y="0" width="1600" height="8" fill="url(#twOrange)"/>
+  <rect x="0" y="892" width="1600" height="8" fill="url(#twOrange)"/>
+
+  <!-- Background decoration -->
+  <circle cx="1400" cy="100" r="350" fill="#f97316" opacity="0.05"/>
+  <circle cx="200" cy="800" r="280" fill="#f97316" opacity="0.04"/>
+
+  <!-- Left content -->
+  <!-- Logo area -->
+  <rect x="80" y="60" width="72" height="72" rx="16" fill="#f97316"/>
+  <text x="116" y="108" font-family="Arial, sans-serif" font-size="40" font-weight="900" fill="white" text-anchor="middle">B</text>
+  <text x="166" y="90" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="white">BIDDARO</text>
+  <text x="166" y="118" font-family="Arial, sans-serif" font-size="18" fill="#94a3b8">Business Finance Platform</text>
+
+  <!-- Hashtag tags -->
+  <rect x="80" y="170" width="200" height="40" rx="20" fill="#f97316" opacity="0.15"/>
+  <text x="180" y="196" font-family="Arial, sans-serif" font-size="18" fill="#f97316" font-weight="600" text-anchor="middle">#BusinessLoan</text>
+
+  <rect x="295" y="170" width="195" height="40" rx="20" fill="#f97316" opacity="0.15"/>
+  <text x="392" y="196" font-family="Arial, sans-serif" font-size="18" fill="#f97316" font-weight="600" text-anchor="middle">#LowInterest</text>
+
+  <!-- Headline -->
+  <text x="80" y="300" font-family="Arial, sans-serif" font-size="80" font-weight="900" fill="white" letter-spacing="-2">Scale your</text>
+  <text x="80" y="390" font-family="Arial, sans-serif" font-size="80" font-weight="900" fill="white" letter-spacing="-2">business with</text>
+  <text x="80" y="480" font-family="Arial, sans-serif" font-size="80" font-weight="900" fill="#f97316" letter-spacing="-2">9% loans! 🚀</text>
+
+  <!-- Sub headline -->
+  <text x="80" y="550" font-family="Arial, sans-serif" font-size="30" fill="#64748b">Get business loans at the lowest interest rates.</text>
+  <text x="80" y="590" font-family="Arial, sans-serif" font-size="30" fill="#64748b">Apply in minutes. Approved in 24 hours.</text>
+
+  <!-- CTA Row -->
+  <rect x="80" y="640" width="320" height="70" rx="35" fill="url(#twOrange)"/>
+  <text x="240" y="683" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="white" text-anchor="middle">Apply Now →</text>
+
+  <text x="420" y="683" font-family="Arial, sans-serif" font-size="26" fill="#475569">biddaro.com/loans</text>
+
+  <!-- Right side - Stats cards -->
+  <!-- Card 1 -->
+  <rect x="900" y="80" width="300" height="200" rx="24" fill="url(#cardGrad)" stroke="#334155" stroke-width="1"/>
+  <text x="1050" y="155" font-family="Arial, sans-serif" font-size="72" font-weight="900" fill="#f97316" text-anchor="middle">9%</text>
+  <text x="1050" y="200" font-family="Arial, sans-serif" font-size="24" fill="#94a3b8" text-anchor="middle">Interest Rate</text>
+  <text x="1050" y="232" font-family="Arial, sans-serif" font-size="20" fill="#64748b" text-anchor="middle">Per Annum</text>
+
+  <!-- Card 2 -->
+  <rect x="1220" y="80" width="300" height="200" rx="24" fill="url(#cardGrad)" stroke="#334155" stroke-width="1"/>
+  <text x="1370" y="155" font-family="Arial, sans-serif" font-size="62" font-weight="900" fill="#f97316" text-anchor="middle">24h</text>
+  <text x="1370" y="200" font-family="Arial, sans-serif" font-size="24" fill="#94a3b8" text-anchor="middle">Fast Approval</text>
+  <text x="1370" y="232" font-family="Arial, sans-serif" font-size="20" fill="#64748b" text-anchor="middle">Process</text>
+
+  <!-- Card 3 -->
+  <rect x="900" y="310" width="300" height="200" rx="24" fill="url(#cardGrad)" stroke="#334155" stroke-width="1"/>
+  <text x="1050" y="385" font-family="Arial, sans-serif" font-size="62" font-weight="900" fill="#f97316" text-anchor="middle">₹50L</text>
+  <text x="1050" y="430" font-family="Arial, sans-serif" font-size="24" fill="#94a3b8" text-anchor="middle">Maximum Loan</text>
+  <text x="1050" y="462" font-family="Arial, sans-serif" font-size="20" fill="#64748b" text-anchor="middle">Amount</text>
+
+  <!-- Card 4 -->
+  <rect x="1220" y="310" width="300" height="200" rx="24" fill="url(#cardGrad)" stroke="#334155" stroke-width="1"/>
+  <text x="1370" y="385" font-family="Arial, sans-serif" font-size="62" font-weight="900" fill="#f97316" text-anchor="middle">5yr</text>
+  <text x="1370" y="430" font-family="Arial, sans-serif" font-size="24" fill="#94a3b8" text-anchor="middle">Max Tenure</text>
+  <text x="1370" y="462" font-family="Arial, sans-serif" font-size="20" fill="#64748b" text-anchor="middle">Flexible Options</text>
+
+  <!-- Big center card -->
+  <rect x="900" y="540" width="620" height="280" rx="24" fill="#f97316"/>
+  <text x="1210" y="630" font-family="Arial, sans-serif" font-size="34" font-weight="900" fill="white" text-anchor="middle">No Collateral Required</text>
+  <text x="1210" y="675" font-family="Arial, sans-serif" font-size="26" fill="white" text-anchor="middle" opacity="0.9">for loans up to ₹10 Lakhs</text>
+  <rect x="960" y="710" width="500" height="60" rx="30" fill="white" opacity="0.25"/>
+  <text x="1210" y="748" font-family="Arial, sans-serif" font-size="24" fill="white" text-anchor="middle" font-weight="600">🏢 100% Online Process</text>
+
+  <!-- Bottom row text -->
+  <text x="800" y="870" font-family="Arial, sans-serif" font-size="22" fill="#334155" text-anchor="middle">Terms and conditions apply. Loan amount subject to eligibility. www.biddaro.com</text>
+</svg>

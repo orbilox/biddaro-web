@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <linearGradient id="urgBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ea580c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c2410c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="darkCard" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="whiteOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffedd5;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full orange background -->
+  <rect width="1080" height="1080" fill="url(#urgBg)"/>
+
+  <!-- Large decorative circles -->
+  <circle cx="1080" cy="0" r="400" fill="white" opacity="0.07"/>
+  <circle cx="0" cy="1080" r="380" fill="white" opacity="0.06"/>
+  <circle cx="540" cy="540" r="500" fill="white" opacity="0.03"/>
+  <circle cx="540" cy="540" r="400" fill="white" opacity="0.03"/>
+
+  <!-- Diagonal pattern lines -->
+  <line x1="0" y1="200" x2="200" y2="0" stroke="white" stroke-width="1" opacity="0.1"/>
+  <line x1="0" y1="400" x2="400" y2="0" stroke="white" stroke-width="1" opacity="0.08"/>
+  <line x1="0" y1="600" x2="600" y2="0" stroke="white" stroke-width="1" opacity="0.06"/>
+  <line x1="200" y1="1080" x2="1080" y2="200" stroke="white" stroke-width="1" opacity="0.06"/>
+  <line x1="400" y1="1080" x2="1080" y2="400" stroke="white" stroke-width="1" opacity="0.08"/>
+  <line x1="600" y1="1080" x2="1080" y2="600" stroke="white" stroke-width="1" opacity="0.06"/>
+
+  <!-- Logo -->
+  <rect x="60" y="60" width="72" height="72" rx="16" fill="white" opacity="0.25"/>
+  <text x="96" y="108" font-family="Arial, sans-serif" font-size="40" font-weight="900" fill="white" text-anchor="middle">B</text>
+  <text x="148" y="84" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="white">BIDDARO</text>
+  <text x="148" y="112" font-family="Arial, sans-serif" font-size="16" fill="white" opacity="0.8">Business Finance</text>
+
+  <!-- LIMITED OFFER badge -->
+  <rect x="830" y="65" width="200" height="60" rx="30" fill="white"/>
+  <text x="930" y="88" font-family="Arial, sans-serif" font-size="16" font-weight="900" fill="#ea580c" text-anchor="middle" letter-spacing="2">LIMITED</text>
+  <text x="930" y="110" font-family="Arial, sans-serif" font-size="16" font-weight="900" fill="#ea580c" text-anchor="middle" letter-spacing="2">OFFER!</text>
+
+  <!-- Main center content -->
+  <!-- Top label -->
+  <text x="540" y="230" font-family="Arial, sans-serif" font-size="30" font-weight="600" fill="white" text-anchor="middle" opacity="0.9" letter-spacing="6">DON'T MISS OUT!</text>
+
+  <!-- Huge rate display -->
+  <text x="540" y="420" font-family="Arial, sans-serif" font-size="280" font-weight="900" fill="white" text-anchor="middle" opacity="0.95">9%</text>
+
+  <!-- Rate label -->
+  <rect x="340" y="450" width="400" height="60" rx="30" fill="url(#darkCard)"/>
+  <text x="540" y="488" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="white" text-anchor="middle">Interest Rate Per Annum</text>
+
+  <!-- Big message -->
+  <text x="540" y="590" font-family="Arial, sans-serif" font-size="62" font-weight="900" fill="white" text-anchor="middle">BUSINESS LOAN</text>
+  <text x="540" y="660" font-family="Arial, sans-serif" font-size="62" font-weight="900" fill="white" text-anchor="middle">MADE SIMPLE</text>
+
+  <!-- Features row of pills -->
+  <rect x="80" y="710" width="260" height="56" rx="28" fill="white" opacity="0.2"/>
+  <text x="210" y="744" font-family="Arial, sans-serif" font-size="22" fill="white" text-anchor="middle" font-weight="600">⚡ Quick Approval</text>
+
+  <rect x="360" y="710" width="260" height="56" rx="28" fill="white" opacity="0.2"/>
+  <text x="490" y="744" font-family="Arial, sans-serif" font-size="22" fill="white" text-anchor="middle" font-weight="600">📋 Easy Docs</text>
+
+  <rect x="640" y="710" width="260" height="56" rx="28" fill="white" opacity="0.2"/>
+  <text x="770" y="744" font-family="Arial, sans-serif" font-size="22" fill="white" text-anchor="middle" font-weight="600">💰 High Amount</text>
+
+  <!-- CTA Section -->
+  <rect x="140" y="810" width="800" height="100" rx="50" fill="url(#darkCard)"/>
+  <text x="540" y="870" font-family="Arial, sans-serif" font-size="38" font-weight="900" fill="white" text-anchor="middle">Apply Today at biddaro.com</text>
+
+  <!-- Bottom text -->
+  <text x="540" y="970" font-family="Arial, sans-serif" font-size="26" fill="white" text-anchor="middle" opacity="0.8">Loans for Startups · SMEs · Entrepreneurs</text>
+
+  <!-- Bottom dots decoration -->
+  <circle cx="400" cy="1025" r="8" fill="white" opacity="0.6"/>
+  <circle cx="440" cy="1025" r="8" fill="white" opacity="0.4"/>
+  <circle cx="480" cy="1025" r="8" fill="white" opacity="0.3"/>
+  <circle cx="540" cy="1025" r="12" fill="white" opacity="0.8"/>
+  <circle cx="600" cy="1025" r="8" fill="white" opacity="0.3"/>
+  <circle cx="640" cy="1025" r="8" fill="white" opacity="0.4"/>
+  <circle cx="680" cy="1025" r="8" fill="white" opacity="0.6"/>
+</svg>
