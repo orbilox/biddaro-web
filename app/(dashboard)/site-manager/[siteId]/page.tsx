@@ -99,15 +99,24 @@ function StatCard({ label, value, sub, color = 'text-white' }: { label: string; 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'overview',    label: 'Overview',   icon: BarChart2     },
-  { id: 'labor',       label: 'Labor',      icon: Users         },
-  { id: 'attendance',  label: 'Attendance', icon: ClipboardList },
-  { id: 'materials',   label: 'Materials',  icon: Package       },
-  { id: 'boq',         label: 'BOQ',        icon: FileText      },
-  { id: 'dpr',         label: 'DPR',        icon: Calendar      },
-  { id: 'equipment',   label: 'Equipment',  icon: Wrench        },
-  { id: 'expenses',    label: 'Expenses',   icon: Receipt       },
-  { id: 'invoices',    label: 'Invoices',   icon: IndianRupee   },
+  { id: 'overview',      label: 'Overview',      icon: BarChart2     },
+  { id: 'labor',         label: 'Labor',          icon: Users         },
+  { id: 'attendance',    label: 'Attendance',     icon: ClipboardList },
+  { id: 'materials',     label: 'Materials',      icon: Package       },
+  { id: 'boq',           label: 'BOQ',            icon: FileText      },
+  { id: 'dpr',           label: 'DPR',            icon: Calendar      },
+  { id: 'equipment',     label: 'Equipment',      icon: Wrench        },
+  { id: 'expenses',      label: 'Expenses',       icon: Receipt       },
+  { id: 'invoices',      label: 'Invoices',       icon: IndianRupee   },
+  { id: 'planning',      label: 'Planning',       icon: Calendar      },
+  { id: 'sales',         label: 'Sales',          icon: TrendingUp    },
+  { id: 'design',        label: 'Design',         icon: Edit2         },
+  { id: 'quality',       label: 'Quality',        icon: CheckCircle   },
+  { id: 'procurement',   label: 'Procurement',    icon: Package       },
+  { id: 'production',    label: 'Production',     icon: Zap           },
+  { id: 'vendor-bills',  label: 'Vendor Bills',   icon: Receipt       },
+  { id: 'pnl',           label: 'P&L',            icon: TrendingUp    },
+  { id: 'reports',       label: 'Reports',        icon: BarChart2     },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -1571,6 +1580,1437 @@ function InvoicesTab({ siteId }: { siteId: string }) {
   );
 }
 
+// ─── Planning Tab ─────────────────────────────────────────────────────────────
+
+const MILESTONE_STATUS_COLORS: Record<string, string> = {
+  pending:      'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  in_progress:  'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  completed:    'text-green-400 bg-green-400/10 border-green-400/20',
+  delayed:      'text-red-400 bg-red-400/10 border-red-400/20',
+  cancelled:    'text-gray-400 bg-gray-400/10 border-gray-400/20',
+};
+const MILESTONE_PRIORITY_COLORS: Record<string, string> = {
+  low:      'text-gray-400 bg-gray-400/10 border-gray-400/20',
+  medium:   'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  high:     'text-orange-400 bg-orange-400/10 border-orange-400/20',
+  critical: 'text-red-400 bg-red-400/10 border-red-400/20',
+};
+
+function PlanningTab({ siteId }: { siteId: string }) {
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const blankForm = { title: '', description: '', category: 'construction', dueDate: '', status: 'pending', priority: 'medium', assignedTo: '', progress: '0' };
+  const [form, setForm] = useState(blankForm);
+
+  const load = useCallback(async () => {
+    if (loaded) return;
+    setLoading(true);
+    try {
+      const res = await siteManagerApi.listMilestones(siteId);
+      setMilestones(res.data.data || []);
+      setLoaded(true);
+    } catch { toast.error('Failed to load milestones'); }
+    finally { setLoading(false); }
+  }, [siteId, loaded]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim()) { toast.error('Title is required'); return; }
+    setSaving(true);
+    try {
+      const payload = { ...form, progress: parseFloat(form.progress) || 0 };
+      if (editItem) {
+        const res = await siteManagerApi.updateMilestone(siteId, editItem.id, payload);
+        setMilestones(p => p.map(m => m.id === editItem.id ? res.data.data : m));
+        toast.success('Milestone updated');
+      } else {
+        const res = await siteManagerApi.addMilestone(siteId, payload);
+        setMilestones(p => [...p, res.data.data]);
+        toast.success('Milestone added');
+      }
+      setShowAdd(false); setEditItem(null); setForm(blankForm);
+    } catch { toast.error('Failed to save milestone'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleMarkComplete(m: any) {
+    try {
+      const res = await siteManagerApi.updateMilestone(siteId, m.id, { status: 'completed', progress: 100 });
+      setMilestones(p => p.map(x => x.id === m.id ? res.data.data : x));
+      toast.success('Marked complete');
+    } catch { toast.error('Failed to update'); }
+  }
+
+  async function handleDelete(m: any) {
+    if (!confirm(`Delete milestone "${m.title}"?`)) return;
+    try {
+      await siteManagerApi.deleteMilestone(siteId, m.id);
+      setMilestones(p => p.filter(x => x.id !== m.id));
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
+  }
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-white">Planning & Milestones</h2>
+          <p className="text-xs text-dark-400">{milestones.length} milestone{milestones.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button className={btnPrimary} onClick={() => { setForm(blankForm); setEditItem(null); setShowAdd(true); }}><Plus className="w-4 h-4" /> Add Milestone</button>
+      </div>
+
+      {milestones.length === 0 ? (
+        <EmptyState icon={Calendar} title="No milestones yet" sub="Track your project phases and key deliverables." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Add Milestone</button>} />
+      ) : (
+        <div className="space-y-3">
+          {milestones.map(m => (
+            <div key={m.id} className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-sm font-semibold text-white truncate">{m.title}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${MILESTONE_STATUS_COLORS[m.status] || MILESTONE_STATUS_COLORS.pending}`}>{m.status.replace('_', ' ')}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${MILESTONE_PRIORITY_COLORS[m.priority] || MILESTONE_PRIORITY_COLORS.medium}`}>{m.priority}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-dark-400 flex-wrap mb-2">
+                    <span className="capitalize">{m.category}</span>
+                    {m.dueDate && <span>Due: {fmtDate(m.dueDate)}</span>}
+                    {m.assignedTo && <span>Assigned: {m.assignedTo}</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-dark-600 rounded-full overflow-hidden max-w-xs">
+                      <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${m.progress || 0}%` }} />
+                    </div>
+                    <span className="text-xs font-bold text-brand-400 flex-shrink-0">{m.progress || 0}%</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {m.status !== 'completed' && (
+                    <button onClick={() => handleMarkComplete(m)} className="text-xs text-green-400 hover:text-green-300 hover:bg-green-400/10 px-2 py-1.5 rounded-lg transition-colors">
+                      <CheckCircle className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button onClick={() => { setForm({ title: m.title, description: m.description || '', category: m.category, dueDate: m.dueDate ? m.dueDate.slice(0,10) : '', status: m.status, priority: m.priority, assignedTo: m.assignedTo || '', progress: String(m.progress || 0) }); setEditItem(m); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(m)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(showAdd || editItem) && (
+        <Modal title={editItem ? 'Edit Milestone' : 'Add Milestone'} onClose={() => { setShowAdd(false); setEditItem(null); }}>
+          <form onSubmit={handleSave} className="space-y-4">
+            <Field label="Title *"><input className={inputCls} value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="e.g. Foundation complete" /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Category">
+                <select className={selectCls} value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
+                  {['planning','design','procurement','construction','testing','handover'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Priority">
+                <select className={selectCls} value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}>
+                  {['low','medium','high','critical'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Status">
+                <select className={selectCls} value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+                  {['pending','in_progress','completed','delayed','cancelled'].map(c => <option key={c} value={c}>{c.replace('_',' ')}</option>)}
+                </select>
+              </Field>
+              <Field label="Due Date"><input type="date" className={inputCls} value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} /></Field>
+            </div>
+            <Field label="Assigned To"><input className={inputCls} value={form.assignedTo} onChange={e => setForm(p => ({ ...p, assignedTo: e.target.value }))} placeholder="Person or team" /></Field>
+            <Field label={`Progress: ${form.progress}%`}><input type="range" min="0" max="100" value={form.progress} onChange={e => setForm(p => ({ ...p, progress: e.target.value }))} className="w-full accent-brand-500 mt-1.5" /></Field>
+            <Field label="Description"><textarea className={inputCls} rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></Field>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowAdd(false); setEditItem(null); }} className={btnSecondary + ' flex-1 justify-center'}>Cancel</button>
+              <button type="submit" disabled={saving} className={btnPrimary + ' flex-1 justify-center'}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Sales Tab ────────────────────────────────────────────────────────────────
+
+const LEAD_STATUS_COLORS: Record<string, string> = {
+  lead:        'text-purple-400 bg-purple-400/10 border-purple-400/20',
+  proposal:    'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  negotiation: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  won:         'text-green-400 bg-green-400/10 border-green-400/20',
+  lost:        'text-red-400 bg-red-400/10 border-red-400/20',
+};
+
+function SalesTab({ siteId }: { siteId: string }) {
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const blankForm = { clientName: '', clientPhone: '', clientEmail: '', company: '', projectType: '', estimatedValue: '', currency: 'INR', status: 'lead', source: '', notes: '', followUpDate: '' };
+  const [form, setForm] = useState(blankForm);
+
+  const load = useCallback(async () => {
+    if (loaded) return;
+    setLoading(true);
+    try {
+      const res = await siteManagerApi.listLeads(siteId);
+      setLeads(res.data.data || []);
+      setLoaded(true);
+    } catch { toast.error('Failed to load leads'); }
+    finally { setLoading(false); }
+  }, [siteId, loaded]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.clientName.trim()) { toast.error('Client name is required'); return; }
+    setSaving(true);
+    try {
+      const payload = { ...form, estimatedValue: parseFloat(form.estimatedValue) || 0 };
+      if (editItem) {
+        const res = await siteManagerApi.updateLead(siteId, editItem.id, payload);
+        setLeads(p => p.map(l => l.id === editItem.id ? res.data.data : l));
+        toast.success('Lead updated');
+      } else {
+        const res = await siteManagerApi.addLead(siteId, payload);
+        setLeads(p => [res.data.data, ...p]);
+        toast.success('Lead added');
+      }
+      setShowAdd(false); setEditItem(null); setForm(blankForm);
+    } catch { toast.error('Failed to save lead'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete(l: any) {
+    if (!confirm(`Delete lead for "${l.clientName}"?`)) return;
+    try {
+      await siteManagerApi.deleteLead(siteId, l.id);
+      setLeads(p => p.filter(x => x.id !== l.id));
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
+  }
+
+  const totalPipeline = leads.filter(l => l.status !== 'lost').reduce((s, l) => s + (l.estimatedValue || 0), 0);
+  const wonLeads = leads.filter(l => l.status === 'won');
+  const wonValue = wonLeads.reduce((s, l) => s + (l.estimatedValue || 0), 0);
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-white">Sales Pipeline</h2>
+          <p className="text-xs text-dark-400">{leads.length} lead{leads.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button className={btnPrimary} onClick={() => { setForm(blankForm); setEditItem(null); setShowAdd(true); }}><Plus className="w-4 h-4" /> Add Lead</button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <StatCard label="Total Leads" value={leads.length} />
+        <StatCard label="Pipeline Value" value={fmt(totalPipeline)} color="text-brand-400" />
+        <StatCard label="Won" value={wonLeads.length} color="text-green-400" />
+        <StatCard label="Won Value" value={fmt(wonValue)} color="text-green-400" />
+      </div>
+
+      {leads.length === 0 ? (
+        <EmptyState icon={TrendingUp} title="No leads yet" sub="Track your sales pipeline and client opportunities." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Add Lead</button>} />
+      ) : (
+        <div className="space-y-3">
+          {leads.map(l => (
+            <div key={l.id} className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-sm font-semibold text-white">{l.clientName}</span>
+                    {l.company && <span className="text-xs text-dark-400">{l.company}</span>}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${LEAD_STATUS_COLORS[l.status] || LEAD_STATUS_COLORS.lead}`}>{l.status}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-dark-400 flex-wrap">
+                    {l.estimatedValue > 0 && <span className="text-brand-400 font-semibold">{fmt(l.estimatedValue, l.currency || 'INR')}</span>}
+                    {l.source && <span>via {l.source}</span>}
+                    {l.followUpDate && <span>Follow-up: {fmtDate(l.followUpDate)}</span>}
+                    {l.projectType && <span>{l.projectType}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => { setForm({ clientName: l.clientName, clientPhone: l.clientPhone || '', clientEmail: l.clientEmail || '', company: l.company || '', projectType: l.projectType || '', estimatedValue: String(l.estimatedValue || ''), currency: l.currency || 'INR', status: l.status, source: l.source || '', notes: l.notes || '', followUpDate: l.followUpDate ? l.followUpDate.slice(0,10) : '' }); setEditItem(l); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(l)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(showAdd || editItem) && (
+        <Modal title={editItem ? 'Edit Lead' : 'Add Lead'} onClose={() => { setShowAdd(false); setEditItem(null); }} wide>
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2"><Field label="Client Name *"><input className={inputCls} value={form.clientName} onChange={e => setForm(p => ({ ...p, clientName: e.target.value }))} /></Field></div>
+              <Field label="Phone"><input className={inputCls} value={form.clientPhone} onChange={e => setForm(p => ({ ...p, clientPhone: e.target.value }))} /></Field>
+              <Field label="Email"><input type="email" className={inputCls} value={form.clientEmail} onChange={e => setForm(p => ({ ...p, clientEmail: e.target.value }))} /></Field>
+              <Field label="Company"><input className={inputCls} value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} /></Field>
+              <Field label="Project Type"><input className={inputCls} value={form.projectType} onChange={e => setForm(p => ({ ...p, projectType: e.target.value }))} /></Field>
+              <Field label="Estimated Value"><input type="number" className={inputCls} value={form.estimatedValue} onChange={e => setForm(p => ({ ...p, estimatedValue: e.target.value }))} /></Field>
+              <Field label="Currency">
+                <select className={selectCls} value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))}>
+                  {['INR','USD','AED','SGD'].map(c => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Status">
+                <select className={selectCls} value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+                  {['lead','proposal','negotiation','won','lost'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Source"><input className={inputCls} value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))} placeholder="referral, website, etc." /></Field>
+              <Field label="Follow-up Date"><input type="date" className={inputCls} value={form.followUpDate} onChange={e => setForm(p => ({ ...p, followUpDate: e.target.value }))} /></Field>
+              <div className="col-span-2"><Field label="Notes"><textarea className={inputCls} rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></Field></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowAdd(false); setEditItem(null); }} className={btnSecondary + ' flex-1 justify-center'}>Cancel</button>
+              <button type="submit" disabled={saving} className={btnPrimary + ' flex-1 justify-center'}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Design Tab ───────────────────────────────────────────────────────────────
+
+const DESIGN_STATUS_COLORS: Record<string, string> = {
+  draft:        'text-gray-400 bg-gray-400/10 border-gray-400/20',
+  under_review: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  approved:     'text-green-400 bg-green-400/10 border-green-400/20',
+  rejected:     'text-red-400 bg-red-400/10 border-red-400/20',
+  superseded:   'text-slate-400 bg-slate-400/10 border-slate-400/20',
+};
+const DESIGN_TYPE_COLORS: Record<string, string> = {
+  architectural: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  structural:    'text-purple-400 bg-purple-400/10 border-purple-400/20',
+  electrical:    'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+  plumbing:      'text-cyan-400 bg-cyan-400/10 border-cyan-400/20',
+  landscape:     'text-green-400 bg-green-400/10 border-green-400/20',
+  interior:      'text-pink-400 bg-pink-400/10 border-pink-400/20',
+  other:         'text-gray-400 bg-gray-400/10 border-gray-400/20',
+};
+
+function DesignTab({ siteId }: { siteId: string }) {
+  const [designs, setDesigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const blankForm = { title: '', type: 'architectural', version: 'v1.0', status: 'draft', fileUrl: '', preparedBy: '', checkedBy: '', approvedBy: '', notes: '' };
+  const [form, setForm] = useState(blankForm);
+
+  const load = useCallback(async () => {
+    if (loaded) return;
+    setLoading(true);
+    try {
+      const res = await siteManagerApi.listDesigns(siteId);
+      setDesigns(res.data.data || []);
+      setLoaded(true);
+    } catch { toast.error('Failed to load designs'); }
+    finally { setLoading(false); }
+  }, [siteId, loaded]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim()) { toast.error('Title is required'); return; }
+    setSaving(true);
+    try {
+      if (editItem) {
+        const res = await siteManagerApi.updateDesign(siteId, editItem.id, form);
+        setDesigns(p => p.map(d => d.id === editItem.id ? res.data.data : d));
+        toast.success('Design updated');
+      } else {
+        const res = await siteManagerApi.addDesign(siteId, form);
+        setDesigns(p => [res.data.data, ...p]);
+        toast.success('Design added');
+      }
+      setShowAdd(false); setEditItem(null); setForm(blankForm);
+    } catch { toast.error('Failed to save design'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete(d: any) {
+    if (!confirm(`Delete "${d.title}"?`)) return;
+    try {
+      await siteManagerApi.deleteDesign(siteId, d.id);
+      setDesigns(p => p.filter(x => x.id !== d.id));
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
+  }
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-white">Design Documents</h2>
+          <p className="text-xs text-dark-400">{designs.length} document{designs.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button className={btnPrimary} onClick={() => { setForm(blankForm); setEditItem(null); setShowAdd(true); }}><Plus className="w-4 h-4" /> Add Design</button>
+      </div>
+
+      {designs.length === 0 ? (
+        <EmptyState icon={Edit2} title="No design documents" sub="Manage architectural, structural and other design drawings." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Add Design</button>} />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b border-dark-700">
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Title</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Type</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Version</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Status</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Prepared By</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Date</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-dark-700">
+              {designs.map(d => (
+                <tr key={d.id} className="hover:bg-dark-700/50">
+                  <td className="py-3 pr-4 font-medium text-white">{d.title}</td>
+                  <td className="py-3 pr-4"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${DESIGN_TYPE_COLORS[d.type] || DESIGN_TYPE_COLORS.other}`}>{d.type}</span></td>
+                  <td className="py-3 pr-4 text-dark-300">{d.version}</td>
+                  <td className="py-3 pr-4"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${DESIGN_STATUS_COLORS[d.status] || DESIGN_STATUS_COLORS.draft}`}>{d.status.replace('_',' ')}</span></td>
+                  <td className="py-3 pr-4 text-dark-300">{d.preparedBy || '—'}</td>
+                  <td className="py-3 pr-4 text-dark-400 text-xs">{fmtDate(d.createdAt)}</td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => { setForm({ title: d.title, type: d.type, version: d.version, status: d.status, fileUrl: d.fileUrl || '', preparedBy: d.preparedBy || '', checkedBy: d.checkedBy || '', approvedBy: d.approvedBy || '', notes: d.notes || '' }); setEditItem(d); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(d)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {(showAdd || editItem) && (
+        <Modal title={editItem ? 'Edit Design Document' : 'Add Design Document'} onClose={() => { setShowAdd(false); setEditItem(null); }} wide>
+          <form onSubmit={handleSave} className="space-y-4">
+            <Field label="Title *"><input className={inputCls} value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Type">
+                <select className={selectCls} value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}>
+                  {['architectural','structural','electrical','plumbing','landscape','interior','other'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Version"><input className={inputCls} value={form.version} onChange={e => setForm(p => ({ ...p, version: e.target.value }))} placeholder="v1.0" /></Field>
+              <Field label="Status">
+                <select className={selectCls} value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+                  {['draft','under_review','approved','rejected','superseded'].map(c => <option key={c} value={c}>{c.replace('_',' ')}</option>)}
+                </select>
+              </Field>
+              <Field label="File URL"><input className={inputCls} value={form.fileUrl} onChange={e => setForm(p => ({ ...p, fileUrl: e.target.value }))} placeholder="https://..." /></Field>
+              <Field label="Prepared By"><input className={inputCls} value={form.preparedBy} onChange={e => setForm(p => ({ ...p, preparedBy: e.target.value }))} /></Field>
+              <Field label="Checked By"><input className={inputCls} value={form.checkedBy} onChange={e => setForm(p => ({ ...p, checkedBy: e.target.value }))} /></Field>
+              <div className="col-span-2"><Field label="Approved By"><input className={inputCls} value={form.approvedBy} onChange={e => setForm(p => ({ ...p, approvedBy: e.target.value }))} /></Field></div>
+              <div className="col-span-2"><Field label="Notes"><textarea className={inputCls} rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></Field></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowAdd(false); setEditItem(null); }} className={btnSecondary + ' flex-1 justify-center'}>Cancel</button>
+              <button type="submit" disabled={saving} className={btnPrimary + ' flex-1 justify-center'}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Quality Tab ──────────────────────────────────────────────────────────────
+
+const QC_STATUS_COLORS: Record<string, string> = {
+  pending:            'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  passed:             'text-green-400 bg-green-400/10 border-green-400/20',
+  failed:             'text-red-400 bg-red-400/10 border-red-400/20',
+  needs_rectification:'text-orange-400 bg-orange-400/10 border-orange-400/20',
+};
+
+function QualityTab({ siteId }: { siteId: string }) {
+  const [checks, setChecks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const blankForm = { title: '', category: 'structural', checkDate: todayStr(), inspector: '', location: '', findings: '', remarks: '', status: 'pending', items: [{ description: '', status: 'pending', remarks: '' }] };
+  const [form, setForm] = useState<any>(blankForm);
+
+  const load = useCallback(async () => {
+    if (loaded) return;
+    setLoading(true);
+    try {
+      const res = await siteManagerApi.listQualityChecks(siteId);
+      setChecks(res.data.data || []);
+      setLoaded(true);
+    } catch { toast.error('Failed to load quality checks'); }
+    finally { setLoading(false); }
+  }, [siteId, loaded]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim()) { toast.error('Title is required'); return; }
+    setSaving(true);
+    try {
+      const payload = { ...form, items: form.items.filter((i: any) => i.description.trim()) };
+      if (editItem) {
+        const res = await siteManagerApi.updateQualityCheck(siteId, editItem.id, payload);
+        setChecks(p => p.map(c => c.id === editItem.id ? res.data.data : c));
+        toast.success('Quality check updated');
+      } else {
+        const res = await siteManagerApi.addQualityCheck(siteId, payload);
+        setChecks(p => [res.data.data, ...p]);
+        toast.success('Quality check added');
+      }
+      setShowAdd(false); setEditItem(null); setForm(blankForm);
+    } catch { toast.error('Failed to save quality check'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleQuickStatus(check: any, status: string) {
+    try {
+      const res = await siteManagerApi.updateQualityCheck(siteId, check.id, { status });
+      setChecks(p => p.map(c => c.id === check.id ? res.data.data : c));
+      toast.success(`Marked ${status}`);
+    } catch { toast.error('Failed to update'); }
+  }
+
+  async function handleDelete(c: any) {
+    if (!confirm(`Delete quality check "${c.title}"?`)) return;
+    try {
+      await siteManagerApi.deleteQualityCheck(siteId, c.id);
+      setChecks(p => p.filter(x => x.id !== c.id));
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
+  }
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-white">Quality Management</h2>
+          <p className="text-xs text-dark-400">{checks.length} check{checks.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button className={btnPrimary} onClick={() => { setForm(blankForm); setEditItem(null); setShowAdd(true); }}><Plus className="w-4 h-4" /> Add Check</button>
+      </div>
+
+      {checks.length === 0 ? (
+        <EmptyState icon={CheckCircle} title="No quality checks" sub="Track inspections, findings, and pass/fail results." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Add Check</button>} />
+      ) : (
+        <div className="space-y-3">
+          {checks.map(c => (
+            <div key={c.id} className="bg-dark-700 border border-dark-600 rounded-xl overflow-hidden">
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-sm font-semibold text-white">{c.title}</span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${QC_STATUS_COLORS[c.status] || QC_STATUS_COLORS.pending}`}>{c.status.replace('_',' ')}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-dark-400 flex-wrap">
+                      <span className="capitalize">{c.category}</span>
+                      <span>{fmtDate(c.checkDate)}</span>
+                      {c.inspector && <span>Inspector: {c.inspector}</span>}
+                      {c.location && <span>{c.location}</span>}
+                      {c.items?.length > 0 && <span>{c.items.length} checklist item{c.items.length !== 1 ? 's' : ''}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {c.status !== 'passed' && <button onClick={() => handleQuickStatus(c, 'passed')} className="text-xs text-green-400 hover:text-green-300 hover:bg-green-400/10 px-2 py-1.5 rounded-lg transition-colors whitespace-nowrap">Pass</button>}
+                    {c.status !== 'failed' && <button onClick={() => handleQuickStatus(c, 'failed')} className="text-xs text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2 py-1.5 rounded-lg transition-colors whitespace-nowrap">Fail</button>}
+                    <button onClick={() => setExpandedId(expandedId === c.id ? null : c.id)} className={btnSecondary + ' !px-2 !py-1.5'}>{expandedId === c.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}</button>
+                    <button onClick={() => { setForm({ title: c.title, category: c.category, checkDate: c.checkDate ? c.checkDate.slice(0,10) : todayStr(), inspector: c.inspector || '', location: c.location || '', findings: c.findings || '', remarks: c.remarks || '', status: c.status, items: c.items?.length ? c.items.map((i: any) => ({ description: i.description, status: i.status, remarks: i.remarks || '' })) : [{ description: '', status: 'pending', remarks: '' }] }); setEditItem(c); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => handleDelete(c)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
+                </div>
+              </div>
+              {expandedId === c.id && c.items?.length > 0 && (
+                <div className="border-t border-dark-600 px-4 pb-4 pt-3">
+                  <p className="text-xs font-semibold text-dark-300 mb-2">Checklist Items</p>
+                  <div className="space-y-1.5">
+                    {c.items.map((item: any) => (
+                      <div key={item.id} className="flex items-center gap-2 text-xs">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.status === 'passed' ? 'bg-green-400' : item.status === 'failed' ? 'bg-red-400' : 'bg-amber-400'}`} />
+                        <span className="text-dark-200 flex-1">{item.description}</span>
+                        <span className="text-dark-400 capitalize">{item.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(showAdd || editItem) && (
+        <Modal title={editItem ? 'Edit Quality Check' : 'Add Quality Check'} onClose={() => { setShowAdd(false); setEditItem(null); }} wide>
+          <form onSubmit={handleSave} className="space-y-4">
+            <Field label="Title *"><input className={inputCls} value={form.title} onChange={e => setForm((p: any) => ({ ...p, title: e.target.value }))} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Category">
+                <select className={selectCls} value={form.category} onChange={e => setForm((p: any) => ({ ...p, category: e.target.value }))}>
+                  {['structural','electrical','plumbing','finishing','safety','environmental'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Status">
+                <select className={selectCls} value={form.status} onChange={e => setForm((p: any) => ({ ...p, status: e.target.value }))}>
+                  {['pending','passed','failed','needs_rectification'].map(c => <option key={c} value={c}>{c.replace('_',' ')}</option>)}
+                </select>
+              </Field>
+              <Field label="Check Date"><input type="date" className={inputCls} value={form.checkDate} onChange={e => setForm((p: any) => ({ ...p, checkDate: e.target.value }))} /></Field>
+              <Field label="Inspector"><input className={inputCls} value={form.inspector} onChange={e => setForm((p: any) => ({ ...p, inspector: e.target.value }))} /></Field>
+              <div className="col-span-2"><Field label="Location"><input className={inputCls} value={form.location} onChange={e => setForm((p: any) => ({ ...p, location: e.target.value }))} /></Field></div>
+              <div className="col-span-2"><Field label="Findings"><textarea className={inputCls} rows={2} value={form.findings} onChange={e => setForm((p: any) => ({ ...p, findings: e.target.value }))} /></Field></div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-dark-300">Checklist Items</label>
+                <button type="button" onClick={() => setForm((p: any) => ({ ...p, items: [...p.items, { description: '', status: 'pending', remarks: '' }] }))} className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1"><Plus className="w-3 h-3" /> Add Item</button>
+              </div>
+              <div className="space-y-2">
+                {form.items.map((item: any, idx: number) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <input className={inputCls + ' flex-1'} placeholder="Description" value={item.description} onChange={e => { const n = [...form.items]; n[idx] = { ...n[idx], description: e.target.value }; setForm((p: any) => ({ ...p, items: n })); }} />
+                    <select className="bg-dark-700 border border-dark-600 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-brand-500 w-24" value={item.status} onChange={e => { const n = [...form.items]; n[idx] = { ...n[idx], status: e.target.value }; setForm((p: any) => ({ ...p, items: n })); }}>
+                      {['pending','passed','failed','na'].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    {form.items.length > 1 && <button type="button" onClick={() => setForm((p: any) => ({ ...p, items: p.items.filter((_: any, i: number) => i !== idx) }))} className="text-dark-400 hover:text-red-400 px-1"><X className="w-4 h-4" /></button>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowAdd(false); setEditItem(null); }} className={btnSecondary + ' flex-1 justify-center'}>Cancel</button>
+              <button type="submit" disabled={saving} className={btnPrimary + ' flex-1 justify-center'}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Procurement Tab ──────────────────────────────────────────────────────────
+
+const PO_STATUS_COLORS: Record<string, string> = {
+  draft:     'text-gray-400 bg-gray-400/10 border-gray-400/20',
+  sent:      'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  confirmed: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  delivered: 'text-green-400 bg-green-400/10 border-green-400/20',
+  cancelled: 'text-red-400 bg-red-400/10 border-red-400/20',
+};
+
+function ProcurementTab({ siteId }: { siteId: string }) {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const blankForm = { vendor: '', vendorPhone: '', vendorEmail: '', category: 'material', totalAmount: '', taxAmount: '', currency: 'INR', expectedDate: '', notes: '', itemsText: '' };
+  const [form, setForm] = useState(blankForm);
+
+  const load = useCallback(async () => {
+    if (loaded) return;
+    setLoading(true);
+    try {
+      const res = await siteManagerApi.listProcurements(siteId);
+      setOrders(res.data.data || []);
+      setLoaded(true);
+    } catch { toast.error('Failed to load procurement orders'); }
+    finally { setLoading(false); }
+  }, [siteId, loaded]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.vendor.trim() || !form.totalAmount) { toast.error('Vendor and total amount are required'); return; }
+    setSaving(true);
+    try {
+      const itemsParsed = form.itemsText.split('\n').filter(l => l.trim()).map(l => ({ description: l.trim() }));
+      const payload = { vendor: form.vendor, vendorPhone: form.vendorPhone, vendorEmail: form.vendorEmail, category: form.category, totalAmount: parseFloat(form.totalAmount) || 0, taxAmount: parseFloat(form.taxAmount) || 0, currency: form.currency, expectedDate: form.expectedDate || undefined, notes: form.notes, items: JSON.stringify(itemsParsed) };
+      if (editItem) {
+        const res = await siteManagerApi.updateProcurement(siteId, editItem.id, payload);
+        setOrders(p => p.map(o => o.id === editItem.id ? res.data.data : o));
+        toast.success('Order updated');
+      } else {
+        const res = await siteManagerApi.createProcurement(siteId, payload);
+        setOrders(p => [res.data.data, ...p]);
+        toast.success('Order created');
+      }
+      setShowAdd(false); setEditItem(null); setForm(blankForm);
+    } catch { toast.error('Failed to save order'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleStatusUpdate(order: any, status: string) {
+    try {
+      const res = await siteManagerApi.updateProcurement(siteId, order.id, { status });
+      setOrders(p => p.map(o => o.id === order.id ? res.data.data : o));
+      toast.success(`Status updated to ${status}`);
+    } catch { toast.error('Failed to update'); }
+  }
+
+  async function handleDelete(o: any) {
+    if (!confirm(`Delete PO ${o.poNumber}?`)) return;
+    try {
+      await siteManagerApi.deleteProcurement(siteId, o.id);
+      setOrders(p => p.filter(x => x.id !== o.id));
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
+  }
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-white">Procurement Orders</h2>
+          <p className="text-xs text-dark-400">{orders.length} order{orders.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button className={btnPrimary} onClick={() => { setForm(blankForm); setEditItem(null); setShowAdd(true); }}><Plus className="w-4 h-4" /> Create PO</button>
+      </div>
+
+      {orders.length === 0 ? (
+        <EmptyState icon={Package} title="No procurement orders" sub="Create purchase orders for materials, equipment, and services." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Create PO</button>} />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b border-dark-700">
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">PO#</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Vendor</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Category</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Amount</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Status</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Expected</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-dark-700">
+              {orders.map(o => (
+                <tr key={o.id} className="hover:bg-dark-700/50">
+                  <td className="py-3 pr-4 font-mono text-xs text-brand-400">{o.poNumber}</td>
+                  <td className="py-3 pr-4 font-medium text-white">{o.vendor}</td>
+                  <td className="py-3 pr-4 text-dark-300 capitalize">{o.category}</td>
+                  <td className="py-3 pr-4 text-white font-semibold">{fmt(o.totalAmount, o.currency)}</td>
+                  <td className="py-3 pr-4"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${PO_STATUS_COLORS[o.status] || PO_STATUS_COLORS.draft}`}>{o.status}</span></td>
+                  <td className="py-3 pr-4 text-dark-400 text-xs">{o.expectedDate ? fmtDate(o.expectedDate) : '—'}</td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-1">
+                      {o.status === 'draft' && <button onClick={() => handleStatusUpdate(o, 'sent')} className="text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 px-2 py-1 rounded-lg transition-colors whitespace-nowrap">Send</button>}
+                      {o.status === 'sent' && <button onClick={() => handleStatusUpdate(o, 'confirmed')} className="text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 px-2 py-1 rounded-lg transition-colors whitespace-nowrap">Confirm</button>}
+                      {o.status === 'confirmed' && <button onClick={() => handleStatusUpdate(o, 'delivered')} className="text-xs text-green-400 hover:text-green-300 hover:bg-green-400/10 px-2 py-1 rounded-lg transition-colors whitespace-nowrap">Delivered</button>}
+                      <button onClick={() => { setForm({ vendor: o.vendor, vendorPhone: o.vendorPhone || '', vendorEmail: o.vendorEmail || '', category: o.category, totalAmount: String(o.totalAmount), taxAmount: String(o.taxAmount || ''), currency: o.currency, expectedDate: o.expectedDate ? o.expectedDate.slice(0,10) : '', notes: o.notes || '', itemsText: '' }); setEditItem(o); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(o)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {(showAdd || editItem) && (
+        <Modal title={editItem ? 'Edit PO' : 'Create Purchase Order'} onClose={() => { setShowAdd(false); setEditItem(null); }} wide>
+          <form onSubmit={handleSave} className="space-y-4">
+            <Field label="Vendor *"><input className={inputCls} value={form.vendor} onChange={e => setForm(p => ({ ...p, vendor: e.target.value }))} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Vendor Phone"><input className={inputCls} value={form.vendorPhone} onChange={e => setForm(p => ({ ...p, vendorPhone: e.target.value }))} /></Field>
+              <Field label="Vendor Email"><input type="email" className={inputCls} value={form.vendorEmail} onChange={e => setForm(p => ({ ...p, vendorEmail: e.target.value }))} /></Field>
+              <Field label="Category">
+                <select className={selectCls} value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
+                  {['material','equipment','service','subcontract'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Currency">
+                <select className={selectCls} value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))}>
+                  {['INR','USD','AED','SGD'].map(c => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Total Amount *"><input type="number" className={inputCls} value={form.totalAmount} onChange={e => setForm(p => ({ ...p, totalAmount: e.target.value }))} /></Field>
+              <Field label="Tax Amount"><input type="number" className={inputCls} value={form.taxAmount} onChange={e => setForm(p => ({ ...p, taxAmount: e.target.value }))} /></Field>
+              <div className="col-span-2"><Field label="Expected Delivery Date"><input type="date" className={inputCls} value={form.expectedDate} onChange={e => setForm(p => ({ ...p, expectedDate: e.target.value }))} /></Field></div>
+            </div>
+            <Field label="Items (one per line)"><textarea className={inputCls} rows={4} value={form.itemsText} onChange={e => setForm(p => ({ ...p, itemsText: e.target.value }))} placeholder="50 bags of cement&#10;10 tonnes of steel&#10;500 bricks" /></Field>
+            <Field label="Notes"><textarea className={inputCls} rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></Field>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowAdd(false); setEditItem(null); }} className={btnSecondary + ' flex-1 justify-center'}>Cancel</button>
+              <button type="submit" disabled={saving} className={btnPrimary + ' flex-1 justify-center'}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Production Tab ───────────────────────────────────────────────────────────
+
+const TASK_STATUS_COLORS: Record<string, string> = {
+  pending:     'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  in_progress: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  completed:   'text-green-400 bg-green-400/10 border-green-400/20',
+  on_hold:     'text-gray-400 bg-gray-400/10 border-gray-400/20',
+  cancelled:   'text-red-400 bg-red-400/10 border-red-400/20',
+};
+
+function ProductionTab({ siteId }: { siteId: string }) {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [progressEdits, setProgressEdits] = useState<Record<string, string>>({});
+  const blankForm = { title: '', description: '', category: 'civil', location: '', assignedTo: '', startDate: '', endDate: '', status: 'pending', priority: 'medium', progress: '0', unit: '', plannedQty: '', completedQty: '0', notes: '' };
+  const [form, setForm] = useState(blankForm);
+
+  const load = useCallback(async () => {
+    if (loaded) return;
+    setLoading(true);
+    try {
+      const res = await siteManagerApi.listProductions(siteId);
+      setTasks(res.data.data || []);
+      setLoaded(true);
+    } catch { toast.error('Failed to load production tasks'); }
+    finally { setLoading(false); }
+  }, [siteId, loaded]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim()) { toast.error('Title is required'); return; }
+    setSaving(true);
+    try {
+      if (editItem) {
+        const res = await siteManagerApi.updateProduction(siteId, editItem.id, form);
+        setTasks(p => p.map(t => t.id === editItem.id ? res.data.data : t));
+        toast.success('Task updated');
+      } else {
+        const res = await siteManagerApi.addProduction(siteId, form);
+        setTasks(p => [res.data.data, ...p]);
+        toast.success('Task added');
+      }
+      setShowAdd(false); setEditItem(null); setForm(blankForm);
+    } catch { toast.error('Failed to save task'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleProgressSave(task: any) {
+    const val = progressEdits[task.id];
+    if (val === undefined) return;
+    try {
+      const res = await siteManagerApi.updateProduction(siteId, task.id, { progress: parseFloat(val) || 0 });
+      setTasks(p => p.map(t => t.id === task.id ? res.data.data : t));
+      setProgressEdits(p => { const n = { ...p }; delete n[task.id]; return n; });
+      toast.success('Progress updated');
+    } catch { toast.error('Failed to update progress'); }
+  }
+
+  async function handleDelete(t: any) {
+    if (!confirm(`Delete task "${t.title}"?`)) return;
+    try {
+      await siteManagerApi.deleteProduction(siteId, t.id);
+      setTasks(p => p.filter(x => x.id !== t.id));
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
+  }
+
+  const completedCount = tasks.filter(t => t.status === 'completed').length;
+  const inProgressCount = tasks.filter(t => t.status === 'in_progress').length;
+  const completedPct = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-white">Production Tasks</h2>
+          <p className="text-xs text-dark-400">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button className={btnPrimary} onClick={() => { setForm(blankForm); setEditItem(null); setShowAdd(true); }}><Plus className="w-4 h-4" /> Add Task</button>
+      </div>
+
+      {tasks.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <StatCard label="Total Tasks" value={tasks.length} />
+          <StatCard label="Completed" value={`${completedPct}%`} color="text-green-400" sub={`${completedCount} of ${tasks.length}`} />
+          <StatCard label="In Progress" value={inProgressCount} color="text-blue-400" />
+        </div>
+      )}
+
+      {tasks.length === 0 ? (
+        <EmptyState icon={Zap} title="No production tasks" sub="Track construction activities, progress, and completion." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Add Task</button>} />
+      ) : (
+        <div className="space-y-3">
+          {tasks.map(t => (
+            <div key={t.id} className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-sm font-semibold text-white">{t.title}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${TASK_STATUS_COLORS[t.status] || TASK_STATUS_COLORS.pending}`}>{t.status.replace('_',' ')}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${MILESTONE_PRIORITY_COLORS[t.priority] || MILESTONE_PRIORITY_COLORS.medium}`}>{t.priority}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-dark-400 flex-wrap mb-2">
+                    <span className="capitalize">{t.category}</span>
+                    {t.location && <span>{t.location}</span>}
+                    {t.assignedTo && <span>By: {t.assignedTo}</span>}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2 bg-dark-600 rounded-full overflow-hidden max-w-xs">
+                      <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${t.progress || 0}%` }} />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input type="number" min="0" max="100" className="w-16 bg-dark-600 border border-dark-500 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-brand-500" value={progressEdits[t.id] !== undefined ? progressEdits[t.id] : t.progress || 0} onChange={e => setProgressEdits(p => ({ ...p, [t.id]: e.target.value }))} />
+                      {progressEdits[t.id] !== undefined && <button onClick={() => handleProgressSave(t)} className="text-xs text-brand-400 hover:text-brand-300 px-1.5 py-1 rounded transition-colors"><Save className="w-3.5 h-3.5" /></button>}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => { setForm({ title: t.title, description: t.description || '', category: t.category, location: t.location || '', assignedTo: t.assignedTo || '', startDate: t.startDate ? t.startDate.slice(0,10) : '', endDate: t.endDate ? t.endDate.slice(0,10) : '', status: t.status, priority: t.priority, progress: String(t.progress || 0), unit: t.unit || '', plannedQty: String(t.plannedQty || ''), completedQty: String(t.completedQty || 0), notes: t.notes || '' }); setEditItem(t); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(t)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(showAdd || editItem) && (
+        <Modal title={editItem ? 'Edit Task' : 'Add Production Task'} onClose={() => { setShowAdd(false); setEditItem(null); }} wide>
+          <form onSubmit={handleSave} className="space-y-4">
+            <Field label="Title *"><input className={inputCls} value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Category">
+                <select className={selectCls} value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
+                  {['civil','structural','electrical','plumbing','finishing','external','other'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Priority">
+                <select className={selectCls} value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}>
+                  {['low','medium','high','critical'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Status">
+                <select className={selectCls} value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+                  {['pending','in_progress','completed','on_hold','cancelled'].map(c => <option key={c} value={c}>{c.replace('_',' ')}</option>)}
+                </select>
+              </Field>
+              <Field label="Location"><input className={inputCls} value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} /></Field>
+              <Field label="Assigned To"><input className={inputCls} value={form.assignedTo} onChange={e => setForm(p => ({ ...p, assignedTo: e.target.value }))} /></Field>
+              <Field label={`Progress: ${form.progress}%`}><input type="range" min="0" max="100" value={form.progress} onChange={e => setForm(p => ({ ...p, progress: e.target.value }))} className="w-full accent-brand-500 mt-1.5" /></Field>
+              <Field label="Start Date"><input type="date" className={inputCls} value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} /></Field>
+              <Field label="End Date"><input type="date" className={inputCls} value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} /></Field>
+              <Field label="Unit"><input className={inputCls} value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} placeholder="sqft, pieces, etc." /></Field>
+              <Field label="Planned Qty"><input type="number" className={inputCls} value={form.plannedQty} onChange={e => setForm(p => ({ ...p, plannedQty: e.target.value }))} /></Field>
+              <div className="col-span-2"><Field label="Notes"><textarea className={inputCls} rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></Field></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowAdd(false); setEditItem(null); }} className={btnSecondary + ' flex-1 justify-center'}>Cancel</button>
+              <button type="submit" disabled={saving} className={btnPrimary + ' flex-1 justify-center'}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Vendor Bills Tab ─────────────────────────────────────────────────────────
+
+const BILL_STATUS_COLORS: Record<string, string> = {
+  pending:  'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  approved: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  paid:     'text-green-400 bg-green-400/10 border-green-400/20',
+  overdue:  'text-red-400 bg-red-400/10 border-red-400/20',
+  disputed: 'text-purple-400 bg-purple-400/10 border-purple-400/20',
+};
+
+function VendorBillsTab({ siteId }: { siteId: string }) {
+  const [bills, setBills] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const blankForm = { vendor: '', billNumber: '', category: 'material', description: '', amount: '', taxAmount: '', totalAmount: '', currency: 'INR', billDate: todayStr(), dueDate: '', status: 'pending', paymentMethod: '', notes: '' };
+  const [form, setForm] = useState(blankForm);
+
+  const load = useCallback(async () => {
+    if (loaded) return;
+    setLoading(true);
+    try {
+      const res = await siteManagerApi.listVendorBills(siteId);
+      setBills(res.data.data || []);
+      setLoaded(true);
+    } catch { toast.error('Failed to load vendor bills'); }
+    finally { setLoading(false); }
+  }, [siteId, loaded]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.vendor.trim() || !form.totalAmount) { toast.error('Vendor and total amount are required'); return; }
+    setSaving(true);
+    try {
+      const payload = { ...form, amount: parseFloat(form.amount) || 0, taxAmount: parseFloat(form.taxAmount) || 0, totalAmount: parseFloat(form.totalAmount) || 0 };
+      if (editItem) {
+        const res = await siteManagerApi.updateVendorBill(siteId, editItem.id, payload);
+        setBills(p => p.map(b => b.id === editItem.id ? res.data.data : b));
+        toast.success('Bill updated');
+      } else {
+        const res = await siteManagerApi.addVendorBill(siteId, payload);
+        setBills(p => [res.data.data, ...p]);
+        toast.success('Bill added');
+      }
+      setShowAdd(false); setEditItem(null); setForm(blankForm);
+    } catch { toast.error('Failed to save bill'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleMarkPaid(b: any) {
+    try {
+      const res = await siteManagerApi.updateVendorBill(siteId, b.id, { status: 'paid' });
+      setBills(p => p.map(x => x.id === b.id ? res.data.data : x));
+      toast.success('Marked as paid');
+    } catch { toast.error('Failed to update'); }
+  }
+
+  async function handleDelete(b: any) {
+    if (!confirm(`Delete bill from "${b.vendor}"?`)) return;
+    try {
+      await siteManagerApi.deleteVendorBill(siteId, b.id);
+      setBills(p => p.filter(x => x.id !== b.id));
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
+  }
+
+  const totalBilled = bills.reduce((s, b) => s + (b.totalAmount || 0), 0);
+  const totalPaid = bills.filter(b => b.status === 'paid').reduce((s, b) => s + (b.totalAmount || 0), 0);
+  const totalPending = bills.filter(b => b.status === 'pending').reduce((s, b) => s + (b.totalAmount || 0), 0);
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-white">Vendor Bills</h2>
+          <p className="text-xs text-dark-400">{bills.length} bill{bills.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button className={btnPrimary} onClick={() => { setForm(blankForm); setEditItem(null); setShowAdd(true); }}><Plus className="w-4 h-4" /> Add Bill</button>
+      </div>
+
+      {bills.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <StatCard label="Total Billed" value={fmt(totalBilled)} color="text-white" />
+          <StatCard label="Paid" value={fmt(totalPaid)} color="text-green-400" />
+          <StatCard label="Pending" value={fmt(totalPending)} color="text-amber-400" />
+        </div>
+      )}
+
+      {bills.length === 0 ? (
+        <EmptyState icon={Receipt} title="No vendor bills" sub="Record bills from vendors, suppliers, and contractors." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Add Bill</button>} />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b border-dark-700">
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Vendor</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Bill #</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Amount</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Status</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Bill Date</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Due Date</th>
+                <th className="pb-3 text-xs font-semibold text-dark-400"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-dark-700">
+              {bills.map(b => (
+                <tr key={b.id} className="hover:bg-dark-700/50">
+                  <td className="py-3 pr-4 font-medium text-white">{b.vendor}</td>
+                  <td className="py-3 pr-4 text-dark-300 font-mono text-xs">{b.billNumber || '—'}</td>
+                  <td className="py-3 pr-4 text-white font-semibold">{fmt(b.totalAmount, b.currency)}</td>
+                  <td className="py-3 pr-4"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${BILL_STATUS_COLORS[b.status] || BILL_STATUS_COLORS.pending}`}>{b.status}</span></td>
+                  <td className="py-3 pr-4 text-dark-400 text-xs">{fmtDate(b.billDate)}</td>
+                  <td className="py-3 pr-4 text-dark-400 text-xs">{b.dueDate ? fmtDate(b.dueDate) : '—'}</td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-1">
+                      {b.status !== 'paid' && <button onClick={() => handleMarkPaid(b)} className="text-xs text-green-400 hover:text-green-300 hover:bg-green-400/10 px-2 py-1.5 rounded-lg transition-colors whitespace-nowrap">Pay</button>}
+                      <button onClick={() => { setForm({ vendor: b.vendor, billNumber: b.billNumber || '', category: b.category, description: b.description || '', amount: String(b.amount || ''), taxAmount: String(b.taxAmount || ''), totalAmount: String(b.totalAmount || ''), currency: b.currency, billDate: b.billDate ? b.billDate.slice(0,10) : todayStr(), dueDate: b.dueDate ? b.dueDate.slice(0,10) : '', status: b.status, paymentMethod: b.paymentMethod || '', notes: b.notes || '' }); setEditItem(b); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(b)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {(showAdd || editItem) && (
+        <Modal title={editItem ? 'Edit Vendor Bill' : 'Add Vendor Bill'} onClose={() => { setShowAdd(false); setEditItem(null); }} wide>
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Vendor *"><input className={inputCls} value={form.vendor} onChange={e => setForm(p => ({ ...p, vendor: e.target.value }))} /></Field>
+              <Field label="Bill Number"><input className={inputCls} value={form.billNumber} onChange={e => setForm(p => ({ ...p, billNumber: e.target.value }))} /></Field>
+              <Field label="Category">
+                <select className={selectCls} value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
+                  {['material','labor','equipment','service'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Status">
+                <select className={selectCls} value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+                  {['pending','approved','paid','overdue','disputed'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Amount"><input type="number" className={inputCls} value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></Field>
+              <Field label="Tax Amount"><input type="number" className={inputCls} value={form.taxAmount} onChange={e => setForm(p => ({ ...p, taxAmount: e.target.value }))} /></Field>
+              <Field label="Total Amount *"><input type="number" className={inputCls} value={form.totalAmount} onChange={e => setForm(p => ({ ...p, totalAmount: e.target.value }))} /></Field>
+              <Field label="Currency">
+                <select className={selectCls} value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))}>
+                  {['INR','USD','AED','SGD'].map(c => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Bill Date"><input type="date" className={inputCls} value={form.billDate} onChange={e => setForm(p => ({ ...p, billDate: e.target.value }))} /></Field>
+              <Field label="Due Date"><input type="date" className={inputCls} value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} /></Field>
+              <Field label="Payment Method"><input className={inputCls} value={form.paymentMethod} onChange={e => setForm(p => ({ ...p, paymentMethod: e.target.value }))} placeholder="cash, bank transfer, etc." /></Field>
+              <div className="col-span-2"><Field label="Description"><input className={inputCls} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></Field></div>
+              <div className="col-span-2"><Field label="Notes"><textarea className={inputCls} rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></Field></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowAdd(false); setEditItem(null); }} className={btnSecondary + ' flex-1 justify-center'}>Cancel</button>
+              <button type="submit" disabled={saving} className={btnPrimary + ' flex-1 justify-center'}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── P&L Tab ──────────────────────────────────────────────────────────────────
+
+function PnLTab({ siteId }: { siteId: string }) {
+  const [data, setData] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const load = useCallback(async () => {
+    if (loaded) return;
+    setLoading(true);
+    try {
+      const res = await siteManagerApi.getPnL(siteId);
+      setData(res.data.data);
+      setLoaded(true);
+    } catch { toast.error('Failed to load P&L data'); }
+    finally { setLoading(false); }
+  }, [siteId, loaded]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <Spinner />;
+  if (!data) return null;
+
+  const isProfit = data.profit >= 0;
+  const boqBudget = data.breakdown?.boqBudget || 0;
+  const budgetUsedPct = boqBudget > 0 ? Math.min(Math.round((data.totalCost / boqBudget) * 100), 100) : 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold text-white">Profit & Loss Summary</h2>
+        <button onClick={() => { setLoaded(false); load(); }} className={btnSecondary + ' text-xs'}><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
+      </div>
+
+      {/* Key metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-dark-700 rounded-xl p-4 border border-green-400/20">
+          <p className="text-xs text-dark-400 mb-1">Revenue (Paid)</p>
+          <p className="text-xl font-bold text-green-400">{fmt(data.revenue)}</p>
+        </div>
+        <div className="bg-dark-700 rounded-xl p-4 border border-red-400/20">
+          <p className="text-xs text-dark-400 mb-1">Total Cost</p>
+          <p className="text-xl font-bold text-red-400">{fmt(data.totalCost)}</p>
+        </div>
+        <div className={`bg-dark-700 rounded-xl p-4 border ${isProfit ? 'border-green-400/20' : 'border-red-400/20'}`}>
+          <p className="text-xs text-dark-400 mb-1">Net Profit</p>
+          <p className={`text-xl font-bold ${isProfit ? 'text-green-400' : 'text-red-400'}`}>{isProfit ? '+' : ''}{fmt(data.profit)}</p>
+        </div>
+        <div className={`bg-dark-700 rounded-xl p-4 border ${isProfit ? 'border-green-400/20' : 'border-red-400/20'}`}>
+          <p className="text-xs text-dark-400 mb-1">Margin</p>
+          <p className={`text-xl font-bold ${isProfit ? 'text-green-400' : 'text-red-400'}`}>{data.margin.toFixed(1)}%</p>
+        </div>
+      </div>
+
+      {/* Cost breakdown */}
+      <div className="bg-dark-700 rounded-xl p-5">
+        <h3 className="text-sm font-bold text-white mb-4">Cost Breakdown</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard label="Labor Cost" value={fmt(data.breakdown.labor)} color="text-amber-400" />
+          <StatCard label="Vendor / Material" value={fmt(data.breakdown.vendor)} color="text-blue-400" />
+          <StatCard label="Direct Expenses" value={fmt(data.breakdown.expenses)} color="text-purple-400" />
+          <StatCard label="Subcontractors" value={fmt(data.breakdown.subcon)} color="text-pink-400" />
+        </div>
+      </div>
+
+      {/* Budget comparison */}
+      {boqBudget > 0 && (
+        <div className="bg-dark-700 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-white">BOQ Budget vs Actual Spend</span>
+            <span className={`text-sm font-bold ${budgetUsedPct > 100 ? 'text-red-400' : budgetUsedPct > 80 ? 'text-amber-400' : 'text-green-400'}`}>{budgetUsedPct}%</span>
+          </div>
+          <div className="h-3 bg-dark-600 rounded-full overflow-hidden mb-2">
+            <div className={`h-full rounded-full transition-all ${budgetUsedPct > 100 ? 'bg-red-500' : budgetUsedPct > 80 ? 'bg-amber-400' : 'bg-green-500'}`} style={{ width: `${Math.min(budgetUsedPct, 100)}%` }} />
+          </div>
+          <div className="flex justify-between text-xs text-dark-400">
+            <span>Actual: {fmt(data.totalCost)}</span>
+            <span>Budget: {fmt(boqBudget)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Reports Tab ──────────────────────────────────────────────────────────────
+
+function ReportsTab({ siteId }: { siteId: string }) {
+  const [reportData, setReportData] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const load = useCallback(async () => {
+    if (loaded) return;
+    setLoading(true);
+    try {
+      const [pnlRes, reportsRes, milestonesRes, qualityRes, productionRes, procurementRes, invoicesRes] = await Promise.all([
+        siteManagerApi.getPnL(siteId),
+        siteManagerApi.listReports(siteId),
+        siteManagerApi.listMilestones(siteId),
+        siteManagerApi.listQualityChecks(siteId),
+        siteManagerApi.listProductions(siteId),
+        siteManagerApi.listProcurements(siteId),
+        siteManagerApi.listInvoices(siteId),
+      ]);
+      setReportData({
+        pnl: pnlRes.data.data,
+        reports: (reportsRes.data.data?.items || reportsRes.data.data || []).slice(0, 5),
+        milestones: milestonesRes.data.data || [],
+        quality: qualityRes.data.data || [],
+        production: productionRes.data.data || [],
+        procurement: procurementRes.data.data || [],
+        invoices: invoicesRes.data.data || [],
+      });
+      setLoaded(true);
+    } catch { toast.error('Failed to load reports'); }
+    finally { setLoading(false); }
+  }, [siteId, loaded]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <Spinner />;
+  if (!reportData) return null;
+
+  const { pnl, reports, milestones, quality, production, procurement, invoices } = reportData;
+
+  // Milestone breakdown
+  const mCompleted = milestones.filter((m: any) => m.status === 'completed').length;
+  const mDelayed = milestones.filter((m: any) => m.status === 'delayed').length;
+  const mPending = milestones.filter((m: any) => m.status === 'pending' || m.status === 'in_progress').length;
+
+  // Production breakdown
+  const prodCompleted = production.filter((t: any) => t.status === 'completed').length;
+  const prodInProgress = production.filter((t: any) => t.status === 'in_progress').length;
+  const prodPending = production.filter((t: any) => t.status === 'pending').length;
+
+  // Quality breakdown
+  const qPassed = quality.filter((c: any) => c.status === 'passed').length;
+  const qFailed = quality.filter((c: any) => c.status === 'failed').length;
+  const qPending = quality.filter((c: any) => c.status === 'pending').length;
+  const qPassRate = quality.length > 0 ? Math.round((qPassed / quality.length) * 100) : 0;
+
+  // Procurement breakdown
+  const poTotal = procurement.reduce((s: number, p: any) => s + (p.totalAmount || 0), 0);
+  const poDelivered = procurement.filter((p: any) => p.status === 'delivered').length;
+
+  // Invoice breakdown
+  const invPaid = invoices.filter((i: any) => i.status === 'paid').length;
+  const invSent = invoices.filter((i: any) => i.status === 'sent').length;
+  const invDraft = invoices.filter((i: any) => i.status === 'draft').length;
+
+  function MiniBar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+    return (
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="text-dark-300">{label}</span>
+          <span className="text-dark-400">{count} ({pct}%)</span>
+        </div>
+        <div className="h-2 bg-dark-600 rounded-full overflow-hidden">
+          <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold text-white">Site Reports Dashboard</h2>
+        <button onClick={() => { setLoaded(false); load(); }} className={btnSecondary + ' text-xs'}><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
+      </div>
+
+      {/* 1. Progress Summary */}
+      <div className="bg-dark-700 rounded-xl p-5">
+        <h3 className="text-sm font-bold text-white mb-4">Progress Summary</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <p className="text-xs font-semibold text-dark-300 mb-3">Milestones ({milestones.length})</p>
+            <div className="space-y-2">
+              <MiniBar label="Completed" count={mCompleted} total={milestones.length} color="bg-green-500" />
+              <MiniBar label="In Progress / Pending" count={mPending} total={milestones.length} color="bg-blue-500" />
+              <MiniBar label="Delayed" count={mDelayed} total={milestones.length} color="bg-red-500" />
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-dark-300 mb-3">Production Tasks ({production.length})</p>
+            <div className="space-y-2">
+              <MiniBar label="Completed" count={prodCompleted} total={production.length} color="bg-green-500" />
+              <MiniBar label="In Progress" count={prodInProgress} total={production.length} color="bg-blue-500" />
+              <MiniBar label="Pending" count={prodPending} total={production.length} color="bg-amber-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Financial Snapshot */}
+      {pnl && (
+        <div className="bg-dark-700 rounded-xl p-5">
+          <h3 className="text-sm font-bold text-white mb-4">Financial Snapshot</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <StatCard label="Revenue" value={fmt(pnl.revenue)} color="text-green-400" />
+            <StatCard label="Total Cost" value={fmt(pnl.totalCost)} color="text-red-400" />
+            <StatCard label="Net Profit" value={fmt(pnl.profit)} color={pnl.profit >= 0 ? 'text-green-400' : 'text-red-400'} />
+            <StatCard label="Margin" value={`${pnl.margin.toFixed(1)}%`} color={pnl.profit >= 0 ? 'text-green-400' : 'text-red-400'} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-dark-300 mb-2">Invoices ({invoices.length})</p>
+            <div className="space-y-2">
+              <MiniBar label="Paid" count={invPaid} total={invoices.length} color="bg-green-500" />
+              <MiniBar label="Sent" count={invSent} total={invoices.length} color="bg-blue-500" />
+              <MiniBar label="Draft" count={invDraft} total={invoices.length} color="bg-gray-500" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Recent DPR */}
+      {reports.length > 0 && (
+        <div className="bg-dark-700 rounded-xl p-5">
+          <h3 className="text-sm font-bold text-white mb-4">Recent Daily Reports</h3>
+          <div className="space-y-3">
+            {reports.map((r: any) => (
+              <div key={r.id} className="flex items-start gap-3 border-b border-dark-600 pb-3 last:border-0 last:pb-0">
+                <div className="w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center flex-shrink-0">
+                  {r.weather === 'sunny' ? <Sun className="w-4 h-4 text-amber-400" /> : r.weather === 'rainy' ? <CloudRain className="w-4 h-4 text-blue-400" /> : <Cloud className="w-4 h-4 text-gray-400" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-white">{fmtDate(r.reportDate)}</p>
+                  {r.workDone && <p className="text-xs text-dark-400 truncate">{r.workDone}</p>}
+                  {r.progressPct != null && <p className="text-xs text-brand-400">{r.progressPct}% progress</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4. Quality Score */}
+      <div className="bg-dark-700 rounded-xl p-5">
+        <h3 className="text-sm font-bold text-white mb-4">Quality Score</h3>
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          <StatCard label="Total Checks" value={quality.length} />
+          <StatCard label="Passed" value={qPassed} color="text-green-400" />
+          <StatCard label="Failed" value={qFailed} color="text-red-400" />
+          <StatCard label="Pass Rate" value={`${qPassRate}%`} color={qPassRate >= 80 ? 'text-green-400' : qPassRate >= 50 ? 'text-amber-400' : 'text-red-400'} />
+        </div>
+        {quality.length > 0 && (
+          <div className="space-y-2">
+            <MiniBar label="Passed" count={qPassed} total={quality.length} color="bg-green-500" />
+            <MiniBar label="Pending" count={qPending} total={quality.length} color="bg-amber-500" />
+            <MiniBar label="Failed" count={qFailed} total={quality.length} color="bg-red-500" />
+          </div>
+        )}
+      </div>
+
+      {/* 5. Procurement Status */}
+      {procurement.length > 0 && (
+        <div className="bg-dark-700 rounded-xl p-5">
+          <h3 className="text-sm font-bold text-white mb-4">Procurement Status</h3>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <StatCard label="Total Orders" value={procurement.length} />
+            <StatCard label="Delivered" value={poDelivered} color="text-green-400" />
+            <StatCard label="Total Value" value={fmt(poTotal)} color="text-brand-400" />
+          </div>
+          <div className="space-y-2">
+            {['draft','sent','confirmed','delivered','cancelled'].map(status => {
+              const count = procurement.filter((p: any) => p.status === status).length;
+              const colors: Record<string, string> = { draft: 'bg-gray-500', sent: 'bg-blue-500', confirmed: 'bg-amber-500', delivered: 'bg-green-500', cancelled: 'bg-red-500' };
+              return count > 0 ? <MiniBar key={status} label={status.charAt(0).toUpperCase() + status.slice(1)} count={count} total={procurement.length} color={colors[status] || 'bg-gray-500'} /> : null;
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Edit Site Modal ──────────────────────────────────────────────────────────
 
 function EditSiteModal({ site, onClose, onSaved }: { site: any; onClose: () => void; onSaved: (s: any) => void }) {
@@ -1809,6 +3249,33 @@ export default function SiteDetailPage() {
         )}
         {activeTab === 'invoices' && tabsVisited.includes('invoices') && (
           <InvoicesTab siteId={siteId} />
+        )}
+        {activeTab === 'planning' && tabsVisited.includes('planning') && (
+          <PlanningTab siteId={siteId} />
+        )}
+        {activeTab === 'sales' && tabsVisited.includes('sales') && (
+          <SalesTab siteId={siteId} />
+        )}
+        {activeTab === 'design' && tabsVisited.includes('design') && (
+          <DesignTab siteId={siteId} />
+        )}
+        {activeTab === 'quality' && tabsVisited.includes('quality') && (
+          <QualityTab siteId={siteId} />
+        )}
+        {activeTab === 'procurement' && tabsVisited.includes('procurement') && (
+          <ProcurementTab siteId={siteId} />
+        )}
+        {activeTab === 'production' && tabsVisited.includes('production') && (
+          <ProductionTab siteId={siteId} />
+        )}
+        {activeTab === 'vendor-bills' && tabsVisited.includes('vendor-bills') && (
+          <VendorBillsTab siteId={siteId} />
+        )}
+        {activeTab === 'pnl' && tabsVisited.includes('pnl') && (
+          <PnLTab siteId={siteId} />
+        )}
+        {activeTab === 'reports' && tabsVisited.includes('reports') && (
+          <ReportsTab siteId={siteId} />
         )}
       </div>
 

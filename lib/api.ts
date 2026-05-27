@@ -653,6 +653,43 @@ export const siteManagerApi = {
   addSub:     (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/subcontractors`, data),
   updateSub:  (siteId: string, subId: string, data: Record<string, unknown>) => api.put(`/site-manager/sites/${siteId}/subcontractors/${subId}`, data),
   deleteSub:  (siteId: string, subId: string) => api.delete(`/site-manager/sites/${siteId}/subcontractors/${subId}`),
+  // Milestones
+  listMilestones:   (siteId: string) => api.get(`/site-manager/sites/${siteId}/milestones`),
+  addMilestone:     (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/milestones`, data),
+  updateMilestone:  (siteId: string, id: string, data: Record<string, unknown>) => api.put(`/site-manager/sites/${siteId}/milestones/${id}`, data),
+  deleteMilestone:  (siteId: string, id: string) => api.delete(`/site-manager/sites/${siteId}/milestones/${id}`),
+  // Leads
+  listLeads:   (siteId: string) => api.get(`/site-manager/sites/${siteId}/leads`),
+  addLead:     (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/leads`, data),
+  updateLead:  (siteId: string, id: string, data: Record<string, unknown>) => api.put(`/site-manager/sites/${siteId}/leads/${id}`, data),
+  deleteLead:  (siteId: string, id: string) => api.delete(`/site-manager/sites/${siteId}/leads/${id}`),
+  // Designs
+  listDesigns:   (siteId: string) => api.get(`/site-manager/sites/${siteId}/designs`),
+  addDesign:     (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/designs`, data),
+  updateDesign:  (siteId: string, id: string, data: Record<string, unknown>) => api.put(`/site-manager/sites/${siteId}/designs/${id}`, data),
+  deleteDesign:  (siteId: string, id: string) => api.delete(`/site-manager/sites/${siteId}/designs/${id}`),
+  // Quality
+  listQualityChecks:   (siteId: string) => api.get(`/site-manager/sites/${siteId}/quality`),
+  addQualityCheck:     (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/quality`, data),
+  updateQualityCheck:  (siteId: string, id: string, data: Record<string, unknown>) => api.put(`/site-manager/sites/${siteId}/quality/${id}`, data),
+  deleteQualityCheck:  (siteId: string, id: string) => api.delete(`/site-manager/sites/${siteId}/quality/${id}`),
+  // Procurement
+  listProcurements:   (siteId: string) => api.get(`/site-manager/sites/${siteId}/procurement`),
+  createProcurement:  (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/procurement`, data),
+  updateProcurement:  (siteId: string, id: string, data: Record<string, unknown>) => api.put(`/site-manager/sites/${siteId}/procurement/${id}`, data),
+  deleteProcurement:  (siteId: string, id: string) => api.delete(`/site-manager/sites/${siteId}/procurement/${id}`),
+  // Vendor Bills
+  listVendorBills:   (siteId: string) => api.get(`/site-manager/sites/${siteId}/vendor-bills`),
+  addVendorBill:     (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/vendor-bills`, data),
+  updateVendorBill:  (siteId: string, id: string, data: Record<string, unknown>) => api.put(`/site-manager/sites/${siteId}/vendor-bills/${id}`, data),
+  deleteVendorBill:  (siteId: string, id: string) => api.delete(`/site-manager/sites/${siteId}/vendor-bills/${id}`),
+  // Production
+  listProductions:   (siteId: string) => api.get(`/site-manager/sites/${siteId}/production`),
+  addProduction:     (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/production`, data),
+  updateProduction:  (siteId: string, id: string, data: Record<string, unknown>) => api.put(`/site-manager/sites/${siteId}/production/${id}`, data),
+  deleteProduction:  (siteId: string, id: string) => api.delete(`/site-manager/sites/${siteId}/production/${id}`),
+  // P&L
+  getPnL: (siteId: string) => api.get(`/site-manager/sites/${siteId}/pnl`),
 };
 
 export default api;
