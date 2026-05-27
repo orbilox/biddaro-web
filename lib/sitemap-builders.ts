@@ -37,6 +37,9 @@
 import { COST_SERVICES } from '@/lib/cost-data';
 import { JOB_CATEGORY_META, INDIA_LOCATIONS } from '@/lib/seo-data';
 import { LOAN_TYPES_SEO } from '@/lib/loan-data';
+import { LOAN_FAQ_TOPICS } from '@/lib/loan-faq-data';
+import { GLOSSARY_TERMS } from '@/lib/loan-glossary-data';
+import { LOAN_COMPARISONS } from '@/lib/loan-compare-data';
 import { getAllSlugs as getAskSlugs } from '@/lib/ask-data';
 import { UAE_LOCATIONS, UAE_JOB_CATEGORY_META } from '@/lib/seo-data-uae';
 import { UAE_COST_SERVICES } from '@/lib/cost-data-uae';
@@ -48,7 +51,7 @@ import { USA_LOCATIONS, USA_JOB_CATEGORY_META } from '@/lib/seo-data-usa';
 import { USA_COST_SERVICES } from '@/lib/cost-data-usa';
 
 export const SITEMAP_BASE = 'https://biddaro.com';
-export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21] as const;
+export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26] as const;
 
 export interface SitemapEntry {
   url: string;
@@ -83,6 +86,11 @@ export function buildSitemap(id: number): SitemapEntry[] {
     case 19: return buildLoanHubSitemap();
     case 20: return buildLoanCitiesSitemap(0, 3);
     case 21: return buildLoanCitiesSitemap(3, LOAN_TYPES_SEO.length);
+    case 22: return buildLoanFaqSitemap();
+    case 23: return buildLoanGlossarySitemap();
+    case 24: return buildLoanStateHubSitemap(0, 3);
+    case 25: return buildLoanStateHubSitemap(3, LOAN_TYPES_SEO.length);
+    case 26: return buildLoanCompareSitemap();
     default: return [];
   }
 }
@@ -350,6 +358,47 @@ function buildLoanCitiesSitemap(start: number, end: number): SitemapEntry[] {
         entries.push(entry(`/loans/${loan.slug}/${city.slug}`, 0.8, 'monthly'));
       }
     }
+  }
+  return entries;
+}
+
+// ─── Sitemaps 22–25 — Loan FAQ, Glossary, State Hubs ─────────────────────────
+
+function buildLoanFaqSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [entry('/loans/faq', 0.85, 'weekly')];
+  for (const topic of LOAN_FAQ_TOPICS) {
+    entries.push(entry(`/loans/faq/${topic.slug}`, 0.8, 'monthly'));
+  }
+  return entries;
+}
+
+function buildLoanGlossarySitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [
+    entry('/loans/glossary', 0.8, 'monthly'),
+    entry('/about/rbi-compliance', 0.75, 'monthly'),
+  ];
+  for (const term of GLOSSARY_TERMS) {
+    entries.push(entry(`/loans/glossary/${term.slug}`, 0.7, 'monthly'));
+  }
+  return entries;
+}
+
+function buildLoanStateHubSitemap(start: number, end: number): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const loan of LOAN_TYPES_SEO.slice(start, end)) {
+    for (const state of INDIA_LOCATIONS) {
+      entries.push(entry(`/loans/${loan.slug}/${state.slug}`, 0.75, 'monthly'));
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 26 — Loan Comparison Pages ──────────────────────────────────────
+
+function buildLoanCompareSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [entry('/loans/compare', 0.85, 'weekly')];
+  for (const cmp of LOAN_COMPARISONS) {
+    entries.push(entry(`/loans/compare/${cmp.slug}`, 0.8, 'monthly'));
   }
   return entries;
 }

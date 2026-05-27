@@ -9,7 +9,7 @@ import {
   type BlogCategory,
 } from '@/lib/blog-data';
 
-const ALL_CATEGORIES = ['all', 'ai-tools', 'cost-guides', 'hiring-tips', 'planning'] as const;
+const ALL_CATEGORIES = ['all', 'ai-tools', 'cost-guides', 'hiring-tips', 'planning', 'loan-guides'] as const;
 type FilterCategory = typeof ALL_CATEGORIES[number];
 
 function formatDate(iso: string) {

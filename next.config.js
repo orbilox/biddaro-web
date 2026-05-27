@@ -1,5 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ── SEO Headers ─────────────────────────────────────────────────────────
+  async headers() {
+    return [
+      {
+        // Tell Google to index & follow all loan pages
+        source: '/loans/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'index, follow' }],
+      },
+      {
+        // Trust / about pages
+        source: '/about/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'index, follow' }],
+      },
+      {
+        // Canonical protection: pages with UTM params still point to clean URL
+        source: '/:path*',
+        headers: [
+          { key: 'Vary', value: 'Accept-Language' },
+        ],
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       // ── Local API uploads (dev) ──────────────────────────────────────────

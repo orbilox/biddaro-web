@@ -139,6 +139,49 @@ export default function LoanTypePage({ params }: Props) {
     provider: { '@type': 'Organization', name: 'Biddaro', url: 'https://biddaro.com' },
   };
 
+  const financialProductSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FinancialProduct',
+    name: `Biddaro ${loan.name}`,
+    description: `${loan.name} at ${loan.interestRate} — up to ${loan.maxAmount} — Apply online in India via Biddaro`,
+    url: `https://biddaro.com/loans/${loan.slug}`,
+    feesAndCommissionsSpecification: '₹100 per month subscription fee — cancel anytime',
+    interestRate: loan.interestRateRaw / 12,
+    annualPercentageRate: loan.interestRateRaw,
+    amount: {
+      '@type': 'MonetaryAmount',
+      minValue: loan.minAmountRaw,
+      maxValue: loan.maxAmountRaw,
+      currency: 'INR',
+    },
+    provider: {
+      '@type': 'Organization',
+      name: 'Biddaro',
+      url: 'https://biddaro.com',
+      logo: 'https://biddaro.com/icons/icon-192.png',
+      contactPoint: { '@type': 'ContactPoint', contactType: 'customer service', areaServed: 'IN' },
+    },
+    areaServed: { '@type': 'Country', name: 'India' },
+    offers: {
+      '@type': 'Offer',
+      price: '100',
+      priceCurrency: 'INR',
+      priceSpecification: { '@type': 'RecurringChargeSpecification', frequency: 'Monthly' },
+      availability: 'https://schema.org/InStock',
+      url: 'https://biddaro.com/loan-apply',
+    },
+  };
+
+  const speakableSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['.rate-highlight', '.emi-summary', 'h1'],
+    },
+    url: `https://biddaro.com/loans/${loan.slug}`,
+  };
+
   const r = (str: string) => str.replace(/\{city\}/g, 'India');
 
   return (
@@ -146,6 +189,8 @@ export default function LoanTypePage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(loanSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(financialProductSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(speakableSchema) }} />
 
       <Navbar />
 
@@ -285,7 +330,7 @@ export default function LoanTypePage({ params }: Props) {
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 mb-1">Interest Rate</p>
-                <p className="text-xl font-bold text-gray-900">{loan.interestRate}</p>
+                <p className="text-xl font-bold text-gray-900 rate-highlight">{loan.interestRate}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 mb-1">Tenure</p>
@@ -294,7 +339,7 @@ export default function LoanTypePage({ params }: Props) {
             </div>
             <div className="mt-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-5 text-white text-center">
               <p className="text-sm opacity-80 mb-1">Monthly EMI</p>
-              <p className="text-4xl font-bold">{inr(Math.round(sampleEMI))}</p>
+              <p className="text-4xl font-bold emi-summary">{inr(Math.round(sampleEMI))}</p>
               <p className="text-sm opacity-70 mt-1">per month</p>
               <div className="grid grid-cols-2 gap-3 border-t border-white/20 pt-4 mt-4">
                 <div>

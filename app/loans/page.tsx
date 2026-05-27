@@ -416,6 +416,49 @@ export default function LoansLandingPage() {
         </div>
       </section>
 
+      {/* ── Resources Hub ─────────────────────────────────────────────────── */}
+      <section className="py-12 px-4 bg-white border-t border-gray-100">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Loan Resources</h2>
+          <p className="text-gray-500 text-sm text-center mb-8">Compare options, understand terms, and find answers</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Link
+              href="/loans/compare"
+              className="group flex flex-col gap-2 p-5 rounded-2xl border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all bg-gradient-to-br from-white to-orange-50/40"
+            >
+              <span className="text-2xl">⚖️</span>
+              <span className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">Compare Loans</span>
+              <span className="text-xs text-gray-500 leading-relaxed">SBI vs NBFC, personal vs gold loan, home loan vs LAP — honest side-by-side comparisons.</span>
+              <span className="text-orange-500 text-xs font-semibold flex items-center gap-1 mt-auto">
+                View 5 comparisons <ArrowRight className="w-3 h-3" />
+              </span>
+            </Link>
+            <Link
+              href="/loans/faq"
+              className="group flex flex-col gap-2 p-5 rounded-2xl border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all bg-gradient-to-br from-white to-blue-50/30"
+            >
+              <span className="text-2xl">❓</span>
+              <span className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">Loan FAQ Library</span>
+              <span className="text-xs text-gray-500 leading-relaxed">Eligibility, documents, CIBIL score, government schemes — 150+ Q&amp;As across 15 topics.</span>
+              <span className="text-orange-500 text-xs font-semibold flex items-center gap-1 mt-auto">
+                Browse FAQs <ArrowRight className="w-3 h-3" />
+              </span>
+            </Link>
+            <Link
+              href="/loans/glossary"
+              className="group flex flex-col gap-2 p-5 rounded-2xl border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all bg-gradient-to-br from-white to-green-50/30"
+            >
+              <span className="text-2xl">📖</span>
+              <span className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">Loan Glossary</span>
+              <span className="text-xs text-gray-500 leading-relaxed">EMI, CIBIL, LTV, NOC, NACH — plain-English definitions for every loan term.</span>
+              <span className="text-orange-500 text-xs font-semibold flex items-center gap-1 mt-auto">
+                View glossary <ArrowRight className="w-3 h-3" />
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ───────────────────────────────────────────────────────────── */}
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-3xl mx-auto">

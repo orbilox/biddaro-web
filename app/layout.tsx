@@ -39,10 +39,48 @@ export const metadata: Metadata = {
   },
 };
 
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Biddaro',
+  url: 'https://biddaro.com',
+  logo: {
+    '@type': 'ImageObject',
+    url: 'https://biddaro.com/icons/icon-192.png',
+    width: 192,
+    height: 192,
+  },
+  description:
+    'Biddaro is India\'s construction loan and marketplace platform — connecting borrowers with RBI-compliant lenders for home construction, renovation, equipment finance, working capital, business and personal loans.',
+  foundingDate: '2024',
+  areaServed: [
+    { '@type': 'Country', name: 'India' },
+    { '@type': 'Country', name: 'United Arab Emirates' },
+    { '@type': 'Country', name: 'Singapore' },
+    { '@type': 'Country', name: 'United States' },
+  ],
+  contactPoint: [
+    {
+      '@type': 'ContactPoint',
+      contactType: 'customer service',
+      areaServed: 'IN',
+      availableLanguage: ['English', 'Hindi'],
+      url: 'https://biddaro.com/contact',
+    },
+  ],
+  sameAs: [
+    'https://www.linkedin.com/company/biddaro',
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="scroll-smooth">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
         <Script async src="https://www.googletagmanager.com/gtag/js?id=G-DCZLVPPVF2" strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">{`
           window.dataLayer = window.dataLayer || [];

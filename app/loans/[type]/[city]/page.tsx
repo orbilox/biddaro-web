@@ -155,11 +155,34 @@ export default function LoanCityPage({ params }: Props) {
     areaServed: { '@type': 'City', name: city, containedInPlace: { '@type': 'State', name: state.name } },
   };
 
+  const financialProductSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FinancialProduct',
+    name: `Biddaro ${loan.name} in ${city}`,
+    description: r(loan.metaDesc),
+    url: `https://biddaro.com/loans/${loan.slug}/${cityData.slug}`,
+    feesAndCommissionsSpecification: '₹100 per month subscription — cancel anytime',
+    interestRate: loan.interestRateRaw / 12,
+    annualPercentageRate: loan.interestRateRaw,
+    amount: { '@type': 'MonetaryAmount', minValue: loan.minAmountRaw, maxValue: loan.maxAmountRaw, currency: 'INR' },
+    provider: { '@type': 'Organization', name: 'Biddaro', url: 'https://biddaro.com', logo: 'https://biddaro.com/icons/icon-192.png' },
+    areaServed: { '@type': 'City', name: city, containedInPlace: { '@type': 'State', name: state.name, containedInPlace: { '@type': 'Country', name: 'India' } } },
+  };
+
+  const speakableSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['.rate-highlight', '.emi-summary', 'h1'] },
+    url: `https://biddaro.com/loans/${loan.slug}/${cityData.slug}`,
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(loanSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(financialProductSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(speakableSchema) }} />
 
       {/* ── Navbar placeholder — using inline nav to keep this a Server Component ── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 h-16 flex items-center px-4">
@@ -324,19 +347,19 @@ export default function LoanCityPage({ params }: Props) {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <div className="grid grid-cols-3 gap-4 text-center mb-4">
               {[
-                { label: 'Loan Amount', value: inr(midAmount) },
-                { label: 'Interest Rate', value: loan.interestRate },
-                { label: 'Tenure', value: loan.maxTenure },
+                { label: 'Loan Amount', value: inr(midAmount), cls: '' },
+                { label: 'Interest Rate', value: loan.interestRate, cls: 'rate-highlight' },
+                { label: 'Tenure', value: loan.maxTenure, cls: '' },
               ].map(c => (
                 <div key={c.label} className="bg-gray-50 rounded-xl p-3">
                   <p className="text-xs text-gray-500 mb-1">{c.label}</p>
-                  <p className="text-lg font-bold text-gray-900">{c.value}</p>
+                  <p className={`text-lg font-bold text-gray-900 ${c.cls}`}>{c.value}</p>
                 </div>
               ))}
             </div>
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-5 text-white text-center">
               <p className="text-sm opacity-80 mb-1">Monthly EMI</p>
-              <p className="text-4xl font-bold">{inr(Math.round(sampleEMI))}</p>
+              <p className="text-4xl font-bold emi-summary">{inr(Math.round(sampleEMI))}</p>
               <p className="text-xs opacity-70 mt-1">per month for {loan.maxTenure}</p>
               <div className="grid grid-cols-2 gap-3 border-t border-white/20 pt-4 mt-4">
                 <div>
