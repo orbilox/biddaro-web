@@ -144,6 +144,7 @@ export const ROUTES = {
   PROJECT_TRACKING: '/project-tracking',
   PROJECT_MANAGER: '/project-manager',
   BUILD_PLANNER: '/build-planner',
+  SITE_MANAGER: '/site-manager',
   LOANS: '/my-loans',
   ADMIN: '/admin',
   ADMIN_LOGIN: '/admin-login',
