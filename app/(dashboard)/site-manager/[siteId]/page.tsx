@@ -1713,7 +1713,7 @@ export default function SiteDetailPage() {
     <div className="min-h-screen bg-dark-900">
       {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div className="bg-dark-800 border-b border-dark-700 px-4 sm:px-6 py-4">
-        <div className="max-w-7xl mx-auto">
+        <div>
           {/* Back + actions */}
           <div className="flex items-center justify-between mb-3">
             <Link href="/site-manager" className="flex items-center gap-1.5 text-dark-400 hover:text-white transition-colors text-sm">
@@ -1756,7 +1756,7 @@ export default function SiteDetailPage() {
 
       {/* ── Sticky Tab Bar ──────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-dark-900/95 backdrop-blur border-b border-dark-700">
-        <div className="max-w-7xl mx-auto px-2 sm:px-6">
+        <div className="px-2 sm:px-4">
           <div className="flex gap-0.5 overflow-x-auto scrollbar-hide py-1">
             {TABS.map(tab => {
               const Icon = tab.icon;
@@ -1782,7 +1782,7 @@ export default function SiteDetailPage() {
       </div>
 
       {/* ── Tab Content ─────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <div className="px-4 sm:px-6 py-6">
         {activeTab === 'overview' && (
           <OverviewTab site={site} onEditClick={() => setShowEditModal(true)} />
         )}
