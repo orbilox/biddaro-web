@@ -387,7 +387,7 @@ function buildLoanStateHubSitemap(start: number, end: number): SitemapEntry[] {
   const entries: SitemapEntry[] = [];
   for (const loan of LOAN_TYPES_SEO.slice(start, end)) {
     for (const state of INDIA_LOCATIONS) {
-      entries.push(entry(`/loans/${loan.slug}/${state.slug}`, 0.75, 'monthly'));
+      entries.push(entry(`/loans/${loan.slug}/state/${state.slug}`, 0.75, 'monthly'));
     }
   }
   return entries;
