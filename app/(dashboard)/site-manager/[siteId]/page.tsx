@@ -10,7 +10,7 @@ import {
   Sun, Cloud, CloudRain, Zap, X, MoreVertical, RefreshCw,
 } from 'lucide-react';
 import { siteManagerApi } from '@/lib/api';
-import { toast } from 'react-hot-toast';
+import { toast } from '@/store/uiStore';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

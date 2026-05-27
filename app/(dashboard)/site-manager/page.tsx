@@ -7,7 +7,7 @@ import {
   AlertCircle, Clock, XCircle, IndianRupee, BarChart2,
 } from 'lucide-react';
 import { siteManagerApi } from '@/lib/api';
-import { toast } from 'react-hot-toast';
+import { toast } from '@/store/uiStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
