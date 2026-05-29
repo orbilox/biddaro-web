@@ -42,15 +42,15 @@ const btnDanger = 'flex items-center gap-1.5 text-red-400 hover:text-red-300 hov
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-900/80 backdrop-blur-sm">
-      <div className={`bg-dark-800 border border-dark-700 rounded-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} shadow-2xl max-h-[90vh] overflow-y-auto`}>
-        <div className="flex items-center justify-between p-5 border-b border-dark-700 sticky top-0 bg-dark-800 z-10">
-          <h2 className="text-lg font-bold text-white">{title}</h2>
-          <button onClick={onClose} className="text-dark-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-dark-700">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-dark-900/80 backdrop-blur-sm">
+      <div className={`bg-dark-800 border-t sm:border border-dark-700 rounded-t-3xl sm:rounded-2xl w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'} shadow-2xl max-h-[92vh] overflow-y-auto`}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-dark-700 sticky top-0 bg-dark-800 z-10">
+          <h2 className="text-base font-bold text-white">{title}</h2>
+          <button onClick={onClose} className="text-dark-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-dark-700">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="px-5 py-4 pb-8">{children}</div>
       </div>
     </div>
   );
@@ -806,7 +806,7 @@ function BOQTab({ siteId }: { siteId: string }) {
 
       {/* Summary */}
       {items.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           <StatCard label="Total BOQ Value" value={fmt(totalValue)} color="text-white" />
           <StatCard label="Completed Value" value={fmt(completedValue)} color="text-green-400" />
           <StatCard label="Completion" value={`${completionPct}%`} color="text-brand-400" />
@@ -1982,38 +1982,30 @@ function DesignTab({ siteId }: { siteId: string }) {
       {designs.length === 0 ? (
         <EmptyState icon={Edit2} title="No design documents" sub="Manage architectural, structural and other design drawings." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Add Design</button>} />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-dark-700">
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Title</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Type</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Version</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Status</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Prepared By</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Date</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-dark-700">
-              {designs.map(d => (
-                <tr key={d.id} className="hover:bg-dark-700/50">
-                  <td className="py-3 pr-4 font-medium text-white">{d.title}</td>
-                  <td className="py-3 pr-4"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${DESIGN_TYPE_COLORS[d.type] || DESIGN_TYPE_COLORS.other}`}>{d.type}</span></td>
-                  <td className="py-3 pr-4 text-dark-300">{d.version}</td>
-                  <td className="py-3 pr-4"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${DESIGN_STATUS_COLORS[d.status] || DESIGN_STATUS_COLORS.draft}`}>{d.status.replace('_',' ')}</span></td>
-                  <td className="py-3 pr-4 text-dark-300">{d.preparedBy || '—'}</td>
-                  <td className="py-3 pr-4 text-dark-400 text-xs">{fmtDate(d.createdAt)}</td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => { setForm({ title: d.title, type: d.type, version: d.version, status: d.status, fileUrl: d.fileUrl || '', preparedBy: d.preparedBy || '', checkedBy: d.checkedBy || '', approvedBy: d.approvedBy || '', notes: d.notes || '' }); setEditItem(d); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleDelete(d)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {designs.map(d => (
+            <div key={d.id} className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-white truncate">{d.title}</p>
+                  <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${DESIGN_TYPE_COLORS[d.type] || DESIGN_TYPE_COLORS.other}`}>{d.type}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${DESIGN_STATUS_COLORS[d.status] || DESIGN_STATUS_COLORS.draft}`}>{d.status.replace('_',' ')}</span>
+                    <span className="text-xs text-dark-400">v{d.version}</span>
+                  </div>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-dark-400 flex-wrap">
+                    {d.preparedBy && <span>By: <span className="text-dark-300">{d.preparedBy}</span></span>}
+                    {d.approvedBy && <span>Approved: <span className="text-dark-300">{d.approvedBy}</span></span>}
+                    <span>{fmtDate(d.createdAt)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => { setForm({ title: d.title, type: d.type, version: d.version, status: d.status, fileUrl: d.fileUrl || '', preparedBy: d.preparedBy || '', checkedBy: d.checkedBy || '', approvedBy: d.approvedBy || '', notes: d.notes || '' }); setEditItem(d); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(d)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -2315,41 +2307,34 @@ function ProcurementTab({ siteId }: { siteId: string }) {
       {orders.length === 0 ? (
         <EmptyState icon={Package} title="No procurement orders" sub="Create purchase orders for materials, equipment, and services." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Create PO</button>} />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-dark-700">
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">PO#</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Vendor</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Category</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Amount</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Status</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Expected</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-dark-700">
-              {orders.map(o => (
-                <tr key={o.id} className="hover:bg-dark-700/50">
-                  <td className="py-3 pr-4 font-mono text-xs text-brand-400">{o.poNumber}</td>
-                  <td className="py-3 pr-4 font-medium text-white">{o.vendor}</td>
-                  <td className="py-3 pr-4 text-dark-300 capitalize">{o.category}</td>
-                  <td className="py-3 pr-4 text-white font-semibold">{fmt(o.totalAmount, o.currency)}</td>
-                  <td className="py-3 pr-4"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${PO_STATUS_COLORS[o.status] || PO_STATUS_COLORS.draft}`}>{o.status}</span></td>
-                  <td className="py-3 pr-4 text-dark-400 text-xs">{o.expectedDate ? fmtDate(o.expectedDate) : '—'}</td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-1">
-                      {o.status === 'draft' && <button onClick={() => handleStatusUpdate(o, 'sent')} className="text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 px-2 py-1 rounded-lg transition-colors whitespace-nowrap">Send</button>}
-                      {o.status === 'sent' && <button onClick={() => handleStatusUpdate(o, 'confirmed')} className="text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 px-2 py-1 rounded-lg transition-colors whitespace-nowrap">Confirm</button>}
-                      {o.status === 'confirmed' && <button onClick={() => handleStatusUpdate(o, 'delivered')} className="text-xs text-green-400 hover:text-green-300 hover:bg-green-400/10 px-2 py-1 rounded-lg transition-colors whitespace-nowrap">Delivered</button>}
-                      <button onClick={() => { setForm({ vendor: o.vendor, vendorPhone: o.vendorPhone || '', vendorEmail: o.vendorEmail || '', category: o.category, totalAmount: String(o.totalAmount), taxAmount: String(o.taxAmount || ''), currency: o.currency, expectedDate: o.expectedDate ? o.expectedDate.slice(0,10) : '', notes: o.notes || '', itemsText: '' }); setEditItem(o); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleDelete(o)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {orders.map(o => (
+            <div key={o.id} className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="font-mono text-xs text-brand-400 font-bold">{o.poNumber}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${PO_STATUS_COLORS[o.status] || PO_STATUS_COLORS.draft}`}>{o.status}</span>
+                    <span className="text-xs text-dark-400 capitalize">{o.category}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-white">{o.vendor}</p>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-dark-400 flex-wrap">
+                    <span className="text-brand-400 font-bold">{fmt(o.totalAmount, o.currency)}</span>
+                    {o.expectedDate && <span>Expected: {fmtDate(o.expectedDate)}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => { setForm({ vendor: o.vendor, vendorPhone: o.vendorPhone || '', vendorEmail: o.vendorEmail || '', category: o.category, totalAmount: String(o.totalAmount), taxAmount: String(o.taxAmount || ''), currency: o.currency, expectedDate: o.expectedDate ? o.expectedDate.slice(0,10) : '', notes: o.notes || '', itemsText: '' }); setEditItem(o); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(o)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {o.status === 'draft' && <button onClick={() => handleStatusUpdate(o, 'sent')} className="text-xs text-blue-400 bg-blue-400/10 hover:bg-blue-400/20 px-3 py-1.5 rounded-lg transition-colors">Mark Sent</button>}
+                {o.status === 'sent' && <button onClick={() => handleStatusUpdate(o, 'confirmed')} className="text-xs text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 px-3 py-1.5 rounded-lg transition-colors">Confirm</button>}
+                {o.status === 'confirmed' && <button onClick={() => handleStatusUpdate(o, 'delivered')} className="text-xs text-green-400 bg-green-400/10 hover:bg-green-400/20 px-3 py-1.5 rounded-lg transition-colors">Mark Delivered</button>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -2477,7 +2462,7 @@ function ProductionTab({ siteId }: { siteId: string }) {
       </div>
 
       {tasks.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           <StatCard label="Total Tasks" value={tasks.length} />
           <StatCard label="Completed" value={`${completedPct}%`} color="text-green-400" sub={`${completedCount} of ${tasks.length}`} />
           <StatCard label="In Progress" value={inProgressCount} color="text-blue-400" />
@@ -2649,7 +2634,7 @@ function VendorBillsTab({ siteId }: { siteId: string }) {
       </div>
 
       {bills.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           <StatCard label="Total Billed" value={fmt(totalBilled)} color="text-white" />
           <StatCard label="Paid" value={fmt(totalPaid)} color="text-green-400" />
           <StatCard label="Pending" value={fmt(totalPending)} color="text-amber-400" />
@@ -2659,39 +2644,30 @@ function VendorBillsTab({ siteId }: { siteId: string }) {
       {bills.length === 0 ? (
         <EmptyState icon={Receipt} title="No vendor bills" sub="Record bills from vendors, suppliers, and contractors." action={<button className={btnPrimary} onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> Add Bill</button>} />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-dark-700">
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Vendor</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Bill #</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Amount</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Status</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Bill Date</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400 pr-4">Due Date</th>
-                <th className="pb-3 text-xs font-semibold text-dark-400"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-dark-700">
-              {bills.map(b => (
-                <tr key={b.id} className="hover:bg-dark-700/50">
-                  <td className="py-3 pr-4 font-medium text-white">{b.vendor}</td>
-                  <td className="py-3 pr-4 text-dark-300 font-mono text-xs">{b.billNumber || '—'}</td>
-                  <td className="py-3 pr-4 text-white font-semibold">{fmt(b.totalAmount, b.currency)}</td>
-                  <td className="py-3 pr-4"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${BILL_STATUS_COLORS[b.status] || BILL_STATUS_COLORS.pending}`}>{b.status}</span></td>
-                  <td className="py-3 pr-4 text-dark-400 text-xs">{fmtDate(b.billDate)}</td>
-                  <td className="py-3 pr-4 text-dark-400 text-xs">{b.dueDate ? fmtDate(b.dueDate) : '—'}</td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-1">
-                      {b.status !== 'paid' && <button onClick={() => handleMarkPaid(b)} className="text-xs text-green-400 hover:text-green-300 hover:bg-green-400/10 px-2 py-1.5 rounded-lg transition-colors whitespace-nowrap">Pay</button>}
-                      <button onClick={() => { setForm({ vendor: b.vendor, billNumber: b.billNumber || '', category: b.category, description: b.description || '', amount: String(b.amount || ''), taxAmount: String(b.taxAmount || ''), totalAmount: String(b.totalAmount || ''), currency: b.currency, billDate: b.billDate ? b.billDate.slice(0,10) : todayStr(), dueDate: b.dueDate ? b.dueDate.slice(0,10) : '', status: b.status, paymentMethod: b.paymentMethod || '', notes: b.notes || '' }); setEditItem(b); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleDelete(b)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {bills.map(b => (
+            <div key={b.id} className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-sm font-semibold text-white">{b.vendor}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${BILL_STATUS_COLORS[b.status] || BILL_STATUS_COLORS.pending}`}>{b.status}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-dark-400 flex-wrap">
+                    {b.billNumber && <span className="font-mono">{b.billNumber}</span>}
+                    <span className="text-brand-400 font-bold text-sm">{fmt(b.totalAmount, b.currency)}</span>
+                    <span>{fmtDate(b.billDate)}</span>
+                    {b.dueDate && <span className={b.status !== 'paid' && new Date(b.dueDate) < new Date() ? 'text-red-400' : ''}>Due: {fmtDate(b.dueDate)}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {b.status !== 'paid' && <button onClick={() => handleMarkPaid(b)} className="text-xs text-green-400 bg-green-400/10 hover:bg-green-400/20 px-2 py-1.5 rounded-lg transition-colors">Pay</button>}
+                  <button onClick={() => { setForm({ vendor: b.vendor, billNumber: b.billNumber || '', category: b.category, description: b.description || '', amount: String(b.amount || ''), taxAmount: String(b.taxAmount || ''), totalAmount: String(b.totalAmount || ''), currency: b.currency, billDate: b.billDate ? b.billDate.slice(0,10) : todayStr(), dueDate: b.dueDate ? b.dueDate.slice(0,10) : '', status: b.status, paymentMethod: b.paymentMethod || '', notes: b.notes || '' }); setEditItem(b); setShowAdd(true); }} className={btnSecondary + ' !px-2 !py-1.5'}><Edit2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(b)} className={btnDanger}><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -2996,7 +2972,7 @@ function ReportsTab({ siteId }: { siteId: string }) {
       {procurement.length > 0 && (
         <div className="bg-dark-700 rounded-xl p-5">
           <h3 className="text-sm font-bold text-white mb-4">Procurement Status</h3>
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             <StatCard label="Total Orders" value={procurement.length} />
             <StatCard label="Delivered" value={poDelivered} color="text-green-400" />
             <StatCard label="Total Value" value={fmt(poTotal)} color="text-brand-400" />
@@ -3756,7 +3732,7 @@ export default function SiteDetailPage() {
               )}
               {/* Progress bar */}
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-2 bg-dark-700 rounded-full overflow-hidden max-w-xs">
+                <div className="flex-1 h-2 bg-dark-700 rounded-full overflow-hidden">
                   <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${site.progressPct ?? 0}%` }} />
                 </div>
                 <span className="text-xs font-bold text-brand-400 flex-shrink-0">{site.progressPct ?? 0}% complete</span>
@@ -3785,7 +3761,7 @@ export default function SiteDetailPage() {
                   }`}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="text-xs sm:text-sm">{tab.label}</span>
                 </button>
               );
             })}
@@ -3794,7 +3770,7 @@ export default function SiteDetailPage() {
       </div>
 
       {/* ── Tab Content ─────────────────────────────────────────────────── */}
-      <div className="px-4 sm:px-6 py-6">
+      <div className="px-3 sm:px-6 py-4 sm:py-6">
         {activeTab === 'overview' && (
           <OverviewTab site={site} onEditClick={() => setShowEditModal(true)} />
         )}
