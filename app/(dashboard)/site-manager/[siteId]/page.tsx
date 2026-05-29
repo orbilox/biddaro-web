@@ -117,6 +117,9 @@ const TABS = [
   { id: 'vendor-bills',  label: 'Vendor Bills',   icon: Receipt       },
   { id: 'pnl',           label: 'P&L',            icon: TrendingUp    },
   { id: 'reports',       label: 'Reports',        icon: BarChart2     },
+  { id: 'team',          label: 'Team',           icon: Users         },
+  { id: 'issues',        label: 'Issues',         icon: AlertCircle   },
+  { id: 'gantt',         label: 'Gantt',          icon: BarChart2     },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -3011,6 +3014,575 @@ function ReportsTab({ siteId }: { siteId: string }) {
   );
 }
 
+// ─── Team Tab ─────────────────────────────────────────────────────────────────
+
+const TEAM_ROLE_COLORS: Record<string, string> = {
+  owner:      'bg-red-500/10 text-red-400 border border-red-500/20',
+  admin:      'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+  pm:         'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+  engineer:   'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+  supervisor: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+  client:     'bg-gray-500/10 text-gray-400 border border-gray-500/20',
+  viewer:     'bg-slate-500/10 text-slate-400 border border-slate-500/20',
+};
+
+const TEAM_ROLES = ['owner', 'admin', 'pm', 'engineer', 'supervisor', 'client', 'viewer'];
+
+function TeamTab({ siteId }: { siteId: string }) {
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: '', role: 'viewer' });
+  const [inviting, setInviting] = useState(false);
+
+  async function loadTeam() {
+    try {
+      const res = await siteManagerApi.listTeam(siteId);
+      setMembers(res.data.data || []);
+    } catch { toast.error('Failed to load team'); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadTeam(); }, [siteId]);
+
+  async function handleInvite(e: React.FormEvent) {
+    e.preventDefault();
+    if (!inviteForm.email) { toast.error('Email is required'); return; }
+    setInviting(true);
+    try {
+      await siteManagerApi.inviteMember(siteId, inviteForm);
+      toast.success('Invitation sent');
+      setShowInvite(false);
+      setInviteForm({ email: '', role: 'viewer' });
+      loadTeam();
+    } catch { toast.error('Failed to send invite'); }
+    finally { setInviting(false); }
+  }
+
+  async function handleRoleChange(memberId: string, role: string) {
+    try {
+      await siteManagerApi.updateMemberRole(siteId, memberId, role);
+      toast.success('Role updated');
+      loadTeam();
+    } catch { toast.error('Failed to update role'); }
+  }
+
+  async function handleRemove(memberId: string) {
+    if (!confirm('Remove this member from the site?')) return;
+    try {
+      await siteManagerApi.removeMember(siteId, memberId);
+      toast.success('Member removed');
+      loadTeam();
+    } catch { toast.error('Failed to remove member'); }
+  }
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-bold text-white">Team Members</h2>
+          <p className="text-xs text-dark-400 mt-0.5">{members.length} member{members.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button onClick={() => setShowInvite(true)} className={btnPrimary}>
+          <Plus className="w-4 h-4" /> Invite Member
+        </button>
+      </div>
+
+      {/* Role legend */}
+      <div className="flex flex-wrap gap-2">
+        {TEAM_ROLES.map(r => (
+          <span key={r} className={`text-xs px-2 py-0.5 rounded-full ${TEAM_ROLE_COLORS[r]}`}>
+            {r.charAt(0).toUpperCase() + r.slice(1)}
+          </span>
+        ))}
+      </div>
+
+      {/* Members grid */}
+      {members.length === 0 ? (
+        <EmptyState icon={Users} title="No team members yet" sub="Invite collaborators to this site" action={
+          <button onClick={() => setShowInvite(true)} className={btnPrimary}><Plus className="w-4 h-4" /> Invite Member</button>
+        } />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {members.map(m => {
+            const name = `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim() || m.user?.email || 'Unknown';
+            const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+            return (
+              <div key={m.id} className="bg-dark-700 rounded-xl p-4 flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-bold text-brand-400">{initials}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{name}</p>
+                  <p className="text-xs text-dark-400 truncate">{m.user?.email}</p>
+                  <p className="text-xs text-dark-500 mt-1">Joined {fmtDate(m.joinedAt)}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <select
+                      value={m.role}
+                      onChange={e => handleRoleChange(m.id, e.target.value)}
+                      className="bg-dark-600 border border-dark-500 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-brand-500"
+                    >
+                      {TEAM_ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+                    </select>
+                    <button onClick={() => handleRemove(m.id)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-400/10 transition-colors">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showInvite && (
+        <Modal title="Invite Team Member" onClose={() => setShowInvite(false)}>
+          <form onSubmit={handleInvite} className="space-y-4">
+            <Field label="Email Address">
+              <input
+                type="email"
+                value={inviteForm.email}
+                onChange={e => setInviteForm(p => ({ ...p, email: e.target.value }))}
+                placeholder="colleague@example.com"
+                className={inputCls}
+                required
+              />
+            </Field>
+            <Field label="Role">
+              <select
+                value={inviteForm.role}
+                onChange={e => setInviteForm(p => ({ ...p, role: e.target.value }))}
+                className={selectCls}
+              >
+                {TEAM_ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+              </select>
+            </Field>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setShowInvite(false)} className={btnSecondary}>Cancel</button>
+              <button type="submit" disabled={inviting} className={btnPrimary}>
+                {inviting ? 'Sending...' : 'Send Invite'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Issues Tab ───────────────────────────────────────────────────────────────
+
+const ISSUE_PRIORITY_COLORS: Record<string, string> = {
+  critical: 'bg-red-500/10 text-red-400 border border-red-500/20',
+  high:     'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+  medium:   'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+  low:      'bg-gray-500/10 text-gray-400 border border-gray-500/20',
+};
+
+const ISSUE_CATEGORY_COLORS: Record<string, string> = {
+  defect:  'bg-red-500/10 text-red-400',
+  safety:  'bg-orange-500/10 text-orange-400',
+  rfi:     'bg-blue-500/10 text-blue-400',
+  punch:   'bg-purple-500/10 text-purple-400',
+  delay:   'bg-amber-500/10 text-amber-400',
+  other:   'bg-gray-500/10 text-gray-400',
+};
+
+const ISSUE_CATEGORIES = ['defect', 'safety', 'rfi', 'punch', 'delay', 'other'];
+const ISSUE_PRIORITIES = ['low', 'medium', 'high', 'critical'];
+const ISSUE_STATUSES = ['open', 'in_progress', 'resolved', 'closed'];
+
+const EMPTY_ISSUE = {
+  title: '', description: '', category: 'defect', priority: 'medium',
+  status: 'open', location: '', reportedBy: '', assignedTo: '', dueDate: '',
+};
+
+function IssuesTab({ siteId }: { siteId: string }) {
+  const [issues, setIssues] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [form, setForm] = useState<Record<string, string>>({ ...EMPTY_ISSUE });
+  const [saving, setSaving] = useState(false);
+
+  async function loadIssues() {
+    try {
+      const res = await siteManagerApi.listIssues(siteId);
+      setIssues(res.data.data || []);
+    } catch { toast.error('Failed to load issues'); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadIssues(); }, [siteId]);
+
+  function openAdd() { setForm({ ...EMPTY_ISSUE }); setEditItem(null); setShowAdd(true); }
+  function openEdit(issue: any) {
+    setForm({
+      title: issue.title || '', description: issue.description || '',
+      category: issue.category || 'defect', priority: issue.priority || 'medium',
+      status: issue.status || 'open', location: issue.location || '',
+      reportedBy: issue.reportedBy || '', assignedTo: issue.assignedTo || '',
+      dueDate: issue.dueDate ? issue.dueDate.slice(0, 10) : '',
+    });
+    setEditItem(issue);
+    setShowAdd(true);
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim()) { toast.error('Title is required'); return; }
+    setSaving(true);
+    try {
+      const data = { ...form, dueDate: form.dueDate || undefined };
+      if (editItem) {
+        await siteManagerApi.updateIssue(siteId, editItem.id, data);
+        toast.success('Issue updated');
+      } else {
+        await siteManagerApi.addIssue(siteId, data);
+        toast.success('Issue created');
+      }
+      setShowAdd(false);
+      loadIssues();
+    } catch { toast.error('Failed to save issue'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this issue?')) return;
+    try {
+      await siteManagerApi.deleteIssue(siteId, id);
+      toast.success('Issue deleted');
+      loadIssues();
+    } catch { toast.error('Failed to delete'); }
+  }
+
+  async function quickStatus(id: string, newStatus: string) {
+    try {
+      await siteManagerApi.updateIssue(siteId, id, { status: newStatus });
+      toast.success('Status updated');
+      loadIssues();
+    } catch { toast.error('Failed to update status'); }
+  }
+
+  const filtered = filterStatus === 'all' ? issues : issues.filter(i => i.status === filterStatus);
+  const openCount = issues.filter(i => i.status === 'open').length;
+  const inProgressCount = issues.filter(i => i.status === 'in_progress').length;
+  const resolvedCount = issues.filter(i => i.status === 'resolved' || i.status === 'closed').length;
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold text-white">Issues &amp; Punch List</h2>
+        <button onClick={openAdd} className={btnPrimary}><Plus className="w-4 h-4" /> Add Issue</button>
+      </div>
+
+      {/* Summary chips */}
+      <div className="flex gap-3 flex-wrap">
+        <span className="flex items-center gap-1.5 bg-red-500/10 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-full border border-red-500/20">
+          Open: {openCount}
+        </span>
+        <span className="flex items-center gap-1.5 bg-amber-500/10 text-amber-400 text-xs font-semibold px-3 py-1.5 rounded-full border border-amber-500/20">
+          In Progress: {inProgressCount}
+        </span>
+        <span className="flex items-center gap-1.5 bg-green-500/10 text-green-400 text-xs font-semibold px-3 py-1.5 rounded-full border border-green-500/20">
+          Resolved: {resolvedCount}
+        </span>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-1 bg-dark-800 p-1 rounded-xl w-fit">
+        {['all', 'open', 'in_progress', 'resolved'].map(s => (
+          <button
+            key={s}
+            onClick={() => setFilterStatus(s)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${filterStatus === s ? 'bg-brand-500 text-white' : 'text-dark-400 hover:text-white'}`}
+          >
+            {s === 'in_progress' ? 'In Progress' : s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Issues list */}
+      {filtered.length === 0 ? (
+        <EmptyState icon={AlertCircle} title="No issues found" sub="Track defects, safety concerns, RFIs and punch list items" action={
+          <button onClick={openAdd} className={btnPrimary}><Plus className="w-4 h-4" /> Add Issue</button>
+        } />
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(issue => (
+            <div key={issue.id} className="bg-dark-700 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${ISSUE_PRIORITY_COLORS[issue.priority] || ISSUE_PRIORITY_COLORS.medium}`}>
+                      {issue.priority.toUpperCase()}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${ISSUE_CATEGORY_COLORS[issue.category] || ''}`}>
+                      {issue.category}
+                    </span>
+                    {issue.location && (
+                      <span className="text-xs text-dark-400 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />{issue.location}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold text-white">{issue.title}</p>
+                  {issue.description && <p className="text-xs text-dark-400 mt-1 line-clamp-2">{issue.description}</p>}
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
+                    {issue.assignedTo && <span className="text-xs text-dark-400">Assigned: {issue.assignedTo}</span>}
+                    {issue.dueDate && <span className="text-xs text-dark-400">Due: {fmtDate(issue.dueDate)}</span>}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <div className="flex gap-1">
+                    <button onClick={() => openEdit(issue)} className="text-dark-400 hover:text-white p-1 rounded hover:bg-dark-600 transition-colors">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(issue.id)} className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-400/10 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex gap-1">
+                    {issue.status === 'open' && (
+                      <button onClick={() => quickStatus(issue.id, 'in_progress')} className="text-xs bg-amber-500/10 text-amber-400 px-2 py-1 rounded-lg hover:bg-amber-500/20 transition-colors">
+                        Start
+                      </button>
+                    )}
+                    {(issue.status === 'open' || issue.status === 'in_progress') && (
+                      <button onClick={() => quickStatus(issue.id, 'resolved')} className="text-xs bg-green-500/10 text-green-400 px-2 py-1 rounded-lg hover:bg-green-500/20 transition-colors">
+                        Resolve
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit Modal */}
+      {showAdd && (
+        <Modal title={editItem ? 'Edit Issue' : 'Add Issue'} onClose={() => setShowAdd(false)} wide>
+          <form onSubmit={handleSave} className="space-y-4">
+            <Field label="Title *">
+              <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className={inputCls} placeholder="Brief description of the issue" required />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Category">
+                <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={selectCls}>
+                  {ISSUE_CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                </select>
+              </Field>
+              <Field label="Priority">
+                <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} className={selectCls}>
+                  {ISSUE_PRIORITIES.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                </select>
+              </Field>
+              <Field label="Status">
+                <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className={selectCls}>
+                  {ISSUE_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                </select>
+              </Field>
+              <Field label="Due Date">
+                <input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} className={inputCls} />
+              </Field>
+              <Field label="Location">
+                <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} className={inputCls} placeholder="Floor 2, Block A..." />
+              </Field>
+              <Field label="Assigned To">
+                <input value={form.assignedTo} onChange={e => setForm(p => ({ ...p, assignedTo: e.target.value }))} className={inputCls} placeholder="Engineer name..." />
+              </Field>
+            </div>
+            <Field label="Reported By">
+              <input value={form.reportedBy} onChange={e => setForm(p => ({ ...p, reportedBy: e.target.value }))} className={inputCls} placeholder="Inspector name..." />
+            </Field>
+            <Field label="Description">
+              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} className={inputCls} placeholder="Detailed description..." />
+            </Field>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setShowAdd(false)} className={btnSecondary}>Cancel</button>
+              <button type="submit" disabled={saving} className={btnPrimary}>{saving ? 'Saving...' : editItem ? 'Update Issue' : 'Add Issue'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Gantt Tab ────────────────────────────────────────────────────────────────
+
+function GanttTab({ siteId }: { siteId: string }) {
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const [productions, setProductions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [mRes, pRes] = await Promise.all([
+          siteManagerApi.listMilestones(siteId),
+          siteManagerApi.listProductions(siteId),
+        ]);
+        setMilestones(mRes.data.data || []);
+        setProductions(pRes.data.data || []);
+      } catch { toast.error('Failed to load Gantt data'); }
+      finally { setLoading(false); }
+    }
+    load();
+  }, [siteId]);
+
+  if (loading) return <Spinner />;
+
+  const allItems = [
+    ...milestones.map((m: any) => ({
+      id: m.id, name: m.title,
+      start: m.createdAt, end: m.dueDate || m.createdAt,
+      status: m.status, type: 'milestone' as const,
+    })),
+    ...productions.map((p: any) => ({
+      id: p.id, name: p.title,
+      start: p.startDate || p.createdAt, end: p.endDate || p.startDate || p.createdAt,
+      status: p.status, type: 'task' as const,
+    })),
+  ].filter(i => i.start && i.end);
+
+  if (allItems.length === 0) {
+    return (
+      <EmptyState
+        icon={BarChart2}
+        title="No data for Gantt chart"
+        sub="Add milestones in the Planning tab or production tasks in the Production tab to see the Gantt chart."
+      />
+    );
+  }
+
+  const minTs = Math.min(...allItems.map(i => new Date(i.start).getTime()));
+  const maxTs = Math.max(...allItems.map(i => new Date(i.end).getTime()));
+  const minDate = new Date(minTs);
+  const maxDate = new Date(maxTs);
+  const totalDays = Math.max((maxTs - minTs) / 86400000, 1);
+
+  const statusColor = (status: string) => {
+    if (status === 'completed') return 'bg-green-500';
+    if (status === 'in_progress') return 'bg-brand-500';
+    if (status === 'delayed') return 'bg-red-500';
+    if (status === 'cancelled') return 'bg-gray-600';
+    return 'bg-dark-600';
+  };
+
+  // Build month labels for header
+  const monthLabels: { label: string; leftPct: number }[] = [];
+  const cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+  while (cur <= maxDate) {
+    const leftDays = (cur.getTime() - minTs) / 86400000;
+    monthLabels.push({
+      label: cur.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
+      leftPct: Math.max((leftDays / totalDays) * 100, 0),
+    });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  const minWidth = Math.max(totalDays * (viewMode === 'week' ? 40 : 20), 600);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold text-white">Project Gantt Chart</h2>
+        <div className="flex gap-1 bg-dark-800 p-1 rounded-xl">
+          {(['month', 'week'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setViewMode(v)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${viewMode === v ? 'bg-brand-500 text-white' : 'text-dark-400 hover:text-white'}`}
+            >
+              {v.charAt(0).toUpperCase() + v.slice(1)} View
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Gantt chart */}
+      <div className="bg-dark-700 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <div style={{ minWidth: `${minWidth + 140}px` }}>
+            {/* Timeline header */}
+            <div className="flex border-b border-dark-600">
+              <div className="w-36 flex-shrink-0 px-3 py-2 text-xs font-semibold text-dark-300 border-r border-dark-600">Task / Milestone</div>
+              <div className="flex-1 relative h-8 overflow-hidden">
+                <div className="relative w-full h-full" style={{ width: `${minWidth}px` }}>
+                  {monthLabels.map((ml, i) => (
+                    <span
+                      key={i}
+                      className="absolute top-2 text-xs text-dark-400 whitespace-nowrap"
+                      style={{ left: `${ml.leftPct}%` }}
+                    >
+                      {ml.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Rows */}
+            {allItems.map(item => {
+              const leftDays = (new Date(item.start).getTime() - minTs) / 86400000;
+              const durDays = Math.max((new Date(item.end).getTime() - new Date(item.start).getTime()) / 86400000, 1);
+              const left = (leftDays / totalDays) * 100;
+              const width = Math.max((durDays / totalDays) * 100, 2);
+
+              return (
+                <div key={item.id} className="flex border-b border-dark-600/50 hover:bg-dark-600/30 transition-colors">
+                  <div className="w-36 flex-shrink-0 px-3 py-2.5 border-r border-dark-600">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColor(item.status)}`} />
+                      <span className="text-xs text-white truncate">{item.name}</span>
+                    </div>
+                    <span className="text-xs text-dark-500 ml-3.5">{item.type}</span>
+                  </div>
+                  <div className="flex-1 relative py-2" style={{ width: `${minWidth}px` }}>
+                    <div
+                      style={{ left: `${left}%`, width: `${width}%` }}
+                      className={`absolute top-2 bottom-2 rounded-full ${statusColor(item.status)} flex items-center px-2 min-w-[8px]`}
+                    >
+                      {width > 5 && <span className="text-xs text-white truncate">{item.name}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex gap-4 flex-wrap">
+        {[
+          { color: 'bg-green-500', label: 'Completed' },
+          { color: 'bg-brand-500', label: 'In Progress' },
+          { color: 'bg-red-500', label: 'Delayed' },
+          { color: 'bg-dark-600 border border-dark-500', label: 'Pending' },
+        ].map(l => (
+          <div key={l.label} className="flex items-center gap-2 text-xs text-dark-400">
+            <div className={`w-4 h-3 rounded-sm ${l.color}`} />
+            {l.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Edit Site Modal ──────────────────────────────────────────────────────────
 
 function EditSiteModal({ site, onClose, onSaved }: { site: any; onClose: () => void; onSaved: (s: any) => void }) {
@@ -3276,6 +3848,15 @@ export default function SiteDetailPage() {
         )}
         {activeTab === 'reports' && tabsVisited.includes('reports') && (
           <ReportsTab siteId={siteId} />
+        )}
+        {activeTab === 'team' && tabsVisited.includes('team') && (
+          <TeamTab siteId={siteId} />
+        )}
+        {activeTab === 'issues' && tabsVisited.includes('issues') && (
+          <IssuesTab siteId={siteId} />
+        )}
+        {activeTab === 'gantt' && tabsVisited.includes('gantt') && (
+          <GanttTab siteId={siteId} />
         )}
       </div>
 

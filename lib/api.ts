@@ -690,6 +690,18 @@ export const siteManagerApi = {
   deleteProduction:  (siteId: string, id: string) => api.delete(`/site-manager/sites/${siteId}/production/${id}`),
   // P&L
   getPnL: (siteId: string) => api.get(`/site-manager/sites/${siteId}/pnl`),
+  // Team
+  listTeam: (siteId: string) => api.get(`/site-manager/sites/${siteId}/team`),
+  inviteMember: (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/team/invite`, data),
+  updateMemberRole: (siteId: string, memberId: string, role: string) => api.put(`/site-manager/sites/${siteId}/team/${memberId}`, { role }),
+  removeMember: (siteId: string, memberId: string) => api.delete(`/site-manager/sites/${siteId}/team/${memberId}`),
+  // Issues
+  listIssues: (siteId: string) => api.get(`/site-manager/sites/${siteId}/issues`),
+  addIssue: (siteId: string, data: Record<string, unknown>) => api.post(`/site-manager/sites/${siteId}/issues`, data),
+  updateIssue: (siteId: string, id: string, data: Record<string, unknown>) => api.put(`/site-manager/sites/${siteId}/issues/${id}`, data),
+  deleteIssue: (siteId: string, id: string) => api.delete(`/site-manager/sites/${siteId}/issues/${id}`),
+  // Client portal
+  getClientPortal: (token: string) => api.get(`/site-manager/portal/${token}`),
 };
 
 export default api;
