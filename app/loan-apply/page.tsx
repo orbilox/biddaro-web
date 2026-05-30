@@ -85,14 +85,14 @@ export default function LoanApplyPage() {
     pixelViewContent({ contentName: 'Loan Apply Form', contentCategory: 'loans', value: 100 });
   }, []);
 
-  // Load Razorpay script
+  // Load Razorpay script — eager load so it's ready when user reaches step 7
   useEffect(() => {
     if (document.getElementById('rzp-script')) return;
     const s = document.createElement('script');
     s.id  = 'rzp-script';
     s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    s.async = true;
-    document.body.appendChild(s);
+    s.async = false; // synchronous load ensures it's ready before any click
+    document.head.appendChild(s);
   }, []);
 
   // ── Navigation ──────────────────────────────────────────────────────────────
@@ -142,6 +142,13 @@ export default function LoanApplyPage() {
   // ── Subscribe ₹100/month + Redirect ─────────────────────────────────────────
   async function handlePay() {
     setError('');
+
+    // Ensure Razorpay SDK is loaded
+    if (typeof (window as any).Razorpay === 'undefined') {
+      setError('Payment SDK is still loading — please wait a moment and try again.');
+      return;
+    }
+
     setPaying(true);
     try {
       const subRes = await loansApi.createIndiaSubscription(form.loanType);
@@ -151,7 +158,7 @@ export default function LoanApplyPage() {
       pixelAddPaymentInfo({ value: 100, currency: 'INR', contentCategory: form.loanType });
 
       const subProof = await new Promise<SubProof>((resolve, reject) => {
-        new (window as any).Razorpay({
+        const rzp = new (window as any).Razorpay({
           key,
           subscription_id: subscriptionId,
           name:            'Biddaro',
@@ -163,8 +170,16 @@ export default function LoanApplyPage() {
             contact: form.phone,
           },
           handler: resolve,
-          modal: { ondismiss: () => reject(new Error('cancelled')) },
-        }).open();
+          modal: {
+            ondismiss:  () => reject(new Error('cancelled')),
+            escape:     true,
+            backdropClose: false,
+          },
+        });
+        rzp.on('payment.failed', (resp: any) => {
+          reject(new Error(resp?.error?.description || 'Payment failed'));
+        });
+        rzp.open();
       });
 
       // Browser pixel: subscription authorized
@@ -193,7 +208,12 @@ export default function LoanApplyPage() {
       router.push('/register');
     } catch (err: any) {
       if (err?.message !== 'cancelled') {
-        setError('Payment failed. Please try again.');
+        // Show the real error message — helps debug Razorpay failures on mobile
+        const msg = (err as any)?.response?.data?.message
+          || (err as any)?.response?.data?.error
+          || err?.message
+          || 'Payment failed. Please try again.';
+        setError(msg);
       }
     } finally {
       setPaying(false);
