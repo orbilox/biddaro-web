@@ -11,6 +11,69 @@ import { cn } from '@/lib/utils';
 import { PENDING_LOAN_KEY } from '@/lib/constants';
 import { pixelViewContent, pixelAddPaymentInfo, pixelLead, pixelSubscribe } from '@/lib/metaPixel';
 
+// ─── Social proof entries ─────────────────────────────────────────────────────
+const SOCIAL_PROOF = [
+  { name: 'Rahul S.',    city: 'Mumbai',     loan: 'Home Construction', ago: '2 min ago' },
+  { name: 'Priya M.',   city: 'Bangalore',  loan: 'Personal Loan',     ago: '5 min ago' },
+  { name: 'Arun K.',    city: 'Chennai',    loan: 'Business Loan',     ago: '8 min ago' },
+  { name: 'Sunita D.',  city: 'Delhi',      loan: 'Renovation Loan',   ago: '11 min ago' },
+  { name: 'Vikram P.',  city: 'Hyderabad',  loan: 'Working Capital',   ago: '14 min ago' },
+  { name: 'Neha R.',    city: 'Pune',       loan: 'Home Construction', ago: '17 min ago' },
+  { name: 'Karan T.',   city: 'Ahmedabad',  loan: 'Equipment Finance', ago: '21 min ago' },
+  { name: 'Meera J.',   city: 'Kolkata',    loan: 'Personal Loan',     ago: '24 min ago' },
+  { name: 'Suresh N.',  city: 'Jaipur',     loan: 'Business Loan',     ago: '28 min ago' },
+  { name: 'Anjali V.',  city: 'Surat',      loan: 'Home Construction', ago: '31 min ago' },
+  { name: 'Deepak G.',  city: 'Lucknow',    loan: 'Working Capital',   ago: '35 min ago' },
+  { name: 'Pooja A.',   city: 'Indore',     loan: 'Renovation Loan',   ago: '38 min ago' },
+  { name: 'Rajesh B.',  city: 'Nagpur',     loan: 'Equipment Finance', ago: '42 min ago' },
+  { name: 'Kavya L.',   city: 'Bhopal',     loan: 'Personal Loan',     ago: '46 min ago' },
+  { name: 'Arjun C.',   city: 'Coimbatore', loan: 'Business Loan',     ago: '49 min ago' },
+  { name: 'Shreya H.',  city: 'Patna',      loan: 'Home Construction', ago: '53 min ago' },
+  { name: 'Mohan F.',   city: 'Vadodara',   loan: 'Working Capital',   ago: '57 min ago' },
+  { name: 'Ritu E.',    city: 'Chandigarh', loan: 'Renovation Loan',   ago: '1 hr ago' },
+  { name: 'Tarun W.',   city: 'Kochi',      loan: 'Equipment Finance', ago: '1 hr ago' },
+  { name: 'Divya Q.',   city: 'Visakhapatnam', loan: 'Personal Loan',  ago: '1 hr ago' },
+];
+
+// ─── Social proof ticker component ───────────────────────────────────────────
+function SocialProofTicker() {
+  const [idx, setIdx]       = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIdx(i => (i + 1) % SOCIAL_PROOF.length);
+        setVisible(true);
+      }, 400);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const entry = SOCIAL_PROOF[idx];
+
+  return (
+    <div className="flex items-center justify-center gap-2 py-2 px-4">
+      <span className="relative flex h-2 w-2 flex-shrink-0">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+      </span>
+      <p
+        className="text-xs text-gray-500 transition-all duration-400"
+        style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(-4px)' }}
+      >
+        <span className="font-medium text-gray-700">{entry.name}</span>
+        {' '}from{' '}
+        <span className="font-medium text-gray-700">{entry.city}</span>
+        {' '}applied for a{' '}
+        <span className="text-orange-600 font-medium">{entry.loan}</span>
+        {' '}· {entry.ago}
+      </p>
+    </div>
+  );
+}
+
 // ─── Loan types ───────────────────────────────────────────────────────────────
 const LOAN_TYPES = [
   { id: 'home_construction', label: 'Home Construction', icon: Building2, color: 'amber',  desc: 'Build your dream home from the ground up' },
@@ -250,6 +313,13 @@ export default function LoanApplyPage() {
               style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
             />
           </div>
+        </div>
+      </div>
+
+      {/* Social proof ticker */}
+      <div className="bg-green-50 border-b border-green-100">
+        <div className="max-w-lg mx-auto">
+          <SocialProofTicker />
         </div>
       </div>
 
