@@ -9,7 +9,7 @@ import {
 import { loansApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { PENDING_LOAN_KEY } from '@/lib/constants';
-import { pixelViewContent, pixelAddPaymentInfo, pixelLead, pixelSubscribe } from '@/lib/metaPixel';
+import { pixelViewContent, pixelAddPaymentInfo, pixelLead, pixelSubscribe, pixelIdentify } from '@/lib/metaPixel';
 
 // ─── Social proof entries ─────────────────────────────────────────────────────
 const SOCIAL_PROOF = [
@@ -214,9 +214,22 @@ export default function LoanApplyPage() {
 
     setPaying(true);
     try {
-      const subRes = await loansApi.createIndiaSubscription(form.loanType);
+      const subRes = await loansApi.createIndiaSubscription({
+        loanType:  form.loanType,
+        email:     form.email,
+        phone:     form.phone,
+        firstName: form.firstName,
+        lastName:  form.lastName,
+      });
       const { subscriptionId, planId, key } = subRes.data.data;
 
+      // Identify user to Meta Pixel — dramatically improves Event Match Quality
+      pixelIdentify({
+        email:     form.email,
+        phone:     form.phone,
+        firstName: form.firstName,
+        lastName:  form.lastName,
+      });
       // Browser pixel: user opened payment modal
       pixelAddPaymentInfo({ value: 100, currency: 'INR', contentCategory: form.loanType });
 
@@ -245,7 +258,7 @@ export default function LoanApplyPage() {
         rzp.open();
       });
 
-      // Browser pixel: subscription authorized
+      // Browser pixel: subscription authorized (identity already set above)
       pixelSubscribe();
       pixelLead({ contentCategory: form.loanType });
 

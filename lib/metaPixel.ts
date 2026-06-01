@@ -33,6 +33,29 @@ export function pixelViewContent(opts: {
   });
 }
 
+/**
+ * Identify user to Meta Pixel — re-inits fbq with hashed PII so subsequent
+ * events get high Event Match Quality. Call this as soon as you have user data.
+ * Meta's pixel hashes the values automatically on the client side.
+ */
+export function pixelIdentify(opts: {
+  email?:      string;
+  phone?:      string;
+  firstName?:  string;
+  lastName?:   string;
+  externalId?: string;
+}): void {
+  if (typeof window === 'undefined' || !window.fbq) return;
+  const userData: Record<string, string> = {};
+  if (opts.email)      userData.em          = opts.email.trim().toLowerCase();
+  if (opts.phone)      userData.ph          = opts.phone.replace(/\D/g, '');
+  if (opts.firstName)  userData.fn          = opts.firstName.trim().toLowerCase();
+  if (opts.lastName)   userData.ln          = opts.lastName.trim().toLowerCase();
+  if (opts.externalId) userData.external_id = opts.externalId;
+  // Re-init with user data — Meta pixel de-dupes and hashes before sending
+  window.fbq('init', '914655691586718', userData as any);
+}
+
 /** Add Payment Info — call when Razorpay modal opens (client side signal). */
 export function pixelAddPaymentInfo(opts?: { value?: number; currency?: string; contentCategory?: string }): void {
   pixelTrack('AddPaymentInfo', {

@@ -374,9 +374,9 @@ export const loansApi = {
     api.post<{ success: boolean; data: { orderId: string; amount: number; currency: string; key: string } }>(
       '/loans/india/order', { loanType }
     ),
-  createIndiaSubscription: (loanType: string) =>
+  createIndiaSubscription: (data: { loanType: string; email?: string; phone?: string; firstName?: string; lastName?: string }) =>
     api.post<{ success: boolean; data: { subscriptionId: string; planId: string; key: string } }>(
-      '/loans/india/subscription', { loanType }
+      '/loans/india/subscription', data
     ),
   applyIndia: (data: Record<string, unknown>) =>
     api.post('/loans/india/apply', data),
