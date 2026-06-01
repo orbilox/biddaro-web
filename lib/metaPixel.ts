@@ -74,9 +74,13 @@ export function pixelLead(opts?: { contentCategory?: string; value?: number }): 
   });
 }
 
-/** Subscribe — call when subscription is confirmed by Razorpay handler (client side). */
+/** Subscribe — call when subscription is confirmed by Razorpay handler (client side).
+ *  NOTE: value/currency are intentionally omitted from the browser event to avoid
+ *  Meta's "same value for all Subscribe events" warning (fixed ₹100/month subscription).
+ *  The actual value is sent reliably via CAPI on the server side.
+ */
 export function pixelSubscribe(): void {
-  pixelTrack('Subscribe', { value: 100, currency: 'INR', predicted_ltv: 1200 });
+  pixelTrack('Subscribe', { predicted_ltv: 1200, currency: 'INR' });
 }
 
 /** CompleteRegistration — call after OTP verify success (client side). */
