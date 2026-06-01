@@ -18,6 +18,7 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { formatCurrency, timeAgo } from '@/lib/utils';
 import { JOB_CATEGORIES, BUDGET_RANGES, SORT_OPTIONS, ROUTES, UAE_LOCATIONS, SINGAPORE_LOCATIONS } from '@/lib/constants';
+import { currencySymbol } from '@/lib/useGeoCountry';
 import { Tabs, TabList, Tab, TabPanel } from '@/components/ui/Tabs';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import type { Job } from '@/types';
@@ -312,22 +313,22 @@ function BidModal({ job, open, onClose, onSuccess, isPremium }: BidModalProps) {
               <Badge variant="default" size="sm" className="mt-1">{job.category}</Badge>
             </div>
             <div className="text-right flex-shrink-0">
-              <p className="text-xl font-bold text-brand-600">{formatCurrency(job.budget)}</p>
+              <p className="text-xl font-bold text-brand-600">{formatCurrency(job.budget, job.currency)}</p>
               <p className="text-xs text-dark-400">Budget</p>
             </div>
           </div>
         </div>
 
-        {/* Bid amount */}
+        {/* Bid amount — currency matches the job's currency */}
         <Input
-          label="Your Bid Amount ($) *"
+          label={`Your Bid Amount (${currencySymbol(job.currency || 'USD')}) *`}
           type="number"
           min="1"
           step="0.01"
           placeholder={`e.g. ${Math.round(job.budget * 0.9)}`}
           value={amount}
           onChange={e => setAmount(e.target.value)}
-          leftIcon={<DollarSign className="w-4 h-4" />}
+          leftIcon={<span className="text-sm font-medium text-dark-500">{currencySymbol(job.currency || 'USD')}</span>}
           hint={pct}
         />
 

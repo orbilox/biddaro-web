@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Upload, DollarSign, Calendar, MapPin, Wand2, X, FileText,
@@ -14,6 +14,7 @@ import { toast } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
 import { jobsApi, uploadApi } from '@/lib/api';
 import { track } from '@/lib/analytics';
+import { useGeoCountry } from '@/lib/useGeoCountry';
 
 interface PostJobForm {
   title: string;
@@ -41,6 +42,7 @@ function formatFileSize(bytes: number): string {
 
 export default function PostJobPage() {
   const router = useRouter();
+  const geo = useGeoCountry();
   const [step, setStep] = useState(1);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -57,6 +59,13 @@ export default function PostJobPage() {
     register, handleSubmit, watch, setValue,
     formState: { errors },
   } = useForm<PostJobForm>({ defaultValues: { projectType: 'standard', currency: 'USD' } });
+
+  // Auto-set currency from user's detected country (runs once after geo cookie is read)
+  useEffect(() => {
+    if (geo.currency && geo.currency !== 'USD') {
+      setValue('currency', geo.currency);
+    }
+  }, [geo.currency]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const values = watch();
 

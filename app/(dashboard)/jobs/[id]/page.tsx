@@ -14,6 +14,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Textarea, Input } from '@/components/ui/Input';
 import { StarRating } from '@/components/shared/StarRating';
 import { formatCurrency, formatDate, timeAgo, getStatusColor, getStatusLabel } from '@/lib/utils';
+import { currencySymbol } from '@/lib/useGeoCountry';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
 import { jobsApi, bidsApi, uploadApi } from '@/lib/api';
@@ -372,7 +373,7 @@ export default function JobDetailPage() {
                               </div>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="text-xl font-bold text-dark-900">{formatCurrency(bid.amount)}</p>
+                              <p className="text-xl font-bold text-dark-900">{formatCurrency(bid.amount, job?.currency)}</p>
                               {bid.estimatedDays && (
                                 <p className="text-xs text-dark-400">{bid.estimatedDays} days</p>
                               )}
@@ -488,7 +489,7 @@ export default function JobDetailPage() {
           {/* Budget card */}
           <Card padding="md">
             <p className="text-xs font-semibold text-dark-400 uppercase tracking-wider mb-1">Budget</p>
-            <p className="text-3xl font-extrabold text-dark-900">{formatCurrency(job.budget)}</p>
+            <p className="text-3xl font-extrabold text-dark-900">{formatCurrency(job.budget, job.currency)}</p>
             {job.startDate && (
               <p className="text-xs text-dark-400 mt-2">
                 Starts {formatDate(job.startDate)}
@@ -590,10 +591,10 @@ export default function JobDetailPage() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <Input
-                label="Bid Amount (USD)"
+                label={`Bid Amount (${currencySymbol(job?.currency || 'USD')})`}
                 type="number"
                 placeholder="e.g. 22500"
-                leftIcon={<DollarSign className="w-4 h-4" />}
+                leftIcon={<span className="text-sm font-medium text-dark-500">{currencySymbol(job?.currency || 'USD')}</span>}
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
               />

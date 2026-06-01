@@ -63,12 +63,12 @@ function BidRow({ bid, onWithdraw }: { bid: Bid; onWithdraw: (id: string) => voi
       <div className="flex items-center gap-6 py-3 bg-gray-50 rounded-xl px-4 mb-3 flex-wrap">
         <div>
           <p className="text-xs text-dark-400">Your Bid</p>
-          <p className="text-lg font-bold text-dark-900">{formatCurrency(bid.amount)}</p>
+          <p className="text-lg font-bold text-dark-900">{formatCurrency(bid.amount, bid.job?.currency)}</p>
         </div>
         <div className="w-px h-8 bg-gray-200" />
         <div>
           <p className="text-xs text-dark-400">Job Budget</p>
-          <p className="text-lg font-bold text-dark-500">{formatCurrency(bid.job?.budget ?? 0)}</p>
+          <p className="text-lg font-bold text-dark-500">{formatCurrency(bid.job?.budget ?? 0, bid.job?.currency)}</p>
         </div>
         {bid.estimatedDays && (
           <>

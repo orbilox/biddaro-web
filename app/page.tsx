@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/authStore';
 import { jobsApi, bidsApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
 import { formatCurrency, timeAgo } from '@/lib/utils';
+import { currencySymbol } from '@/lib/useGeoCountry';
 import type { Job } from '@/types';
 
 // ─── Browse Jobs helpers & sub-components ────────────────────────────────────
@@ -214,7 +215,7 @@ function LandingBidModal({ job, open, onClose, onSuccess }: LandingBidModalProps
           </div>
 
           <Input
-            label="Your Bid Amount *"
+            label={`Your Bid Amount (${currencySymbol(job.currency || 'USD')}) *`}
             type="number"
             min="1"
             step="0.01"
