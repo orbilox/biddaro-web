@@ -9,7 +9,7 @@ import {
 import { loansApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { PENDING_LOAN_KEY } from '@/lib/constants';
-import { pixelViewContent, pixelAddPaymentInfo, pixelLead, pixelSubscribe, pixelIdentify } from '@/lib/metaPixel';
+import { pixelViewContent, pixelAddPaymentInfo, pixelLead, pixelSubscribe, pixelIdentify, getMetaSignals } from '@/lib/metaPixel';
 
 // ─── Social proof entries ─────────────────────────────────────────────────────
 const SOCIAL_PROOF = [
@@ -214,12 +214,14 @@ export default function LoanApplyPage() {
 
     setPaying(true);
     try {
+      const metaSignals = getMetaSignals();   // _fbp / _fbc cookies forwarded cross-domain
       const subRes = await loansApi.createIndiaSubscription({
         loanType:  form.loanType,
         email:     form.email,
         phone:     form.phone,
         firstName: form.firstName,
         lastName:  form.lastName,
+        ...metaSignals,
       });
       const { subscriptionId, planId, key } = subRes.data.data;
 

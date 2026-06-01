@@ -16,6 +16,21 @@ export function pixelTrack(event: string, params?: Record<string, unknown>): voi
   window.fbq('track', event, params);
 }
 
+/** Read a cookie value by name from document.cookie. */
+export function readCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(new RegExp('(?:^|;)\\s*' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+/** Return Meta browser signal cookies for forwarding to CAPI (cross-domain). */
+export function getMetaSignals(): { fbp?: string; fbc?: string } {
+  return {
+    fbp: readCookie('_fbp'),
+    fbc: readCookie('_fbc'),
+  };
+}
+
 /** View Content — call on key landing pages with content details. */
 export function pixelViewContent(opts: {
   contentName: string;
