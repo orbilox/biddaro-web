@@ -730,6 +730,13 @@ export const connectsApi = {
     packageKey: string;
   }) =>
     api.post<{ success: boolean; data: { balance: number } }>('/connects/purchase', data),
+
+  /** Get connect cost for a specific job (includes balance + sufficiency check) */
+  getConnectCostForJob: (jobId: string, isPriority = false) =>
+    api.get<{ success: boolean; data: { cost: number; balance: number; sufficient: boolean; sponsored: boolean } }>(
+      `/connects/cost/${jobId}`,
+      { params: isPriority ? { isPriority: 'true' } : undefined },
+    ),
 };
 
 export default api;

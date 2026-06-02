@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { useConnectsStore } from '@/store/connectsStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { ROUTES } from '@/lib/constants';
 import { notificationsApi, connectsApi } from '@/lib/api';
@@ -217,11 +218,11 @@ interface TopbarProps {
 export function Topbar({ title }: TopbarProps) {
   const { user, logout } = useAuthStore();
   const { toggleSidebar } = useUIStore();
+  const { balance: connectsBalance, setBalance: setConnectsBalance } = useConnectsStore();
 
-  const [menuOpen,        setMenuOpen]        = useState(false);
-  const [notifOpen,       setNotifOpen]       = useState(false);
-  const [unreadCount,     setUnreadCount]     = useState(0);
-  const [connectsBalance, setConnectsBalance] = useState<number | null>(null);
+  const [menuOpen,    setMenuOpen]    = useState(false);
+  const [notifOpen,   setNotifOpen]   = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -238,14 +239,15 @@ export function Topbar({ title }: TopbarProps) {
     return () => clearInterval(id);
   }, []);
 
-  // Load connects balance for contractors
+  // Load connects balance for contractors (only if not already in store)
   useEffect(() => {
     if (user?.role !== 'contractor') return;
+    if (connectsBalance !== null) return;  // already loaded
     connectsApi
       .getMyConnects({ limit: 1 })
       .then((r) => setConnectsBalance(r.data.data?.balance ?? 0))
       .catch(() => {});
-  }, [user?.role]);
+  }, [user?.role, connectsBalance, setConnectsBalance]);
 
   // Close panel on outside click
   useEffect(() => {

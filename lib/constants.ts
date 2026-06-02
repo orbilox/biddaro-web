@@ -171,15 +171,16 @@ const CONNECT_USD_RATES: Record<string, number> = {
 /**
  * Returns the connects required to bid on a job.
  * Mirrors the backend logic in connectCost.ts exactly.
+ * Priority bids cost +2 connects.
  */
 export function getConnectCostFrontend(
   budget: number,
   budgetType: string,
   currency: string,
+  isPriority = false,
 ): number {
-  if (budgetType === 'negotiable') return 2;
+  if (budgetType === 'negotiable') return isPriority ? 4 : 2;
   const usd = budget * (CONNECT_USD_RATES[currency] ?? 1);
-  if (usd < 500)  return 2;
-  if (usd <= 5000) return 4;
-  return 6;
+  const base = usd < 500 ? 2 : usd <= 5000 ? 4 : 6;
+  return isPriority ? base + 2 : base;
 }

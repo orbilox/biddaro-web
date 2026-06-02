@@ -17,6 +17,7 @@ import { formatCurrency, formatDate, timeAgo, getStatusColor, getStatusLabel } f
 import { currencySymbol } from '@/lib/useGeoCountry';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
+import { useConnectsStore } from '@/store/connectsStore';
 import { jobsApi, bidsApi, uploadApi, connectsApi } from '@/lib/api';
 import { ROUTES, getConnectCostFrontend } from '@/lib/constants';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
@@ -75,16 +76,23 @@ export default function JobDetailPage() {
   const isContractor = user?.role === 'contractor';
   const isPoster = user?.role === 'job_poster' && user.id === job?.posterId;
   const isPremium = usePremiumStatus();
-  const [contractorConnects, setContractorConnects] = useState<number>(0);
 
-  // ─── Load contractor connects balance ────────────────────────────────────
+  // ── Connects: use global Zustand store so balance stays in sync ──────────
+  const { balance: connectsBalance, setBalance: setConnectsBalance, decrementBalance } = useConnectsStore();
+  const contractorConnects = connectsBalance ?? 0;
+
+  // Priority bid toggle — only meaningful when contractor is premium
+  const [isPriorityBid, setIsPriorityBid] = useState(false);
+
+  // ─── Load contractor connects balance (if not yet loaded) ────────────────
 
   useEffect(() => {
     if (!isContractor) return;
+    if (connectsBalance !== null) return;  // already in store
     connectsApi.getMyConnects({ limit: 1 })
-      .then((r) => setContractorConnects(r.data.data?.balance ?? 0))
+      .then((r) => setConnectsBalance(r.data.data?.balance ?? 0))
       .catch(() => {});
-  }, [isContractor]);
+  }, [isContractor, connectsBalance, setConnectsBalance]);
 
   // ─── Load job + bids ──────────────────────────────────────────────────────
 
@@ -129,6 +137,7 @@ export default function JobDetailPage() {
     setBidProposal('');
     setBidDocs([]);
     setMilestones([]);
+    setIsPriorityBid(false);
   };
 
   // ─── Bid doc handlers ─────────────────────────────────────────────────────
@@ -204,6 +213,11 @@ export default function JobDetailPage() {
 
     // 3. Create the bid
     const isGovCorp = job?.projectType === 'government' || job?.projectType === 'corporate';
+    // Priority: explicit toggle (premium) OR auto (premium + gov/corp job)
+    const sendPriority = isPriorityBid || (isPremium && isGovCorp);
+    const connectCostUsed = job
+      ? getConnectCostFrontend(job.budget, job.budgetType ?? 'fixed', job.currency ?? 'USD', sendPriority)
+      : 2;
     try {
       await bidsApi.create(jobId, {
         amount: parseFloat(bidAmount),
@@ -211,8 +225,10 @@ export default function JobDetailPage() {
         proposal: bidProposal.trim(),
         documents: docUrls,
         milestones: parsedMilestones,
-        ...(isPremium && isGovCorp ? { isPriority: true } : {}),
+        ...(sendPriority ? { isPriority: true } : {}),
       });
+      // Optimistically update connects balance in store
+      decrementBalance(connectCostUsed);
       resetBidModal();
       toast.success('Bid submitted!', 'Your bid has been sent to the job poster.');
     } catch (err: unknown) {
@@ -573,41 +589,68 @@ export default function JobDetailPage() {
         size="lg"
         footer={
           (() => {
+            const isGovCorp = job?.projectType === 'government' || job?.projectType === 'corporate';
+            const effectivePriority = isPriorityBid || (isPremium && isGovCorp);
             const connectCost = job
-              ? getConnectCostFrontend(job.budget, job.budgetType ?? 'fixed', job.currency ?? 'USD')
+              ? getConnectCostFrontend(job.budget, job.budgetType ?? 'fixed', job.currency ?? 'USD', effectivePriority)
               : 2;
             const hasEnough = contractorConnects >= connectCost;
             return (
-              <>
-                {/* Connect cost callout */}
-                <div className={`flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm ${
-                  hasEnough ? 'bg-brand-50 border border-brand-200' : 'bg-red-50 border border-red-200'
-                }`}>
-                  <div className="flex items-center gap-1.5">
-                    <Zap className={`w-4 h-4 ${hasEnough ? 'text-brand-500' : 'text-red-500'}`} />
-                    <span className={hasEnough ? 'text-brand-700' : 'text-red-700'}>
-                      Requires <strong>{connectCost}</strong> connects
-                      {' '}(you have <strong>{contractorConnects}</strong>)
+              <div className="flex flex-col gap-2 w-full">
+                {/* Priority bid toggle — only for premium contractors */}
+                {isPremium && (
+                  <div className="flex items-center gap-2 px-1">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isPriorityBid}
+                      onClick={() => setIsPriorityBid((v) => !v)}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 transition-colors ${
+                        isPriorityBid ? 'bg-amber-500 border-amber-500' : 'bg-gray-200 border-gray-200'
+                      }`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                        isPriorityBid ? 'translate-x-4' : 'translate-x-0'
+                      }`} />
+                    </button>
+                    <span className="text-xs text-dark-600 flex items-center gap-1">
+                      <Crown className="w-3 h-3 text-amber-500" />
+                      Priority bid <span className="text-dark-400">(+2 connects, rises to top)</span>
                     </span>
                   </div>
-                  {!hasEnough && (
-                    <a href={ROUTES.CONNECTS} className="text-xs font-semibold text-brand-600 hover:underline whitespace-nowrap">
-                      Buy connects →
-                    </a>
-                  )}
+                )}
+
+                {/* Connect cost callout + action buttons */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className={`flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm ${
+                    hasEnough ? 'bg-brand-50 border border-brand-200' : 'bg-red-50 border border-red-200'
+                  }`}>
+                    <div className="flex items-center gap-1.5">
+                      <Zap className={`w-4 h-4 ${hasEnough ? 'text-brand-500' : 'text-red-500'}`} />
+                      <span className={hasEnough ? 'text-brand-700' : 'text-red-700'}>
+                        Requires <strong>{connectCost}</strong> connects
+                        {' '}(you have <strong>{contractorConnects}</strong>)
+                      </span>
+                    </div>
+                    {!hasEnough && (
+                      <a href={ROUTES.CONNECTS} className="text-xs font-semibold text-brand-600 hover:underline whitespace-nowrap">
+                        Buy connects →
+                      </a>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={resetBidModal}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    loading={submitting}
+                    disabled={submitting || !hasEnough}
+                    onClick={handleSubmitBid}
+                  >
+                    {hasEnough ? `Submit Bid (${connectCost} connects)` : 'Insufficient Connects'}
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={resetBidModal}>
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  loading={submitting}
-                  disabled={submitting || !hasEnough}
-                  onClick={handleSubmitBid}
-                >
-                  {hasEnough ? `Submit Bid (${connectCost} connects)` : 'Insufficient Connects'}
-                </Button>
-              </>
+              </div>
             );
           })()
         }

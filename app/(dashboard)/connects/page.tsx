@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
+import { useConnectsStore } from '@/store/connectsStore';
 import { connectsApi } from '@/lib/api';
 import { timeAgo } from '@/lib/utils';
 import type { ConnectPackage, ConnectTransaction } from '@/types';
@@ -23,6 +24,7 @@ const PACKAGE_META: Record<string, { label: string; badge?: string; highlight?: 
   pro:     { label: 'Pro',      badge: 'Most Popular',  highlight: true  },
   power:   { label: 'Power',    badge: 'Best Value',    highlight: false },
   elite:   { label: 'Elite',    badge: undefined,       highlight: false },
+  bulk:    { label: 'Bulk',     badge: '20% Off',       highlight: false },
 };
 
 // ─── Transaction type helpers ─────────────────────────────────────────────────
@@ -60,7 +62,8 @@ function txnTypeBadge(type: string) {
 
 export default function ConnectsPage() {
   const { user } = useAuthStore();
-  const [balance, setBalance]       = useState<number>(0);
+  const { balance: storeBalance, setBalance: setStoreBalance } = useConnectsStore();
+  const [balance, setBalance]       = useState<number>(storeBalance ?? 0);
   const [txns, setTxns]             = useState<ConnectTransaction[]>([]);
   const [packages, setPackages]     = useState<ConnectPackage[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -79,7 +82,9 @@ export default function ConnectsPage() {
 
       if (balRes.status === 'fulfilled') {
         const d = balRes.value.data.data;
-        setBalance(d.balance ?? 0);
+        const newBalance = d.balance ?? 0;
+        setBalance(newBalance);
+        setStoreBalance(newBalance);   // keep global store in sync
         setTxns(d.transactions?.data ?? []);
         setTotalPages(d.transactions?.pagination?.totalPages ?? 1);
       }
@@ -123,7 +128,9 @@ export default function ConnectsPage() {
                 razorpay_signature:  response.razorpay_signature,
                 packageKey: pkg.key,
               });
-              setBalance(res.data.data.balance);
+              const newBal = res.data.data.balance;
+              setBalance(newBal);
+              setStoreBalance(newBal);   // update Topbar chip live
               // Refresh history
               const txRes = await connectsApi.getMyConnects({ page: 1, limit: 10 });
               const d = txRes.data.data;
@@ -192,7 +199,7 @@ export default function ConnectsPage() {
                 icon: <RotateCcw className="w-5 h-5 text-green-600" />,
                 bg: 'bg-green-50',
                 title: 'Automatic refunds',
-                body: 'Connects are refunded if your bid is declined by the job poster or if another contractor is selected.',
+                body: 'Full refund if bid declined or another contractor wins.\nWithdraw within 60 min: full refund.\nWithdraw after 60 min: 50% refund.',
               },
             ].map((card) => (
               <div key={card.title} className={`rounded-xl border border-gray-200 p-4 ${card.bg}`}>
