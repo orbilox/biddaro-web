@@ -146,6 +146,7 @@ export const ROUTES = {
   BUILD_PLANNER: '/build-planner',
   SITE_MANAGER: '/site-manager',
   LOANS: '/my-loans',
+  CONNECTS: '/connects',
   ADMIN: '/admin',
   ADMIN_LOGIN: '/admin-login',
   // Programmatic SEO – hire pages
@@ -157,3 +158,28 @@ export const ROUTES = {
   ASK: '/ask',
   ASK_QUESTION: (slug: string) => `/ask/${slug}`,
 } as const;
+
+// ─── Connect cost helper (mirrors biddaro-api/src/utils/connectCost.ts) ──────
+
+const CONNECT_USD_RATES: Record<string, number> = {
+  USD: 1,
+  INR: 0.012,
+  AED: 0.272,
+  SGD: 0.74,
+};
+
+/**
+ * Returns the connects required to bid on a job.
+ * Mirrors the backend logic in connectCost.ts exactly.
+ */
+export function getConnectCostFrontend(
+  budget: number,
+  budgetType: string,
+  currency: string,
+): number {
+  if (budgetType === 'negotiable') return 2;
+  const usd = budget * (CONNECT_USD_RATES[currency] ?? 1);
+  if (usd < 500)  return 2;
+  if (usd <= 5000) return 4;
+  return 6;
+}

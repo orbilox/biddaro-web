@@ -704,4 +704,32 @@ export const siteManagerApi = {
   getClientPortal: (token: string) => api.get(`/site-manager/portal/${token}`),
 };
 
+// ─── Connects ─────────────────────────────────────────────────────────────────
+
+export const connectsApi = {
+  /** Get available packages (public — no auth needed) */
+  getPackages: () =>
+    api.get<{ success: boolean; data: import('@/types').ConnectPackage[] }>('/connects/packages'),
+
+  /** Get current balance + transaction history (contractors only) */
+  getMyConnects: (params?: { page?: number; limit?: number }) =>
+    api.get<{ success: boolean; data: import('@/types').ConnectsData }>('/connects', { params }),
+
+  /** Step 1: Create a Razorpay order for a connect package */
+  createOrder: (packageKey: string) =>
+    api.post<{ success: boolean; data: { orderId: string; amount: number; currency: string; key: string } }>(
+      '/connects/order',
+      { packageKey },
+    ),
+
+  /** Step 2: Verify Razorpay payment and credit connects */
+  purchaseConnects: (data: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    packageKey: string;
+  }) =>
+    api.post<{ success: boolean; data: { balance: number } }>('/connects/purchase', data),
+};
+
 export default api;

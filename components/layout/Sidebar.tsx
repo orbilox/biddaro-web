@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
   ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban, Hammer, Banknote,
-  PanelLeftClose, PanelLeftOpen, Gift, Bell, IndianRupee,
+  PanelLeftClose, PanelLeftOpen, Gift, Bell, IndianRupee, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -47,6 +47,7 @@ const contractorNavItems: NavItem[] = [
   { href: ROUTES.CONTRACTS, label: 'Contracts', icon: FileText },
   { href: ROUTES.MESSAGES, label: 'Messages', icon: MessageSquare },
   { href: ROUTES.WALLET, label: 'Wallet', icon: Wallet },
+  { href: ROUTES.CONNECTS, label: 'Connects', icon: Zap },
   { href: '/subscription', label: 'Premium', icon: Crown },
   { href: ROUTES.DISPUTES, label: 'Disputes', icon: AlertCircle },
   { href: ROUTES.PROJECT_TRACKING, label: 'Project Tracking', icon: Radio },

@@ -17,8 +17,8 @@ import { formatCurrency, formatDate, timeAgo, getStatusColor, getStatusLabel } f
 import { currencySymbol } from '@/lib/useGeoCountry';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
-import { jobsApi, bidsApi, uploadApi } from '@/lib/api';
-import { ROUTES } from '@/lib/constants';
+import { jobsApi, bidsApi, uploadApi, connectsApi } from '@/lib/api';
+import { ROUTES, getConnectCostFrontend } from '@/lib/constants';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { pixelViewContent } from '@/lib/metaPixel';
 import type { Job, Bid, BidMilestone } from '@/types';
@@ -75,6 +75,16 @@ export default function JobDetailPage() {
   const isContractor = user?.role === 'contractor';
   const isPoster = user?.role === 'job_poster' && user.id === job?.posterId;
   const isPremium = usePremiumStatus();
+  const [contractorConnects, setContractorConnects] = useState<number>(0);
+
+  // ─── Load contractor connects balance ────────────────────────────────────
+
+  useEffect(() => {
+    if (!isContractor) return;
+    connectsApi.getMyConnects({ limit: 1 })
+      .then((r) => setContractorConnects(r.data.data?.balance ?? 0))
+      .catch(() => {});
+  }, [isContractor]);
 
   // ─── Load job + bids ──────────────────────────────────────────────────────
 
@@ -562,14 +572,44 @@ export default function JobDetailPage() {
         description="Craft a compelling bid with supporting documents and a milestone plan."
         size="lg"
         footer={
-          <>
-            <Button variant="outline" size="sm" onClick={resetBidModal}>
-              Cancel
-            </Button>
-            <Button size="sm" loading={submitting} onClick={handleSubmitBid}>
-              Submit Bid
-            </Button>
-          </>
+          (() => {
+            const connectCost = job
+              ? getConnectCostFrontend(job.budget, job.budgetType ?? 'fixed', job.currency ?? 'USD')
+              : 2;
+            const hasEnough = contractorConnects >= connectCost;
+            return (
+              <>
+                {/* Connect cost callout */}
+                <div className={`flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm ${
+                  hasEnough ? 'bg-brand-50 border border-brand-200' : 'bg-red-50 border border-red-200'
+                }`}>
+                  <div className="flex items-center gap-1.5">
+                    <Zap className={`w-4 h-4 ${hasEnough ? 'text-brand-500' : 'text-red-500'}`} />
+                    <span className={hasEnough ? 'text-brand-700' : 'text-red-700'}>
+                      Requires <strong>{connectCost}</strong> connects
+                      {' '}(you have <strong>{contractorConnects}</strong>)
+                    </span>
+                  </div>
+                  {!hasEnough && (
+                    <a href={ROUTES.CONNECTS} className="text-xs font-semibold text-brand-600 hover:underline whitespace-nowrap">
+                      Buy connects →
+                    </a>
+                  )}
+                </div>
+                <Button variant="outline" size="sm" onClick={resetBidModal}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  loading={submitting}
+                  disabled={submitting || !hasEnough}
+                  onClick={handleSubmitBid}
+                >
+                  {hasEnough ? `Submit Bid (${connectCost} connects)` : 'Insufficient Connects'}
+                </Button>
+              </>
+            );
+          })()
         }
       >
         {/* Hidden file input for bid documents */}

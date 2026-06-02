@@ -66,8 +66,46 @@ export interface User {
   languages?:      string | string[];
   serviceRadius?:  number;
   notifPrefs?:     string; // JSON: { bids, contracts, messages, wallet, disputes }
+  connectsBalance?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Connects Types ───────────────────────────────────────────────────────────
+
+export type ConnectTransactionType = 'purchase' | 'debit' | 'refund' | 'welcome_bonus';
+
+export interface ConnectTransaction {
+  id: string;
+  userId: string;
+  type: ConnectTransactionType;
+  amount: number;
+  bidId?: string;
+  description?: string;
+  packageKey?: string;
+  createdAt: string;
+}
+
+export interface ConnectsData {
+  balance: number;
+  transactions: {
+    data: ConnectTransaction[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}
+
+export interface ConnectPackage {
+  key: string;
+  connects: number;
+  priceInPaise: number;
+  priceInRupees: number;
+  label: string;
+  perConnect: number;
 }
 
 // ─── Notification Types ───────────────────────────────────────────────────────

@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Menu, Bell, ChevronDown, Lock, CheckCircle, DollarSign,
-  Award, HelpCircle, Flag, X, RefreshCw, Loader2, MailCheck,
+  Award, HelpCircle, Flag, X, RefreshCw, Loader2, MailCheck, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { ROUTES } from '@/lib/constants';
-import { notificationsApi } from '@/lib/api';
+import { notificationsApi, connectsApi } from '@/lib/api';
 import type { Notification, NotificationType } from '@/types';
 import { track } from '@/lib/analytics';
 
@@ -218,9 +218,10 @@ export function Topbar({ title }: TopbarProps) {
   const { user, logout } = useAuthStore();
   const { toggleSidebar } = useUIStore();
 
-  const [menuOpen,   setMenuOpen]   = useState(false);
-  const [notifOpen,  setNotifOpen]  = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [menuOpen,        setMenuOpen]        = useState(false);
+  const [notifOpen,       setNotifOpen]       = useState(false);
+  const [unreadCount,     setUnreadCount]     = useState(0);
+  const [connectsBalance, setConnectsBalance] = useState<number | null>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -236,6 +237,15 @@ export function Topbar({ title }: TopbarProps) {
     const id = setInterval(fetch, 30_000);
     return () => clearInterval(id);
   }, []);
+
+  // Load connects balance for contractors
+  useEffect(() => {
+    if (user?.role !== 'contractor') return;
+    connectsApi
+      .getMyConnects({ limit: 1 })
+      .then((r) => setConnectsBalance(r.data.data?.balance ?? 0))
+      .catch(() => {});
+  }, [user?.role]);
 
   // Close panel on outside click
   useEffect(() => {
@@ -270,6 +280,21 @@ export function Topbar({ title }: TopbarProps) {
 
       {/* Right */}
       <div className="flex items-center gap-2">
+
+        {/* Connects balance chip — contractors only */}
+        {user?.role === 'contractor' && (
+          <Link
+            href={ROUTES.CONNECTS}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-50 border border-brand-200 text-brand-700 hover:bg-brand-100 transition-colors text-sm font-medium"
+            title="Connects balance"
+          >
+            <Zap className="w-4 h-4 text-brand-500" />
+            <span className="font-semibold">
+              {connectsBalance === null ? '…' : connectsBalance}
+            </span>
+            <span className="hidden sm:inline text-brand-500 text-xs">connects</span>
+          </Link>
+        )}
 
         {/* Notifications */}
         <div ref={notifRef} className="relative">
