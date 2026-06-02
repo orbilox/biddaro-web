@@ -164,6 +164,7 @@ export interface Job {
   description: string;
   category: JobCategory | string;
   budget: number;
+  budgetType?: string;  // 'fixed' | 'hourly' | 'negotiable'
   currency: string;
   startDate?: string;
   endDate?: string;

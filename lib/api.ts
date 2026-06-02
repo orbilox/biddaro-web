@@ -370,9 +370,9 @@ export const loansApi = {
     api.patch(`/loans/admin/${id}/review`, data),
   adminStats: () => api.get('/loans/admin/stats'),
   // ─── India Razorpay fee flow ─────────────────────────────────────────────
-  createIndiaOrder: (loanType: string) =>
+  createIndiaOrder: (data: { loanType: string; email?: string; phone?: string; firstName?: string; lastName?: string; fbp?: string; fbc?: string }) =>
     api.post<{ success: boolean; data: { orderId: string; amount: number; currency: string; key: string } }>(
-      '/loans/india/order', { loanType }
+      '/loans/india/order', data
     ),
   createIndiaSubscription: (data: { loanType: string; email?: string; phone?: string; firstName?: string; lastName?: string; fbp?: string; fbc?: string }) =>
     api.post<{ success: boolean; data: { subscriptionId: string; planId: string; key: string } }>(

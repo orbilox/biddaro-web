@@ -14,6 +14,7 @@ import { toast } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { track } from '@/lib/analytics';
+import { pixelIdentify, pixelAddPaymentInfo, getMetaSignals } from '@/lib/metaPixel';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LoanApplication {
@@ -204,10 +205,22 @@ export default function LoansPage() {
     track.loanApplicationStarted({ loanType: form.loanType, amount: parseFloat(form.amount) });
 
     try {
-      // Step 1: Create Razorpay order for the application fee
-      const orderRes = await loansApi.createIndiaOrder(form.loanType);
+      // Step 1: Create Razorpay order — pass PII for Meta CAPI EMQ
+      const metaSignals = getMetaSignals();
+      const orderRes = await loansApi.createIndiaOrder({
+        loanType:  form.loanType,
+        email:     form.email,
+        phone:     form.phone,
+        firstName: form.firstName,
+        lastName:  form.lastName,
+        ...metaSignals,
+      });
       const { orderId, amount: orderAmount, currency, key } = orderRes.data.data;
       const fee = getAppFee(form.loanType);
+
+      // Browser pixel: identify user + fire AddPaymentInfo event
+      pixelIdentify({ email: form.email, phone: form.phone, firstName: form.firstName, lastName: form.lastName });
+      pixelAddPaymentInfo({ value: fee, currency: 'INR', contentCategory: form.loanType });
 
       // Step 2: Open Razorpay checkout modal
       await new Promise<void>((resolve, reject) => {
