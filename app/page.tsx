@@ -987,6 +987,33 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Biddaro Inspect Banner */}
+      <section className="py-14 bg-dark-900 border-t border-dark-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-brand-600/20 border border-brand-600/30 flex items-center justify-center flex-shrink-0">
+                <span className="text-2xl">📋</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold text-brand-400 uppercase tracking-widest">New</span>
+                  <span className="bg-brand-500/20 text-brand-300 text-xs font-semibold px-2 py-0.5 rounded-full">Beta</span>
+                </div>
+                <h3 className="text-xl font-bold text-white">Biddaro Inspect — AI Inspection Reports</h3>
+                <p className="text-dark-400 text-sm mt-1">Site photos + voice notes → professional client reports in minutes. Free during beta.</p>
+              </div>
+            </div>
+            <Link
+              href="/inspect"
+              className="flex-shrink-0 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-bold px-7 py-3.5 rounded-xl transition-colors"
+            >
+              Learn More <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-24 bg-brand-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

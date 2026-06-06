@@ -137,6 +137,8 @@ function buildStaticSitemap(): SitemapEntry[] {
     entry('/erp/for',        0.85, 'monthly'),
     entry('/erp/faq',        0.85, 'monthly'),
     entry('/erp/india',      0.9,  'weekly'),
+    // Biddaro Inspect — AI inspection reports
+    entry('/inspect',        1.0,  'weekly'),
     entry('/contact',        0.6,  'monthly'),
     entry('/html-sitemap',   0.5,  'monthly'),
     entry('/privacy-policy', 0.3,  'yearly'),
