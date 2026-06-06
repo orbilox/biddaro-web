@@ -772,6 +772,7 @@ export const inspectApi = {
   updateReport: (id: string, data: Record<string, unknown>) => api.put(`/inspect/reports/${id}`, data),
   deleteReport: (id: string) => api.delete(`/inspect/reports/${id}`),
   sendReport: (id: string, sentTo: string) => api.post(`/inspect/reports/${id}/send`, { sentTo }),
+  exportDocx: (id: string) => api.get(`/inspect/reports/${id}/export/docx`, { responseType: 'blob' }),
 };
 
 export default api;

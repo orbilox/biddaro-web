@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, Download, Send, CheckCircle, AlertTriangle,
-  Clock, FileText, Loader2, Edit3, Save, X, Mail,
+  Clock, FileText, Loader2, Edit3, Save, X, Mail, FileDown,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -123,6 +123,7 @@ export default function ReportViewer() {
   const [titleDraft, setTitleDraft] = useState('');
   const [showSend, setShowSend] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -172,6 +173,28 @@ export default function ReportViewer() {
     a.download = `${report.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.md`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function downloadDocx() {
+    if (!report) return;
+    setDownloadingDocx(true);
+    try {
+      const res = await inspectApi.exportDocx(id);
+      const blob = new Blob([res.data as BlobPart], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${report.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Word document downloaded');
+    } catch {
+      toast.error('Failed to generate Word document');
+    } finally {
+      setDownloadingDocx(false);
+    }
   }
 
   if (loading) {
@@ -285,6 +308,16 @@ export default function ReportViewer() {
             <Send className="w-4 h-4" /> Send to Client
           </button>
         )}
+        <button
+          onClick={downloadDocx}
+          disabled={downloadingDocx}
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+        >
+          {downloadingDocx
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <FileDown className="w-4 h-4" />}
+          {downloadingDocx ? 'Generating…' : 'Download Word'}
+        </button>
         <button
           onClick={downloadMarkdown}
           className="inline-flex items-center gap-2 border border-dark-200 text-dark-700 hover:bg-dark-50 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
