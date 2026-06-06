@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Menu, Bell, ChevronDown, Lock, CheckCircle, DollarSign,
   Award, HelpCircle, Flag, X, RefreshCw, Loader2, MailCheck, Zap,
+  Send, XCircle, RotateCcw, Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -20,24 +21,42 @@ import { track } from '@/lib/analytics';
 
 function notifMeta(type: NotificationType): { Icon: React.ElementType; bg: string; iconCls: string } {
   switch (type) {
+    // ── Contract / milestone lifecycle ─────────────────────────────────────
     case 'escrow_funded':
-      return { Icon: Lock,         bg: 'bg-green-50',  iconCls: 'text-green-600' };
+      return { Icon: Lock,         bg: 'bg-green-50',   iconCls: 'text-green-600'  };
     case 'milestone_started':
-      return { Icon: RefreshCw,    bg: 'bg-blue-50',   iconCls: 'text-blue-600'  };
+      return { Icon: RefreshCw,    bg: 'bg-blue-50',    iconCls: 'text-blue-600'   };
     case 'milestone_completed':
-      return { Icon: CheckCircle,  bg: 'bg-amber-50',  iconCls: 'text-amber-600' };
+      return { Icon: CheckCircle,  bg: 'bg-amber-50',   iconCls: 'text-amber-600'  };
     case 'milestone_approved':
     case 'contract_completed':
-      return { Icon: DollarSign,   bg: 'bg-green-50',  iconCls: 'text-green-600' };
+      return { Icon: DollarSign,   bg: 'bg-green-50',   iconCls: 'text-green-600'  };
+    case 'contract_cancelled':
+      return { Icon: XCircle,      bg: 'bg-red-50',     iconCls: 'text-red-500'    };
     case 'noc_issued':
-      return { Icon: Award,        bg: 'bg-purple-50', iconCls: 'text-purple-600'};
+      return { Icon: Award,        bg: 'bg-purple-50',  iconCls: 'text-purple-600' };
+    // ── Bids ───────────────────────────────────────────────────────────────
+    case 'bid_received':
+      return { Icon: Send,         bg: 'bg-blue-50',    iconCls: 'text-blue-600'   };
+    case 'bid_accepted':
+      return { Icon: CheckCircle,  bg: 'bg-green-50',   iconCls: 'text-green-600'  };
+    case 'bid_declined':
+      return { Icon: XCircle,      bg: 'bg-red-50',     iconCls: 'text-red-500'    };
+    case 'bid_withdrawn':
+      return { Icon: Briefcase,    bg: 'bg-gray-50',    iconCls: 'text-dark-400'   };
+    // ── Connects ───────────────────────────────────────────────────────────
+    case 'connects_refunded':
+      return { Icon: RotateCcw,    bg: 'bg-brand-50',   iconCls: 'text-brand-600'  };
+    case 'connects_low':
+      return { Icon: Zap,          bg: 'bg-amber-50',   iconCls: 'text-amber-600'  };
+    // ── Clarifications / Disputes ──────────────────────────────────────────
     case 'clarification_asked':
     case 'clarification_answered':
-      return { Icon: HelpCircle,   bg: 'bg-brand-50',  iconCls: 'text-brand-600' };
+      return { Icon: HelpCircle,   bg: 'bg-brand-50',   iconCls: 'text-brand-600'  };
     case 'dispute_opened':
-      return { Icon: Flag,         bg: 'bg-red-50',    iconCls: 'text-red-600'   };
+      return { Icon: Flag,         bg: 'bg-red-50',     iconCls: 'text-red-600'    };
     default:
-      return { Icon: Bell,         bg: 'bg-gray-50',   iconCls: 'text-dark-400'  };
+      return { Icon: Bell,         bg: 'bg-gray-50',    iconCls: 'text-dark-400'   };
   }
 }
 

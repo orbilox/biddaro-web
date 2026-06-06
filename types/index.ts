@@ -176,6 +176,7 @@ export interface Job {
   projectType?: ProjectType;
   images?: string | string[];
   bidCount?: number;
+  isSponsored?: boolean;   // admin-set: free to bid (0 connects required)
   createdAt: string;
   updatedAt: string;
 }
