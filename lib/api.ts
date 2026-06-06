@@ -739,4 +739,39 @@ export const connectsApi = {
     ),
 };
 
+// ─── Biddaro Inspect ──────────────────────────────────────────────────────────
+
+export const inspectApi = {
+  // Dashboard
+  getDashboard: () => api.get('/inspect/dashboard'),
+
+  // Templates
+  listTemplates: () => api.get('/inspect/templates'),
+  createTemplate: (data: Record<string, unknown>) => api.post('/inspect/templates', data),
+  getTemplate: (id: string) => api.get(`/inspect/templates/${id}`),
+  updateTemplate: (id: string, data: Record<string, unknown>) => api.put(`/inspect/templates/${id}`, data),
+  deleteTemplate: (id: string) => api.delete(`/inspect/templates/${id}`),
+
+  // Projects
+  listProjects: (params?: Record<string, unknown>) => api.get('/inspect/projects', { params }),
+  createProject: (data: Record<string, unknown>) => api.post('/inspect/projects', data),
+  getProject: (id: string) => api.get(`/inspect/projects/${id}`),
+  updateProject: (id: string, data: Record<string, unknown>) => api.put(`/inspect/projects/${id}`, data),
+  deleteProject: (id: string) => api.delete(`/inspect/projects/${id}`),
+
+  // Captures
+  listCaptures: (projectId: string) => api.get(`/inspect/projects/${projectId}/captures`),
+  addCapture: (projectId: string, data: Record<string, unknown>) => api.post(`/inspect/projects/${projectId}/captures`, data),
+  updateCapture: (projectId: string, cid: string, data: Record<string, unknown>) => api.put(`/inspect/projects/${projectId}/captures/${cid}`, data),
+  deleteCapture: (projectId: string, cid: string) => api.delete(`/inspect/projects/${projectId}/captures/${cid}`),
+
+  // Reports
+  generateReport: (projectId: string) => api.post(`/inspect/projects/${projectId}/reports/generate`, {}),
+  listReports: (projectId: string) => api.get(`/inspect/projects/${projectId}/reports`),
+  getReport: (id: string) => api.get(`/inspect/reports/${id}`),
+  updateReport: (id: string, data: Record<string, unknown>) => api.put(`/inspect/reports/${id}`, data),
+  deleteReport: (id: string) => api.delete(`/inspect/reports/${id}`),
+  sendReport: (id: string, sentTo: string) => api.post(`/inspect/reports/${id}/send`, { sentTo }),
+};
+
 export default api;
