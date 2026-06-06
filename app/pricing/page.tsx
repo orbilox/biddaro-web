@@ -374,6 +374,47 @@ export default function PricingPage() {
         </div>
       </section>
 
+      {/* ── ERP Add-ons ── */}
+      <section className="py-16 px-4 bg-dark-900 text-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <span className="inline-block bg-brand-500/20 text-brand-300 text-xs font-bold px-3 py-1.5 rounded-full mb-4 uppercase tracking-wide">
+              Construction ERP
+            </span>
+            <h2 className="text-2xl font-extrabold text-white mb-3">
+              Manage Your Sites, Projects & Business
+            </h2>
+            <p className="text-dark-300 max-w-xl mx-auto">
+              Add Biddaro ERP modules to your account — purpose-built tools for contractors who manage active construction sites.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[
+              { name: 'Project Tracking', price: '$7.99', slug: 'project-tracking' },
+              { name: 'Project Manager', price: '$9.99', slug: 'project-manager' },
+              { name: 'Build Planner', price: '$11.99', slug: 'build-planner' },
+              { name: 'Site Manager', price: '$12.99', slug: 'site-manager', popular: true },
+            ].map((mod) => (
+              <div key={mod.slug} className={`relative rounded-xl border p-5 ${mod.popular ? 'border-brand-500 bg-brand-600/10' : 'border-dark-700 bg-dark-800'}`}>
+                {mod.popular && (
+                  <span className="absolute -top-2.5 left-4 bg-brand-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">Popular</span>
+                )}
+                <p className="font-bold text-white mb-1">{mod.name}</p>
+                <p className="text-2xl font-extrabold text-brand-400">{mod.price}<span className="text-sm font-normal text-dark-400">/mo</span></p>
+              </div>
+            ))}
+          </div>
+          <div className="text-center">
+            <Link
+              href="/erp/pricing"
+              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold px-8 py-3.5 rounded-xl transition-colors"
+            >
+              View Full ERP Pricing <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ── */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <div className="text-center mb-8">

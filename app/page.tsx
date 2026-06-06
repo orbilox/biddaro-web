@@ -935,6 +935,58 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ERP Section */}
+      <section className="py-20 bg-white border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className="inline-block bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1.5 rounded-full mb-4 uppercase tracking-wide">
+              Construction ERP
+            </span>
+            <h2 className="text-3xl font-bold text-dark-900 mb-4">
+              Run Your Entire Construction Business from One Platform
+            </h2>
+            <p className="text-dark-500 max-w-2xl mx-auto text-lg">
+              Biddaro ERP gives contractors the tools to manage sites, track labor, handle BOQ and DPR,
+              and coordinate projects — starting at just $7.99/month.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+            {[
+              { name: 'Site Manager', desc: 'Labor attendance, BOQ, DPR, equipment and P&L tracking', price: '$12.99/mo', slug: 'site-manager' },
+              { name: 'Project Manager', desc: 'Kanban boards, tasks, milestones and contractor coordination', price: '$9.99/mo', slug: 'project-manager' },
+              { name: 'Build Planner', desc: 'Construction phase checklists, blueprints and material planning', price: '$11.99/mo', slug: 'build-planner' },
+              { name: 'Project Tracking', desc: 'Live progress updates, photo logs and client-facing status', price: '$7.99/mo', slug: 'project-tracking' },
+            ].map((mod) => (
+              <Link
+                key={mod.slug}
+                href={`/erp/${mod.slug}`}
+                className="border border-gray-200 rounded-xl p-6 hover:border-brand-300 hover:shadow-md transition-all"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-dark-900 text-sm">{mod.name}</h3>
+                  <span className="text-xs text-brand-600 font-semibold bg-brand-50 px-2 py-0.5 rounded">{mod.price}</span>
+                </div>
+                <p className="text-dark-500 text-xs leading-relaxed">{mod.desc}</p>
+              </Link>
+            ))}
+          </div>
+          <div className="text-center">
+            <Link
+              href="/erp"
+              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-8 py-3.5 rounded-xl transition-colors"
+            >
+              Explore Biddaro ERP <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              href="/erp/pricing"
+              className="ml-4 inline-flex items-center gap-2 text-brand-600 font-semibold hover:underline"
+            >
+              View Pricing →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-24 bg-brand-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
