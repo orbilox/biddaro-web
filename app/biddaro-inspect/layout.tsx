@@ -15,11 +15,11 @@ export const metadata: Metadata = {
     'building inspection report app',
     'construction site report automation',
   ],
-  alternates: { canonical: 'https://biddaro.com/inspect' },
+  alternates: { canonical: 'https://biddaro.com/biddaro-inspect' },
   openGraph: {
     title: 'Biddaro Inspect — Site data in. Client report out.',
     description: 'AI-powered inspection report software for construction, engineering, and property teams. 80% less time on reports.',
-    url: 'https://biddaro.com/inspect',
+    url: 'https://biddaro.com/biddaro-inspect',
     siteName: 'Biddaro',
     type: 'website',
   },

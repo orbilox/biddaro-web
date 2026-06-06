@@ -1005,7 +1005,7 @@ export default function LandingPage() {
               </div>
             </div>
             <Link
-              href="/inspect"
+              href="/biddaro-inspect"
               className="flex-shrink-0 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-bold px-7 py-3.5 rounded-xl transition-colors"
             >
               Learn More <ArrowRight className="w-4 h-4" />

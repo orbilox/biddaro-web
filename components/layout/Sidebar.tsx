@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
   ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban, Hammer, Banknote,
-  PanelLeftClose, PanelLeftOpen, Gift, Bell, IndianRupee, Zap,
+  PanelLeftClose, PanelLeftOpen, Gift, Bell, IndianRupee, Zap, ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -33,6 +33,7 @@ const posterNavItems: NavItem[] = [
   { href: ROUTES.PROJECT_TRACKING, label: 'Project Tracking', icon: Radio },
   { href: ROUTES.BUILD_PLANNER, label: 'Build Planner', icon: Hammer },
   { href: ROUTES.SITE_MANAGER, label: 'Site Manager', icon: Building2 },
+  { href: '/inspect', label: 'Inspect', icon: ClipboardCheck },
   { href: ROUTES.LOANS, label: 'Loans', icon: Banknote },
   { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: '/referral', label: 'Refer & Earn', icon: Gift },
@@ -53,6 +54,7 @@ const contractorNavItems: NavItem[] = [
   { href: ROUTES.PROJECT_TRACKING, label: 'Project Tracking', icon: Radio },
   { href: ROUTES.PROJECT_MANAGER, label: 'Project Manager', icon: FolderKanban },
   { href: ROUTES.SITE_MANAGER, label: 'Site Manager', icon: Building2 },
+  { href: '/inspect', label: 'Inspect', icon: ClipboardCheck },
   { href: ROUTES.LOANS, label: 'Loans', icon: Banknote },
   { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: '/referral', label: 'Refer & Earn', icon: Gift },
@@ -264,7 +266,7 @@ export function Sidebar() {
             <ul className="space-y-0.5 px-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== ROUTES.DASHBOARD && pathname.startsWith(item.href + '/'));
                 return (
                   <li key={item.href}>
                     <Link
@@ -290,7 +292,7 @@ export function Sidebar() {
             <ul className="space-y-0.5 px-3">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== ROUTES.DASHBOARD && pathname.startsWith(item.href + '/'));
                 return (
                   <li key={item.href}>
                     <Link
