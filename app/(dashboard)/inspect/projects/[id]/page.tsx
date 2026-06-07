@@ -20,6 +20,7 @@ interface Capture {
   annotation: string | null;
   section: string | null;
   severity: string;
+  tags: string[];
   createdAt: string;
 }
 
@@ -702,18 +703,73 @@ export default function ProjectDetail() {
   const [captureSearch, setCaptureSearch] = useState('');
   const [captureTypeFilter, setCaptureTypeFilter] = useState<'all' | 'photo' | 'text' | 'voice'>('all');
   const [captureSevFilter, setCaptureSevFilter] = useState<'all' | 'critical' | 'warning' | 'normal'>('all');
+  const [captureTagFilter, setCaptureTagFilter] = useState<string | null>(null);
+
+  // Tag editing state
+  const [tagEditId, setTagEditId] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState('');
+  const [savingTagId, setSavingTagId] = useState<string | null>(null);
+
+  // Collect all unique tags across this project's captures
+  const allCaptureTags = Array.from(
+    new Set((project?.captures ?? []).flatMap(c => c.tags ?? []))
+  ).sort();
 
   const filteredCaptures = (project?.captures ?? []).filter(c => {
     if (captureTypeFilter !== 'all' && c.type !== captureTypeFilter) return false;
     if (captureSevFilter !== 'all' && (c.severity || 'normal') !== captureSevFilter) return false;
+    if (captureTagFilter && !(c.tags ?? []).includes(captureTagFilter)) return false;
     if (captureSearch.trim()) {
       const q = captureSearch.toLowerCase();
       const inContent = c.content?.toLowerCase().includes(q) ?? false;
       const inSection = c.section?.toLowerCase().includes(q) ?? false;
-      if (!inContent && !inSection) return false;
+      const inTags = (c.tags ?? []).some(t => t.toLowerCase().includes(q));
+      if (!inContent && !inSection && !inTags) return false;
     }
     return true;
   });
+
+  const addTagToCapture = async (captureId: string, newTag: string) => {
+    const trimmed = newTag.trim().toLowerCase();
+    if (!trimmed || !project) return;
+    const capture = project.captures.find(c => c.id === captureId);
+    if (!capture) return;
+    const existingTags: string[] = capture.tags ?? [];
+    if (existingTags.includes(trimmed)) { setTagInput(''); return; }
+    const updated = [...existingTags, trimmed];
+    setSavingTagId(captureId);
+    try {
+      await inspectApi.updateCapture(project.id, captureId, { tags: updated });
+      setProject(prev => prev ? {
+        ...prev,
+        captures: prev.captures.map(c => c.id === captureId ? { ...c, tags: updated } : c),
+      } : prev);
+      setTagInput('');
+    } catch {
+      toast.error('Failed to save tag');
+    } finally {
+      setSavingTagId(null);
+    }
+  };
+
+  const removeTagFromCapture = async (captureId: string, tag: string) => {
+    if (!project) return;
+    const capture = project.captures.find(c => c.id === captureId);
+    if (!capture) return;
+    const updated = (capture.tags ?? []).filter(t => t !== tag);
+    setSavingTagId(captureId);
+    try {
+      await inspectApi.updateCapture(project.id, captureId, { tags: updated });
+      setProject(prev => prev ? {
+        ...prev,
+        captures: prev.captures.map(c => c.id === captureId ? { ...c, tags: updated } : c),
+      } : prev);
+    } catch {
+      toast.error('Failed to remove tag');
+    } finally {
+      setSavingTagId(null);
+    }
+  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -849,14 +905,33 @@ export default function ProjectDetail() {
                       {s === 'all' ? 'All Severity' : s.charAt(0).toUpperCase() + s.slice(1)}
                     </button>
                   ))}
-                  {(captureSearch || captureTypeFilter !== 'all' || captureSevFilter !== 'all') && (
-                    <button onClick={() => { setCaptureSearch(''); setCaptureTypeFilter('all'); setCaptureSevFilter('all'); }}
+                  {(captureSearch || captureTypeFilter !== 'all' || captureSevFilter !== 'all' || captureTagFilter) && (
+                    <button onClick={() => { setCaptureSearch(''); setCaptureTypeFilter('all'); setCaptureSevFilter('all'); setCaptureTagFilter(null); }}
                       className="text-xs text-red-500 hover:text-red-700 px-2 py-1 transition-colors ml-auto">
                       Clear filters
                     </button>
                   )}
                 </div>
-                {(captureSearch || captureTypeFilter !== 'all' || captureSevFilter !== 'all') && (
+                {/* Tag cloud filter row */}
+                {allCaptureTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1 border-t border-dark-100">
+                    <span className="text-xs text-dark-400 py-0.5 mr-1">Tags:</span>
+                    {allCaptureTags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => setCaptureTagFilter(captureTagFilter === tag ? null : tag)}
+                        className={`text-xs px-2 py-0.5 rounded-full border font-medium transition-colors ${
+                          captureTagFilter === tag
+                            ? 'bg-brand-600 text-white border-brand-600'
+                            : 'bg-brand-50 text-brand-700 border-brand-100 hover:border-brand-400'
+                        }`}
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {(captureSearch || captureTypeFilter !== 'all' || captureSevFilter !== 'all' || captureTagFilter) && (
                   <p className="text-xs text-dark-400">
                     Showing {filteredCaptures.length} of {project.captures.length} captures
                   </p>
@@ -916,12 +991,56 @@ export default function ProjectDetail() {
                       } catch { /* not JSON */ }
                       return <p className="text-dark-500 text-xs mt-1 italic">{c.annotation}</p>;
                     })()}
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <SeverityBadge severity={c.severity} />
                       {c.section && <span className="text-xs text-dark-400 bg-dark-50 px-2 py-0.5 rounded-full">{c.section}</span>}
                       <span className="text-xs text-dark-300 ml-auto">
                         {new Date(c.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
+                    </div>
+                    {/* Tags row */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      {(c.tags ?? []).map(tag => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 text-xs bg-brand-50 text-brand-700 border border-brand-100 px-2 py-0.5 rounded-full group/tag"
+                        >
+                          #{tag}
+                          <button
+                            onClick={() => removeTagFromCapture(c.id, tag)}
+                            disabled={savingTagId === c.id}
+                            className="opacity-0 group-hover/tag:opacity-100 transition-opacity text-brand-400 hover:text-red-500"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      {tagEditId === c.id ? (
+                        <form
+                          onSubmit={e => { e.preventDefault(); addTagToCapture(c.id, tagInput); setTagEditId(null); }}
+                          className="inline-flex items-center"
+                        >
+                          <input
+                            autoFocus
+                            value={tagInput}
+                            onChange={e => setTagInput(e.target.value)}
+                            onBlur={() => { if (tagInput.trim()) addTagToCapture(c.id, tagInput); setTagEditId(null); setTagInput(''); }}
+                            onKeyDown={e => { if (e.key === 'Escape') { setTagEditId(null); setTagInput(''); } }}
+                            placeholder="tag name…"
+                            maxLength={30}
+                            className="text-xs border border-brand-300 rounded-full px-2 py-0.5 w-24 focus:outline-none focus:border-brand-500 bg-white"
+                          />
+                        </form>
+                      ) : (
+                        (c.tags ?? []).length < 10 && (
+                          <button
+                            onClick={() => { setTagEditId(c.id); setTagInput(''); }}
+                            className="text-xs text-dark-300 hover:text-brand-600 border border-dashed border-dark-200 hover:border-brand-300 px-2 py-0.5 rounded-full transition-colors"
+                          >
+                            + tag
+                          </button>
+                        )
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-col gap-1 flex-shrink-0">
