@@ -52,11 +52,15 @@ function TaskCard({
   onStatusChange,
   onDelete,
   saving,
+  selected = false,
+  onSelect,
 }: {
   task: Task;
   onStatusChange: (id: string, status: Task['status']) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   saving: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }) {
   const [confirmDelete, setConfirm] = useState(false);
   const sev = SEV_STYLE[task.severity] ?? SEV_STYLE.normal;
@@ -68,11 +72,27 @@ function TaskCard({
     : null;
 
   return (
-    <div className={`bg-white border border-dark-100 rounded-xl p-4 hover:shadow-sm transition-all ${
+    <div className={`bg-white border rounded-xl p-4 hover:shadow-sm transition-all ${
       task.status === 'done' ? 'opacity-60' : ''
-    }`}>
+    } ${selected ? 'border-brand-400 ring-1 ring-brand-300' : 'border-dark-100'}`}>
       {/* Title row */}
       <div className="flex items-start gap-2 mb-2">
+        {/* Checkbox for bulk select */}
+        {onSelect && (
+          <button
+            onClick={() => onSelect(task.id)}
+            className={`mt-0.5 flex-shrink-0 rounded transition-colors ${
+              selected ? 'text-brand-600' : 'text-dark-200 hover:text-dark-400'
+            }`}
+          >
+            {selected ? (
+              <CheckSquare className="w-4 h-4" />
+            ) : (
+              <Square className="w-4 h-4" />
+            )}
+          </button>
+        )}
+
         <button
           onClick={() => nextStatus && onStatusChange(task.id, nextStatus)}
           disabled={saving || !nextStatus}
@@ -162,6 +182,17 @@ export default function TasksPage() {
   const [sevFilter, setSevFilter]   = useState<string>('all');
   const [view, setView]             = useState<'kanban' | 'list'>('kanban');
 
+  // Additional filters
+  const [projectFilter, setProjectFilter] = useState<string>('all');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  const [overdueOnly, setOverdueOnly]       = useState(false);
+  const [sortBy, setSortBy]                 = useState<'created' | 'due' | 'severity'>('created');
+
+  // Bulk assign
+  const [selected, setSelected]     = useState<Set<string>>(new Set());
+  const [bulkAssign, setBulkAssign] = useState('');
+  const [assigningBulk, setAssigningBulk] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -177,6 +208,10 @@ export default function TasksPage() {
   }, [sevFilter]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Derived unique lists for filter dropdowns
+  const allProjects = Array.from(new Map(tasks.map(t => [t.project.id, t.project])).values());
+  const allAssignees = Array.from(new Set(tasks.map(t => t.assignedTo).filter(Boolean) as string[])).sort();
 
   async function handleStatusChange(id: string, status: Task['status']) {
     setSavingId(id);
@@ -203,8 +238,43 @@ export default function TasksPage() {
     }
   }
 
-  const criticalCount = tasks.filter(t => t.severity === 'critical' && t.status !== 'done').length;
-  const overdueCount  = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done').length;
+  // Apply client-side filters
+  const filteredTasks = tasks
+    .filter(t => projectFilter === 'all' || t.project.id === projectFilter)
+    .filter(t => assigneeFilter === 'all' || t.assignedTo === assigneeFilter)
+    .filter(t => !overdueOnly || (t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done'))
+    .sort((a, b) => {
+      if (sortBy === 'due') {
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      if (sortBy === 'severity') {
+        const order = { critical: 0, warning: 1, normal: 2 };
+        return (order[a.severity] ?? 2) - (order[b.severity] ?? 2);
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+  async function handleBulkAssign() {
+    if (!bulkAssign.trim() || selected.size === 0) return;
+    setAssigningBulk(true);
+    try {
+      await Promise.all(Array.from(selected).map(id => inspectApi.updateTask(id, { assignedTo: bulkAssign.trim() })));
+      setTasks(prev => prev.map(t => selected.has(t.id) ? { ...t, assignedTo: bulkAssign.trim() } : t));
+      toast.success(`Assigned ${selected.size} task${selected.size !== 1 ? 's' : ''} to ${bulkAssign.trim()}`);
+      setSelected(new Set());
+      setBulkAssign('');
+    } catch {
+      toast.error('Bulk assign failed');
+    } finally {
+      setAssigningBulk(false);
+    }
+  }
+
+  const criticalCount = filteredTasks.filter(t => t.severity === 'critical' && t.status !== 'done').length;
+  const overdueCount  = filteredTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done').length;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -218,7 +288,7 @@ export default function TasksPage() {
           </div>
           <h1 className="text-2xl font-bold text-dark-900">Remediation Tasks</h1>
           <div className="flex items-center gap-3 mt-1">
-            <p className="text-dark-400 text-sm">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</p>
+            <p className="text-dark-400 text-sm">{filteredTasks.length} of {tasks.length} task{tasks.length !== 1 ? 's' : ''}</p>
             {criticalCount > 0 && (
               <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
                 {criticalCount} critical open
@@ -246,8 +316,9 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* Severity filter */}
-      <div className="flex items-center gap-1.5 mb-6 flex-wrap">
+      {/* Filter + sort bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        {/* Severity */}
         {(['all', 'critical', 'warning', 'normal'] as const).map(s => (
           <button key={s} onClick={() => setSevFilter(s)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-colors ${
@@ -257,7 +328,77 @@ export default function TasksPage() {
             {s}
           </button>
         ))}
+        <span className="text-dark-300 text-sm">|</span>
+        {/* Project filter */}
+        {allProjects.length > 1 && (
+          <select
+            value={projectFilter}
+            onChange={e => setProjectFilter(e.target.value)}
+            className="text-xs border border-dark-200 rounded-xl px-3 py-1.5 bg-white text-dark-700 focus:outline-none focus:border-brand-400"
+          >
+            <option value="all">All Projects</option>
+            {allProjects.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        )}
+        {/* Assignee filter */}
+        {allAssignees.length > 0 && (
+          <select
+            value={assigneeFilter}
+            onChange={e => setAssigneeFilter(e.target.value)}
+            className="text-xs border border-dark-200 rounded-xl px-3 py-1.5 bg-white text-dark-700 focus:outline-none focus:border-brand-400"
+          >
+            <option value="all">All Assignees</option>
+            <option value="">Unassigned</option>
+            {allAssignees.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        )}
+        {/* Overdue toggle */}
+        <button
+          onClick={() => setOverdueOnly(v => !v)}
+          className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${
+            overdueOnly ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-dark-600 border-dark-200 hover:border-dark-400'
+          }`}
+        >
+          ⏰ Overdue only
+        </button>
+        {/* Sort */}
+        <select
+          value={sortBy}
+          onChange={e => setSortBy(e.target.value as typeof sortBy)}
+          className="ml-auto text-xs border border-dark-200 rounded-xl px-3 py-1.5 bg-white text-dark-700 focus:outline-none focus:border-brand-400"
+        >
+          <option value="created">Sort: Newest</option>
+          <option value="due">Sort: Due Date</option>
+          <option value="severity">Sort: Severity</option>
+        </select>
       </div>
+
+      {/* Bulk assign bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 bg-dark-900 text-white rounded-xl px-4 py-2.5 mb-4 text-sm">
+          <span className="font-semibold">{selected.size} selected</span>
+          <input
+            value={bulkAssign}
+            onChange={e => setBulkAssign(e.target.value)}
+            placeholder="Assign to (name or email)…"
+            className="flex-1 bg-dark-800 border border-dark-600 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-brand-400"
+            onKeyDown={e => { if (e.key === 'Enter') handleBulkAssign(); }}
+          />
+          <button
+            onClick={handleBulkAssign}
+            disabled={assigningBulk || !bulkAssign.trim()}
+            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+          >
+            {assigningBulk ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <User className="w-3.5 h-3.5" />}
+            Assign
+          </button>
+          <button onClick={() => setSelected(new Set())} className="text-dark-400 hover:text-white transition-colors ml-2">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -265,19 +406,19 @@ export default function TasksPage() {
             <div key={i} className="h-32 bg-dark-50 animate-pulse rounded-xl" />
           ))}
         </div>
-      ) : tasks.length === 0 ? (
+      ) : filteredTasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <CheckSquare className="w-12 h-12 text-dark-200 mb-4" />
-          <p className="text-dark-600 font-semibold">No tasks found</p>
+          <p className="text-dark-600 font-semibold">No tasks match your filters</p>
           <p className="text-dark-400 text-sm mt-1">
-            Tasks are created from findings in your inspection reports.
+            {tasks.length > 0 ? 'Try adjusting your filters.' : 'Tasks are created from findings in your inspection reports.'}
           </p>
         </div>
       ) : view === 'kanban' ? (
         /* Kanban columns */
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {STATUS_COLS.map(col => {
-            const colTasks = tasks.filter(t => t.status === col.key);
+            const colTasks = filteredTasks.filter(t => t.status === col.key);
             return (
               <div key={col.key} className={`rounded-2xl border-2 ${col.color} p-4`}>
                 {/* Column header */}
@@ -301,6 +442,12 @@ export default function TasksPage() {
                         onStatusChange={handleStatusChange}
                         onDelete={handleDelete}
                         saving={savingId === t.id}
+                        selected={selected.has(t.id)}
+                        onSelect={id => setSelected(prev => {
+                          const next = new Set(prev);
+                          next.has(id) ? next.delete(id) : next.add(id);
+                          return next;
+                        })}
                       />
                     ))
                   )}
@@ -312,13 +459,19 @@ export default function TasksPage() {
       ) : (
         /* List view */
         <div className="space-y-2">
-          {tasks.map(t => (
+          {filteredTasks.map(t => (
             <TaskCard
               key={t.id}
               task={t}
               onStatusChange={handleStatusChange}
               onDelete={handleDelete}
               saving={savingId === t.id}
+              selected={selected.has(t.id)}
+              onSelect={id => setSelected(prev => {
+                const next = new Set(prev);
+                next.has(id) ? next.delete(id) : next.add(id);
+                return next;
+              })}
             />
           ))}
         </div>
