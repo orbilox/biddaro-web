@@ -983,6 +983,32 @@ export default function ProjectDetail() {
     new Set((project?.captures ?? []).flatMap(c => c.tags ?? []))
   ).sort();
 
+  const allProjectSections = Array.from(new Set([
+    ...(project?.captures ?? []).map(c => c.section).filter((s): s is string => Boolean(s)),
+    ...((project?.template?.structure?.sections ?? []) as TemplateSection[]).map(s => s.title),
+  ])).sort();
+
+  const [sectionEditId, setSectionEditId] = useState<string | null>(null);
+  const [sectionDraft, setSectionDraft] = useState('');
+  const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
+
+  const updateCaptureSection = async (captureId: string, newSection: string | null) => {
+    if (!project) return;
+    setSavingSectionId(captureId);
+    try {
+      await inspectApi.updateCapture(project.id, captureId, { section: newSection || null });
+      setProject(prev => prev ? {
+        ...prev,
+        captures: prev.captures.map(c => c.id === captureId ? { ...c, section: newSection || null } : c),
+      } : prev);
+      setSectionEditId(null);
+    } catch {
+      toast.error('Failed to update section');
+    } finally {
+      setSavingSectionId(null);
+    }
+  };
+
   const filteredCaptures = (project?.captures ?? []).filter(c => {
     if (captureTypeFilter !== 'all' && c.type !== captureTypeFilter) return false;
     if (captureSevFilter !== 'all' && (c.severity || 'normal') !== captureSevFilter) return false;
@@ -1840,7 +1866,73 @@ export default function ProjectDetail() {
                       >
                         <SeverityBadge severity={c.severity ?? 'normal'} />
                       </button>
-                      {c.section && <span className="text-xs text-dark-400 bg-dark-50 px-2 py-0.5 rounded-full">{c.section}</span>}
+                      {/* Section quick-picker */}
+                      <div className="relative">
+                        <button
+                          onClick={() => { setSectionEditId(c.id); setSectionDraft(c.section ?? ''); }}
+                          title="Assign section"
+                          className="text-xs text-dark-400 bg-dark-50 hover:bg-dark-100 px-2 py-0.5 rounded-full transition-colors flex items-center gap-1 group/section"
+                        >
+                          {c.section
+                            ? c.section
+                            : <span className="text-dark-300 italic">+ section</span>}
+                          <Pencil className="w-2.5 h-2.5 opacity-0 group-hover/section:opacity-50 flex-shrink-0" />
+                        </button>
+                        {sectionEditId === c.id && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setSectionEditId(null)} />
+                            <div className="absolute left-0 bottom-8 z-20 bg-white border border-dark-200 rounded-xl shadow-2xl p-3 w-64">
+                              <input
+                                autoFocus
+                                value={sectionDraft}
+                                onChange={e => setSectionDraft(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') updateCaptureSection(c.id, sectionDraft.trim());
+                                  if (e.key === 'Escape') setSectionEditId(null);
+                                }}
+                                placeholder="Section name…"
+                                className="w-full border border-dark-200 rounded-lg px-3 py-1.5 text-xs text-dark-800 focus:outline-none focus:border-brand-400 mb-2"
+                              />
+                              {allProjectSections.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2 max-h-24 overflow-y-auto">
+                                  {allProjectSections.map(s => (
+                                    <button
+                                      key={s}
+                                      onClick={() => updateCaptureSection(c.id, s)}
+                                      className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                                        c.section === s
+                                          ? 'bg-brand-100 text-brand-700 border-brand-200'
+                                          : 'bg-dark-50 text-dark-600 border-dark-200 hover:border-brand-300 hover:text-brand-700'
+                                      }`}
+                                    >
+                                      {s}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => updateCaptureSection(c.id, sectionDraft.trim())}
+                                  disabled={savingSectionId === c.id}
+                                  className="text-xs bg-brand-600 hover:bg-brand-700 text-white font-semibold px-3 py-1.5 rounded-lg flex-1 disabled:opacity-50 flex items-center justify-center gap-1"
+                                >
+                                  {savingSectionId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Set'}
+                                </button>
+                                {c.section && (
+                                  <button
+                                    onClick={() => updateCaptureSection(c.id, null)}
+                                    disabled={savingSectionId === c.id}
+                                    className="text-xs text-dark-500 border border-dark-200 px-2 py-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"
+                                  >
+                                    Clear
+                                  </button>
+                                )}
+                                <button onClick={() => setSectionEditId(null)} className="text-xs text-dark-400 border border-dark-200 px-2 py-1.5 rounded-lg hover:bg-dark-50">✕</button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
                       <span className="text-xs text-dark-300 ml-auto">
                         {new Date(c.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
