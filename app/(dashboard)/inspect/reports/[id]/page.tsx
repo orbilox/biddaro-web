@@ -6,6 +6,7 @@ import {
   ArrowLeft, Download, Send, CheckCircle, AlertTriangle,
   Clock, FileText, Loader2, Edit3, Save, X, Mail, FileDown,
   ListTodo, Plus, Circle, Timer, Trash2, ChevronDown, ChevronUp, User,
+  MessageSquare, ThumbsUp, ThumbsDown, RotateCcw, GitBranch,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -46,6 +47,17 @@ interface Report {
     location: string | null;
     clientName: string | null;
   };
+}
+
+interface ReviewNote {
+  id: string;
+  type: string; // comment|approval|rejection|request_changes|status_change
+  content: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  authorName: string | null;
+  createdAt: string;
+  user: { firstName: string; lastName: string; profileImage: string | null };
 }
 
 interface Task {
@@ -186,6 +198,215 @@ function CreateTaskModal({
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ── Review Panel ─────────────────────────────────────────────────────────────
+
+const NOTE_STYLES: Record<string, { bg: string; border: string; icon: React.ReactNode; label: string }> = {
+  comment:          { bg: 'bg-white',       border: 'border-dark-200',  icon: <MessageSquare className="w-3.5 h-3.5 text-dark-400" />, label: 'Comment' },
+  approval:         { bg: 'bg-green-50',    border: 'border-green-200', icon: <ThumbsUp className="w-3.5 h-3.5 text-green-600" />,   label: 'Approved' },
+  rejection:        { bg: 'bg-red-50',      border: 'border-red-200',   icon: <ThumbsDown className="w-3.5 h-3.5 text-red-600" />,   label: 'Rejected' },
+  request_changes:  { bg: 'bg-amber-50',    border: 'border-amber-200', icon: <RotateCcw className="w-3.5 h-3.5 text-amber-600" />,  label: 'Changes Requested' },
+  status_change:    { bg: 'bg-blue-50',     border: 'border-blue-200',  icon: <GitBranch className="w-3.5 h-3.5 text-blue-600" />,   label: 'Status Changed' },
+};
+
+function ReviewPanel({
+  reportId,
+  reportStatus,
+  onStatusChanged,
+}: {
+  reportId: string;
+  reportStatus: string;
+  onStatusChanged: (newStatus: string) => void;
+}) {
+  const [notes, setNotes] = useState<ReviewNote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(true);
+  const [draft, setDraft] = useState('');
+  const [noteType, setNoteType] = useState<string>('comment');
+  const [statusTarget, setStatusTarget] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const STATUS_TRANSITIONS: Record<string, string[]> = {
+    draft:    ['review'],
+    review:   ['approved', 'draft'],
+    approved: ['sent', 'review'],
+    sent:     [],
+  };
+  const allowed = STATUS_TRANSITIONS[reportStatus] ?? [];
+
+  useEffect(() => {
+    inspectApi.listReviewNotes(reportId)
+      .then(r => setNotes((r.data as { data: ReviewNote[] }).data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [reportId]);
+
+  async function submit() {
+    if (!draft.trim()) return;
+    setSubmitting(true);
+    try {
+      const payload: Record<string, unknown> = { type: noteType, content: draft };
+      if (noteType === 'status_change' && statusTarget) payload.toStatus = statusTarget;
+      const res = await inspectApi.addReviewNote(reportId, payload);
+      const note = (res.data as { data: ReviewNote }).data;
+      setNotes(prev => [...prev, note]);
+      setDraft('');
+      if (noteType === 'status_change' && statusTarget) onStatusChanged(statusTarget);
+      toast.success('Note added');
+    } catch {
+      toast.error('Failed to add note');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function deleteNote(nid: string) {
+    setDeletingId(nid);
+    try {
+      await inspectApi.deleteReviewNote(nid);
+      setNotes(prev => prev.filter(n => n.id !== nid));
+    } catch {
+      toast.error('Failed to delete note');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  return (
+    <div className="bg-white border border-dark-100 rounded-2xl overflow-hidden mt-6">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-dark-50 transition-colors"
+      >
+        <h3 className="font-bold text-dark-900 flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-brand-500" />
+          Review & Audit Trail
+          {notes.length > 0 && (
+            <span className="ml-1 text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-semibold">{notes.length}</span>
+          )}
+        </h3>
+        {open ? <ChevronUp className="w-4 h-4 text-dark-400" /> : <ChevronDown className="w-4 h-4 text-dark-400" />}
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 space-y-4 border-t border-dark-100">
+          {/* Audit trail */}
+          <div className="space-y-3 mt-4">
+            {loading ? (
+              <div className="h-16 bg-dark-50 animate-pulse rounded-lg" />
+            ) : notes.length === 0 ? (
+              <p className="text-sm text-dark-400 text-center py-4">No review notes yet. Add the first comment below.</p>
+            ) : (
+              notes.map(note => {
+                const style = NOTE_STYLES[note.type] ?? NOTE_STYLES.comment;
+                return (
+                  <div key={note.id} className={`rounded-xl border p-4 ${style.bg} ${style.border}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-dark-500">
+                        {style.icon}
+                        <span>{style.label}</span>
+                        <span className="text-dark-300">·</span>
+                        <span>{note.authorName ?? `${note.user.firstName} ${note.user.lastName}`}</span>
+                        <span className="text-dark-300">·</span>
+                        <span>{new Date(note.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        {note.type === 'status_change' && note.fromStatus && note.toStatus && (
+                          <>
+                            <span className="text-dark-300">·</span>
+                            <span className="capitalize">{note.fromStatus}</span>
+                            <span className="text-dark-400">→</span>
+                            <span className="capitalize font-bold">{note.toStatus}</span>
+                          </>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteNote(note.id)}
+                        disabled={deletingId === note.id}
+                        className="text-dark-300 hover:text-red-500 transition-colors flex-shrink-0"
+                      >
+                        {deletingId === note.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <p className="text-sm text-dark-700 mt-2 leading-relaxed">{note.content}</p>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Add note form */}
+          <div className="border border-dark-200 rounded-xl p-4 space-y-3 bg-dark-50">
+            {/* Type selector */}
+            <div className="flex flex-wrap gap-2">
+              {(['comment', 'approval', 'rejection', 'request_changes'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => { setNoteType(t); setStatusTarget(''); }}
+                  className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${
+                    noteType === t
+                      ? 'bg-brand-600 text-white border-brand-600'
+                      : 'bg-white border-dark-200 text-dark-600 hover:border-brand-300'
+                  }`}
+                >
+                  {NOTE_STYLES[t].label}
+                </button>
+              ))}
+              {allowed.length > 0 && (
+                <button
+                  onClick={() => { setNoteType('status_change'); setStatusTarget(allowed[0]); }}
+                  className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${
+                    noteType === 'status_change'
+                      ? 'bg-brand-600 text-white border-brand-600'
+                      : 'bg-white border-dark-200 text-dark-600 hover:border-brand-300'
+                  }`}
+                >
+                  Change Status
+                </button>
+              )}
+            </div>
+
+            {/* Status target picker */}
+            {noteType === 'status_change' && allowed.length > 0 && (
+              <div className="flex gap-2">
+                {allowed.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setStatusTarget(s)}
+                    className={`text-xs px-3 py-1 rounded-full border font-medium capitalize transition-colors ${
+                      statusTarget === s
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white border-dark-200 text-dark-600'
+                    }`}
+                  >
+                    → {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <textarea
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              placeholder={noteType === 'status_change' ? 'Reason for status change…' : 'Add a review comment…'}
+              rows={3}
+              className="w-full text-sm border border-dark-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-brand-400 bg-white"
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={submit}
+                disabled={submitting || !draft.trim() || (noteType === 'status_change' && !statusTarget)}
+                className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+              >
+                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                {submitting ? 'Adding…' : 'Add Note'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -702,6 +923,13 @@ export default function ReportViewer() {
           </div>
         ))}
       </div>
+
+      {/* Review & audit trail */}
+      <ReviewPanel
+        reportId={id}
+        reportStatus={report.status}
+        onStatusChanged={(newStatus) => setReport(r => r ? { ...r, status: newStatus } : r)}
+      />
 
       {/* Tasks panel */}
       <TasksPanel reportId={id} />

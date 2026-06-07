@@ -773,6 +773,10 @@ export const inspectApi = {
   deleteReport: (id: string) => api.delete(`/inspect/reports/${id}`),
   sendReport: (id: string, sentTo: string) => api.post(`/inspect/reports/${id}/send`, { sentTo }),
   getAnalytics: () => api.get('/inspect/analytics'),
+  // Review notes
+  listReviewNotes:  (reportId: string) => api.get(`/inspect/reports/${reportId}/review/notes`),
+  addReviewNote:    (reportId: string, data: Record<string, unknown>) => api.post(`/inspect/reports/${reportId}/review/notes`, data),
+  deleteReviewNote: (nid: string) => api.delete(`/inspect/review/notes/${nid}`),
   exportDocx: (id: string) => api.get(`/inspect/reports/${id}/export/docx`, { responseType: 'blob' }),
   exportPdf:  (id: string) => api.get(`/inspect/reports/${id}/export/pdf`,  { responseType: 'blob' }),
   captionCapture: (projectId: string, cid: string) => api.post(`/inspect/projects/${projectId}/captures/${cid}/caption`, {}),
