@@ -299,14 +299,16 @@ export default function InspectDashboard() {
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
         {[
-          { href: '/inspect/projects', label: 'All Projects', emoji: '🏗️', desc: 'Browse & manage' },
-          { href: '/inspect/reports',  label: 'All Reports',  emoji: '📄', desc: 'Review & export' },
-          { href: '/inspect/analytics',label: 'Analytics',    emoji: '📊', desc: 'Trends & insights' },
-          { href: '/inspect/compare',  label: 'Compare',      emoji: '🔀', desc: 'Delta analysis' },
-          { href: '/inspect/search',   label: 'AI Search',    emoji: '✨', desc: 'Ask your portfolio' },
-          { href: '/inspect/settings', label: 'Settings',     emoji: '⚙️', desc: 'Inspector profile' },
+          { href: '/inspect/projects',  label: 'All Projects', emoji: '🏗️', desc: 'Browse & manage' },
+          { href: '/inspect/reports',   label: 'All Reports',  emoji: '📄', desc: 'Review & export' },
+          { href: '/inspect/schedules', label: 'Schedules',    emoji: '📅', desc: 'Upcoming visits' },
+          { href: '/inspect/tasks',     label: 'Tasks',        emoji: '✅', desc: 'Remediation items' },
+          { href: '/inspect/analytics', label: 'Analytics',    emoji: '📊', desc: 'Trends & insights' },
+          { href: '/inspect/compare',   label: 'Compare',      emoji: '🔀', desc: 'Delta analysis' },
+          { href: '/inspect/search',    label: 'AI Search',    emoji: '✨', desc: 'Ask your portfolio' },
+          { href: '/inspect/settings',  label: 'Settings',     emoji: '⚙️', desc: 'Inspector profile' },
         ].map(item => (
           <Link key={item.href} href={item.href}
             className="bg-white border border-dark-100 rounded-xl p-4 hover:border-brand-300 hover:shadow-sm transition-all group"
