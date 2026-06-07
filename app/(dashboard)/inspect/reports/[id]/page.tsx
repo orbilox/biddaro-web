@@ -7,7 +7,7 @@ import {
   Clock, FileText, Loader2, Edit3, Save, X, Mail, FileDown,
   ListTodo, Plus, Circle, Timer, Trash2, ChevronDown, ChevronUp, User,
   MessageSquare, ThumbsUp, ThumbsDown, RotateCcw, GitBranch,
-  Share2, Link2, Copy, Globe, EyeOff, PenLine, QrCode,
+  Share2, Link2, Copy, Globe, EyeOff, PenLine, QrCode, Camera, Award,
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { inspectApi } from '@/lib/api';
@@ -1182,6 +1182,27 @@ export default function ReportViewer() {
     }
   }
 
+  const [downloadingCert, setDownloadingCert] = useState(false);
+  async function downloadCertificate() {
+    if (!report) return;
+    setDownloadingCert(true);
+    try {
+      const res = await inspectApi.exportCertificate(id);
+      const blob = new Blob([res.data as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificate-${report.id.slice(-8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Certificate downloaded');
+    } catch {
+      toast.error('Failed to generate certificate');
+    } finally {
+      setDownloadingCert(false);
+    }
+  }
+
   async function enableShare() {
     if (!report) return;
     setSharingLoading(true);
@@ -1375,6 +1396,18 @@ export default function ReportViewer() {
           className="inline-flex items-center gap-2 border border-dark-200 text-dark-700 hover:bg-dark-50 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
         >
           <Download className="w-4 h-4" /> Markdown
+        </button>
+        {/* Certificate button */}
+        <button
+          onClick={downloadCertificate}
+          disabled={downloadingCert}
+          title="Download Certificate of Inspection"
+          className="inline-flex items-center gap-2 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+        >
+          {downloadingCert
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <Award className="w-4 h-4" />}
+          {downloadingCert ? 'Generating…' : 'Certificate'}
         </button>
         {/* Share button */}
         <button
