@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, FileText, Trash2, Loader2, Upload, X, Eye } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Trash2, Loader2, Upload, X, Eye, ChevronUp } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
 
@@ -11,6 +11,19 @@ interface Template {
   description: string | null;
   createdAt: string;
   _count?: { projects: number };
+}
+
+interface TemplateSection {
+  id: string;
+  title: string;
+  description?: string;
+  hasPhotos?: boolean;
+  hasTable?: boolean;
+}
+
+interface TemplateDetail extends Template {
+  structure?: { sections?: TemplateSection[]; tone?: string; industry?: string } | null;
+  rawContent?: string | null;
 }
 
 function UploadModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
@@ -141,6 +154,23 @@ export default function InspectTemplates() {
   const [showUpload, setShowUpload] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewDetail, setPreviewDetail] = useState<TemplateDetail | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
+  async function openPreview(id: string) {
+    if (previewId === id) { setPreviewId(null); setPreviewDetail(null); return; }
+    setPreviewId(id);
+    setPreviewDetail(null);
+    setLoadingPreview(true);
+    try {
+      const res = await inspectApi.getTemplate(id);
+      setPreviewDetail((res.data as { data: TemplateDetail }).data);
+    } catch {
+      toast.error('Failed to load template details');
+    } finally {
+      setLoadingPreview(false);
+    }
+  }
 
   async function load() {
     try {
@@ -237,7 +267,8 @@ export default function InspectTemplates() {
       ) : (
         <div className="space-y-3">
           {templates.map(t => (
-            <div key={t.id} className="bg-white border border-dark-100 rounded-xl p-5 flex items-center gap-4">
+            <React.Fragment key={t.id}>
+            <div className="bg-white border border-dark-100 rounded-xl p-5 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center flex-shrink-0">
                 <FileText className="w-5 h-5 text-brand-600" />
               </div>
@@ -255,11 +286,11 @@ export default function InspectTemplates() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setPreviewId(previewId === t.id ? null : t.id)}
-                  className="p-2 text-dark-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                  title="Preview structure"
+                  onClick={() => openPreview(t.id)}
+                  className={`p-2 rounded-lg transition-colors ${previewId === t.id ? 'text-brand-600 bg-brand-50' : 'text-dark-400 hover:text-brand-600 hover:bg-brand-50'}`}
+                  title="Preview section structure"
                 >
-                  <Eye className="w-4 h-4" />
+                  {previewId === t.id ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
                 <button
                   onClick={() => deleteTemplate(t.id)}
@@ -274,6 +305,57 @@ export default function InspectTemplates() {
                 </button>
               </div>
             </div>
+
+            {/* Preview panel — inline expansion */}
+            {previewId === t.id && (
+              <div className="mt-3 pt-3 border-t border-dark-100">
+                {loadingPreview ? (
+                  <div className="flex items-center gap-2 text-sm text-dark-400 py-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Loading template structure…
+                  </div>
+                ) : previewDetail?.structure?.sections && previewDetail.structure.sections.length > 0 ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-xs font-semibold text-dark-600 uppercase tracking-wider">
+                        {previewDetail.structure.sections.length} Sections
+                      </p>
+                      {previewDetail.structure.tone && (
+                        <span className="text-xs bg-dark-100 text-dark-500 px-2 py-0.5 rounded-full">
+                          Tone: {previewDetail.structure.tone}
+                        </span>
+                      )}
+                      {previewDetail.structure.industry && (
+                        <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full">
+                          {previewDetail.structure.industry}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      {previewDetail.structure.sections.map((s, si) => (
+                        <div key={s.id ?? si} className="flex items-start gap-2 bg-dark-50 rounded-lg px-3 py-2">
+                          <span className="w-5 h-5 rounded bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                            {si + 1}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-dark-800">{s.title}</p>
+                            {s.description && <p className="text-xs text-dark-400 mt-0.5 line-clamp-1">{s.description}</p>}
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {s.hasPhotos && <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">📷 Photos</span>}
+                            {s.hasTable && <span className="text-xs bg-green-50 text-green-600 px-1.5 py-0.5 rounded">📊 Table</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : previewDetail ? (
+                  <p className="text-xs text-dark-400 italic py-2">
+                    No structured sections extracted yet. This template will guide AI report formatting via its raw content.
+                  </p>
+                ) : null}
+              </div>
+            )}
+            </React.Fragment>
           ))}
         </div>
       )}
