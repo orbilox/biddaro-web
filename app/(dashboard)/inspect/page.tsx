@@ -284,12 +284,13 @@ export default function InspectDashboard() {
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-8">
         {[
           { href: '/inspect/projects', label: 'All Projects', emoji: '🏗️', desc: 'Browse & manage' },
           { href: '/inspect/reports',  label: 'All Reports',  emoji: '📄', desc: 'Review & export' },
           { href: '/inspect/analytics',label: 'Analytics',    emoji: '📊', desc: 'Trends & insights' },
           { href: '/inspect/compare',  label: 'Compare',      emoji: '🔀', desc: 'Delta analysis' },
+          { href: '/inspect/search',   label: 'AI Search',    emoji: '✨', desc: 'Ask your portfolio' },
           { href: '/inspect/settings', label: 'Settings',     emoji: '⚙️', desc: 'Inspector profile' },
         ].map(item => (
           <Link key={item.href} href={item.href}
