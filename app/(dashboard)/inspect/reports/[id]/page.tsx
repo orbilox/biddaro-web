@@ -1662,10 +1662,35 @@ export default function ReportViewer() {
           }}
           onCancel={() => setEditMode(false)}
         />
-      ) : (
+      ) : (<>
+      {/* Table of Contents */}
+      {sections.length > 3 && (
+        <details className="bg-dark-50 border border-dark-200 rounded-xl mb-4 group">
+          <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer text-sm font-semibold text-dark-700 hover:text-dark-900 select-none list-none">
+            <FileText className="w-4 h-4 text-dark-400" />
+            Table of Contents
+            <span className="text-xs font-normal text-dark-400 ml-1">({sections.length} sections)</span>
+          </summary>
+          <div className="px-4 pb-3 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {sections.map((s, i) => (
+              <a
+                key={i}
+                href={`#section-${i}`}
+                className="flex items-center gap-2 text-xs text-dark-600 hover:text-brand-700 hover:bg-brand-50 rounded-lg px-2 py-1.5 transition-colors"
+              >
+                <span className="w-5 h-5 rounded bg-dark-200 text-dark-600 text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                <span className="truncate">{s.title}</span>
+                {s.severity === 'critical' && <span className="ml-auto w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
+                {s.severity === 'warning' && <span className="ml-auto w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />}
+              </a>
+            ))}
+          </div>
+        </details>
+      )}
+
       <div className="space-y-5">
         {sections.map((section, i) => (
-          <div key={section.id ?? i} className={`bg-white border rounded-2xl overflow-hidden ${
+          <div key={section.id ?? i} id={`section-${i}`} className={`bg-white border rounded-2xl overflow-hidden scroll-mt-4 ${
             section.severity === 'critical' ? 'border-red-200' :
             section.severity === 'warning' ? 'border-amber-200' : 'border-dark-100'
           }`}>
@@ -1738,7 +1763,7 @@ export default function ReportViewer() {
           </div>
         ))}
       </div>
-      )} {/* end editMode conditional */}
+      </>)} {/* end editMode conditional */}
 
       {/* Cover Photo for PDF */}
       <div className="bg-white border border-dark-100 rounded-2xl p-5 shadow-sm mb-6">
