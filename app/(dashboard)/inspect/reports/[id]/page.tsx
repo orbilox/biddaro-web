@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Download, Send, CheckCircle, AlertTriangle,
   Clock, FileText, Loader2, Edit3, Save, X, Mail, FileDown,
+  ListTodo, Plus, Circle, Timer, Trash2, ChevronDown, ChevronUp, User,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -45,6 +46,282 @@ interface Report {
     location: string | null;
     clientName: string | null;
   };
+}
+
+interface Task {
+  id: string;
+  title: string;
+  description: string | null;
+  severity: string;
+  status: string;
+  assignedTo: string | null;
+  dueDate: string | null;
+  sourceSection: string | null;
+  sourceFinding: string | null;
+  createdAt: string;
+}
+
+// ── Task status helpers ───────────────────────────────────────────────────────
+
+const TASK_STATUS_CYCLE: Record<string, string> = { open: 'in_progress', in_progress: 'done', done: 'open' };
+const TASK_STATUS_LABEL: Record<string, string> = { open: 'Open', in_progress: 'In Progress', done: 'Done' };
+const TASK_STATUS_COLOR: Record<string, string> = {
+  open: 'bg-dark-100 text-dark-600',
+  in_progress: 'bg-amber-100 text-amber-700',
+  done: 'bg-green-100 text-green-700',
+};
+
+function TaskStatusIcon({ status }: { status: string }) {
+  if (status === 'done') return <CheckCircle className="w-4 h-4 text-green-500" />;
+  if (status === 'in_progress') return <Timer className="w-4 h-4 text-amber-500" />;
+  return <Circle className="w-4 h-4 text-dark-400" />;
+}
+
+// ── Create Task Modal ─────────────────────────────────────────────────────────
+
+function CreateTaskModal({
+  reportId, prefill, onClose, onCreated,
+}: {
+  reportId: string;
+  prefill: { title: string; severity: string; section: string; finding: string };
+  onClose: () => void;
+  onCreated: (task: Task) => void;
+}) {
+  const [title, setTitle] = useState(prefill.title);
+  const [description, setDescription] = useState('');
+  const [assignedTo, setAssignedTo] = useState('');
+  const [severity, setSeverity] = useState(prefill.severity);
+  const [dueDate, setDueDate] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      const res = await inspectApi.createTask(reportId, {
+        title, description: description || undefined,
+        severity, assignedTo: assignedTo || undefined,
+        dueDate: dueDate || undefined,
+        sourceSection: prefill.section,
+        sourceFinding: prefill.finding,
+      });
+      toast.success('Task created');
+      onCreated((res.data as { data: Task }).data);
+      onClose();
+    } catch {
+      toast.error('Failed to create task');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-900/60 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-bold text-dark-900 flex items-center gap-2">
+            <ListTodo className="w-4 h-4 text-brand-600" /> Create Task from Finding
+          </h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-dark-400" /></button>
+        </div>
+
+        {prefill.finding && (
+          <div className="bg-dark-50 border border-dark-100 rounded-xl px-4 py-3 mb-4">
+            <p className="text-xs font-semibold text-dark-500 mb-1">Source finding</p>
+            <p className="text-dark-700 text-sm leading-relaxed">{prefill.finding}</p>
+          </div>
+        )}
+
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-dark-700 mb-1.5">Task Title *</label>
+            <input
+              required value={title} onChange={e => setTitle(e.target.value)}
+              className="w-full border border-dark-200 rounded-xl px-4 py-2.5 text-sm text-dark-900 focus:outline-none focus:border-brand-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-dark-700 mb-1.5">Description</label>
+            <textarea
+              value={description} onChange={e => setDescription(e.target.value)} rows={3}
+              placeholder="Steps to resolve this finding..."
+              className="w-full border border-dark-200 rounded-xl px-4 py-2.5 text-sm text-dark-900 focus:outline-none focus:border-brand-400 resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-dark-700 mb-1.5">Priority</label>
+              <select value={severity} onChange={e => setSeverity(e.target.value)}
+                className="w-full border border-dark-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400 bg-white">
+                <option value="normal">Normal</option>
+                <option value="warning">Medium</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-dark-700 mb-1.5">Due Date</label>
+              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                className="w-full border border-dark-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-dark-700 mb-1.5">Assign To</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
+              <input
+                value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
+                placeholder="Name or email"
+                className="w-full border border-dark-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-dark-900 focus:outline-none focus:border-brand-400"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="submit" disabled={saving}
+              className="flex-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {saving ? 'Creating…' : 'Create Task'}
+            </button>
+            <button type="button" onClick={onClose} className="px-5 border border-dark-200 rounded-xl text-dark-600 hover:bg-dark-50">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Tasks Panel ───────────────────────────────────────────────────────────────
+
+function TasksPanel({ reportId }: { reportId: string }) {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    inspectApi.listTasks(reportId)
+      .then(res => setTasks((res.data as { data: Task[] }).data ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [reportId]);
+
+  async function cycleStatus(task: Task) {
+    const nextStatus = TASK_STATUS_CYCLE[task.status] ?? 'open';
+    setTogglingId(task.id);
+    try {
+      const res = await inspectApi.updateTask(task.id, { status: nextStatus });
+      const updated = (res.data as { data: Task }).data;
+      setTasks(ts => ts.map(t => t.id === updated.id ? updated : t));
+    } catch {
+      toast.error('Failed to update task');
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
+  async function remove(id: string) {
+    setDeletingId(id);
+    try {
+      await inspectApi.deleteTask(id);
+      setTasks(ts => ts.filter(t => t.id !== id));
+      toast.success('Task deleted');
+    } catch {
+      toast.error('Failed to delete task');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  const openCount = tasks.filter(t => t.status !== 'done').length;
+
+  return (
+    <div className="bg-white border border-dark-100 rounded-2xl overflow-hidden mt-6">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-dark-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <ListTodo className="w-5 h-5 text-brand-600" />
+          <span className="font-bold text-dark-900">Action Tasks</span>
+          {!loading && tasks.length > 0 && (
+            <span className="text-xs font-semibold bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full">
+              {openCount} open · {tasks.length} total
+            </span>
+          )}
+        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-dark-400" /> : <ChevronDown className="w-4 h-4 text-dark-400" />}
+      </button>
+
+      {open && (
+        <div className="border-t border-dark-100">
+          {loading ? (
+            <div className="p-4 space-y-2">
+              {[1, 2].map(i => <div key={i} className="h-12 bg-dark-50 animate-pulse rounded-lg" />)}
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="p-6 text-center text-dark-400 text-sm">
+              <ListTodo className="w-6 h-6 mx-auto mb-2 opacity-30" />
+              No tasks yet. Click <span className="font-semibold text-brand-600">→ Task</span> on any finding to create one.
+            </div>
+          ) : (
+            <div className="divide-y divide-dark-50">
+              {tasks.map(task => (
+                <div key={task.id} className="flex items-start gap-3 px-6 py-4">
+                  <button
+                    onClick={() => cycleStatus(task)}
+                    disabled={togglingId === task.id}
+                    className="mt-0.5 flex-shrink-0 hover:opacity-70 transition-opacity"
+                    title={`Mark as ${TASK_STATUS_LABEL[TASK_STATUS_CYCLE[task.status] ?? 'open']}`}
+                  >
+                    {togglingId === task.id
+                      ? <Loader2 className="w-4 h-4 animate-spin text-dark-400" />
+                      : <TaskStatusIcon status={task.status} />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium leading-snug ${task.status === 'done' ? 'line-through text-dark-400' : 'text-dark-800'}`}>
+                      {task.title}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TASK_STATUS_COLOR[task.status]}`}>
+                        {TASK_STATUS_LABEL[task.status]}
+                      </span>
+                      {task.severity === 'critical' && <span className="text-xs text-red-600 font-semibold">Critical</span>}
+                      {task.severity === 'warning' && <span className="text-xs text-amber-600 font-semibold">Medium</span>}
+                      {task.assignedTo && (
+                        <span className="text-xs text-dark-400 flex items-center gap-1">
+                          <User className="w-3 h-3" />{task.assignedTo}
+                        </span>
+                      )}
+                      {task.dueDate && (
+                        <span className="text-xs text-dark-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(task.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </span>
+                      )}
+                      {task.sourceSection && (
+                        <span className="text-xs text-dark-300 bg-dark-50 px-1.5 py-0.5 rounded">{task.sourceSection}</span>
+                      )}
+                    </div>
+                    {task.description && (
+                      <p className="text-xs text-dark-500 mt-1 leading-relaxed">{task.description}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => remove(task.id)}
+                    disabled={deletingId === task.id}
+                    className="p-1 text-dark-300 hover:text-red-500 transition-colors flex-shrink-0"
+                  >
+                    {deletingId === task.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function SeverityIcon({ s }: { s?: string }) {
@@ -124,6 +401,9 @@ export default function ReportViewer() {
   const [showSend, setShowSend] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [taskModal, setTaskModal] = useState<{
+    title: string; severity: string; section: string; finding: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -223,6 +503,14 @@ export default function ReportViewer() {
           reportId={id}
           onClose={() => setShowSend(false)}
           onSent={load}
+        />
+      )}
+      {taskModal && (
+        <CreateTaskModal
+          reportId={id}
+          prefill={taskModal}
+          onClose={() => setTaskModal(null)}
+          onCreated={() => {}}
         />
       )}
 
@@ -357,11 +645,23 @@ export default function ReportViewer() {
                   <p className="text-xs font-bold text-dark-600 uppercase tracking-wide mb-2">Key Findings</p>
                   <ul className="space-y-2">
                     {section.findings.map((f, fi) => (
-                      <li key={fi} className="flex items-start gap-2 text-sm text-dark-600">
+                      <li key={fi} className="flex items-start gap-2 text-sm text-dark-600 group">
                         <span className="w-5 h-5 rounded-full bg-dark-100 flex items-center justify-center text-xs font-bold text-dark-500 flex-shrink-0 mt-0.5">
                           {fi + 1}
                         </span>
-                        {f}
+                        <span className="flex-1">{f}</span>
+                        <button
+                          onClick={() => setTaskModal({
+                            title: f.length > 80 ? f.slice(0, 80) + '…' : f,
+                            severity: section.severity ?? 'normal',
+                            section: section.title,
+                            finding: f,
+                          })}
+                          className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1 px-2 py-0.5 bg-brand-50 hover:bg-brand-100 rounded-lg transition-all whitespace-nowrap"
+                          title="Create action task from this finding"
+                        >
+                          <Plus className="w-3 h-3" /> Task
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -371,6 +671,9 @@ export default function ReportViewer() {
           </div>
         ))}
       </div>
+
+      {/* Tasks panel */}
+      <TasksPanel reportId={id} />
 
       {/* Footer */}
       <div className="mt-8 text-center text-xs text-dark-400 border-t border-dark-100 pt-6">

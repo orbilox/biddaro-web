@@ -775,6 +775,11 @@ export const inspectApi = {
   exportDocx: (id: string) => api.get(`/inspect/reports/${id}/export/docx`, { responseType: 'blob' }),
   captionCapture: (projectId: string, cid: string) => api.post(`/inspect/projects/${projectId}/captures/${cid}/caption`, {}),
   searchPortfolio: (query: string) => api.post('/inspect/search', { query }),
+  // Tasks
+  listTasks:   (reportId: string) => api.get(`/inspect/reports/${reportId}/tasks`),
+  createTask:  (reportId: string, data: Record<string, unknown>) => api.post(`/inspect/reports/${reportId}/tasks`, data),
+  updateTask:  (tid: string, data: Record<string, unknown>) => api.put(`/inspect/tasks/${tid}`, data),
+  deleteTask:  (tid: string) => api.delete(`/inspect/tasks/${tid}`),
 };
 
 export default api;
