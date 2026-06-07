@@ -283,6 +283,24 @@ export default function InspectDashboard() {
         ))}
       </div>
 
+      {/* Quick links */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        {[
+          { href: '/inspect/projects', label: 'All Projects', emoji: '🏗️', desc: 'Browse & manage' },
+          { href: '/inspect/reports',  label: 'All Reports',  emoji: '📄', desc: 'Review & export' },
+          { href: '/inspect/analytics',label: 'Analytics',    emoji: '📊', desc: 'Trends & insights' },
+          { href: '/inspect/templates', label: 'Templates',   emoji: '🗂️', desc: 'Report structure' },
+        ].map(item => (
+          <Link key={item.href} href={item.href}
+            className="bg-white border border-dark-100 rounded-xl p-4 hover:border-brand-300 hover:shadow-sm transition-all group"
+          >
+            <div className="text-2xl mb-1">{item.emoji}</div>
+            <p className="text-sm font-semibold text-dark-800 group-hover:text-brand-700">{item.label}</p>
+            <p className="text-xs text-dark-400">{item.desc}</p>
+          </Link>
+        ))}
+      </div>
+
       {/* AI Portfolio Search */}
       {!loading && <PortfolioSearch hasReports={hasReports} />}
 
