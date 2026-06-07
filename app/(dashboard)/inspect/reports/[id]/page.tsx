@@ -7,7 +7,7 @@ import {
   Clock, FileText, Loader2, Edit3, Save, X, Mail, FileDown,
   ListTodo, Plus, Circle, Timer, Trash2, ChevronDown, ChevronUp, User,
   MessageSquare, ThumbsUp, ThumbsDown, RotateCcw, GitBranch,
-  Share2, Link2, Copy, Globe, EyeOff,
+  Share2, Link2, Copy, Globe, EyeOff, PenLine,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -639,6 +639,277 @@ function SendModal({ reportId, defaultClientName, onClose, onSent }: {
   );
 }
 
+// ── Inline Section Editor ─────────────────────────────────────────────────────
+
+function EditSectionsPanel({
+  reportId,
+  initialSections,
+  onSaved,
+  onCancel,
+}: {
+  reportId: string;
+  initialSections: ReportSection[];
+  onSaved: (sections: ReportSection[]) => void;
+  onCancel: () => void;
+}) {
+  const [sections, setSections] = useState<ReportSection[]>(
+    JSON.parse(JSON.stringify(initialSections)) // deep clone
+  );
+  const [saving, setSaving] = useState(false);
+
+  function updateSection(idx: number, patch: Partial<ReportSection>) {
+    setSections(ss => ss.map((s, i) => i === idx ? { ...s, ...patch } : s));
+  }
+
+  function addFinding(idx: number) {
+    setSections(ss => ss.map((s, i) => i === idx
+      ? { ...s, findings: [...(s.findings ?? []), ''] }
+      : s));
+  }
+
+  function updateFinding(sIdx: number, fIdx: number, value: string) {
+    setSections(ss => ss.map((s, i) => {
+      if (i !== sIdx) return s;
+      const findings = [...(s.findings ?? [])];
+      findings[fIdx] = value;
+      return { ...s, findings };
+    }));
+  }
+
+  function removeFinding(sIdx: number, fIdx: number) {
+    setSections(ss => ss.map((s, i) => {
+      if (i !== sIdx) return s;
+      const findings = (s.findings ?? []).filter((_, fi) => fi !== fIdx);
+      return { ...s, findings };
+    }));
+  }
+
+  function addAction(idx: number) {
+    setSections(ss => ss.map((s, i) => i === idx
+      ? { ...s, recommendedActions: [...(s.recommendedActions ?? []), ''] }
+      : s));
+  }
+
+  function updateAction(sIdx: number, aIdx: number, value: string) {
+    setSections(ss => ss.map((s, i) => {
+      if (i !== sIdx) return s;
+      const recommendedActions = [...(s.recommendedActions ?? [])];
+      recommendedActions[aIdx] = value;
+      return { ...s, recommendedActions };
+    }));
+  }
+
+  function removeAction(sIdx: number, aIdx: number) {
+    setSections(ss => ss.map((s, i) => {
+      if (i !== sIdx) return s;
+      const recommendedActions = (s.recommendedActions ?? []).filter((_, ai) => ai !== aIdx);
+      return { ...s, recommendedActions };
+    }));
+  }
+
+  function addSection() {
+    setSections(ss => [...ss, {
+      id: `new-${Date.now()}`,
+      title: 'New Section',
+      content: '',
+      severity: 'normal',
+      findings: [],
+      recommendedActions: [],
+    }]);
+  }
+
+  function removeSection(idx: number) {
+    setSections(ss => ss.filter((_, i) => i !== idx));
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      // Recalculate summary counts
+      const criticalCount = sections.filter(s => s.severity === 'critical').length;
+      const warningCount  = sections.filter(s => s.severity === 'warning').length;
+      const normalCount   = sections.filter(s => !s.severity || s.severity === 'normal').length;
+      const totalFindings = sections.reduce((acc, s) => acc + (s.findings?.length ?? 0), 0);
+      const overallStatus = criticalCount > 0 ? 'critical'
+        : warningCount > 0 ? 'requires_attention'
+        : 'satisfactory';
+
+      await inspectApi.updateReport(reportId, {
+        content: {
+          sections: sections.map(s => ({
+            ...s,
+            findings: (s.findings ?? []).filter(f => f.trim()),
+            recommendedActions: (s.recommendedActions ?? []).filter(a => a.trim()),
+          })),
+          summary: { totalFindings, criticalCount, warningCount, normalCount, overallStatus },
+        },
+      });
+      toast.success('Report sections saved');
+      onSaved(sections);
+    } catch {
+      toast.error('Failed to save sections');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const sevBorder: Record<string, string> = {
+    critical: 'border-red-300',
+    warning:  'border-amber-300',
+    normal:   'border-gray-200',
+  };
+  const sevBg: Record<string, string> = {
+    critical: 'bg-red-50',
+    warning:  'bg-amber-50',
+    normal:   'bg-gray-50',
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between bg-brand-50 border border-brand-100 rounded-2xl px-5 py-3">
+        <div className="flex items-center gap-2 text-brand-700 font-semibold text-sm">
+          <PenLine className="w-4 h-4" />
+          Editing Report Sections
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={addSection}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold border border-brand-300 text-brand-700 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Section
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg transition-colors"
+          >
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+          <button
+            onClick={onCancel}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold border border-gray-300 text-gray-600 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <X className="w-3.5 h-3.5" /> Discard
+          </button>
+        </div>
+      </div>
+
+      {/* Sections */}
+      {sections.map((section, si) => (
+        <div key={section.id ?? si} className={`bg-white border-2 ${sevBorder[section.severity ?? 'normal']} rounded-2xl overflow-hidden`}>
+          {/* Section header bar */}
+          <div className={`flex items-center gap-3 px-5 py-3 ${sevBg[section.severity ?? 'normal']} border-b border-gray-100`}>
+            <input
+              value={section.title}
+              onChange={e => updateSection(si, { title: e.target.value })}
+              className="flex-1 font-bold text-dark-900 bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-brand-500 text-sm py-0.5"
+              placeholder="Section title"
+            />
+            <select
+              value={section.severity ?? 'normal'}
+              onChange={e => updateSection(si, { severity: e.target.value })}
+              className="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400"
+            >
+              <option value="normal">Normal</option>
+              <option value="warning">Warning</option>
+              <option value="critical">Critical</option>
+            </select>
+            <button
+              onClick={() => removeSection(si)}
+              className="text-red-400 hover:text-red-600 ml-1"
+              title="Remove section"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="px-5 py-4 space-y-4">
+            {/* Content */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Content</label>
+              <textarea
+                rows={4}
+                value={section.content}
+                onChange={e => updateSection(si, { content: e.target.value })}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent resize-none leading-relaxed"
+                placeholder="Describe the inspection observations for this section…"
+              />
+            </div>
+
+            {/* Findings */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Key Findings</label>
+                <button
+                  onClick={() => addFinding(si)}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {(section.findings ?? []).map((f, fi) => (
+                  <div key={fi} className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-dark-100 flex items-center justify-center text-xs font-bold text-dark-500 flex-shrink-0">
+                      {fi + 1}
+                    </span>
+                    <input
+                      value={f}
+                      onChange={e => updateFinding(si, fi, e.target.value)}
+                      className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                      placeholder="Finding description"
+                    />
+                    <button onClick={() => removeFinding(si, fi)} className="text-red-400 hover:text-red-600 flex-shrink-0">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {(section.findings ?? []).length === 0 && (
+                  <p className="text-xs text-gray-400 italic">No findings — click Add to include findings for this section.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Recommended actions */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Recommended Actions</label>
+                <button
+                  onClick={() => addAction(si)}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {(section.recommendedActions ?? []).map((a, ai) => (
+                  <div key={ai} className="flex items-center gap-2">
+                    <span className="text-brand-600 font-bold flex-shrink-0">→</span>
+                    <input
+                      value={a}
+                      onChange={e => updateAction(si, ai, e.target.value)}
+                      className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                      placeholder="Recommended action"
+                    />
+                    <button onClick={() => removeAction(si, ai)} className="text-red-400 hover:text-red-600 flex-shrink-0">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {(section.recommendedActions ?? []).length === 0 && (
+                  <p className="text-xs text-gray-400 italic">No actions — click Add to include recommended actions.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ReportViewer() {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<Report | null>(null);
@@ -651,6 +922,7 @@ export default function ReportViewer() {
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [sharingLoading, setSharingLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [taskModal, setTaskModal] = useState<{
     title: string; severity: string; section: string; finding: string;
   } | null>(null);
@@ -939,6 +1211,17 @@ export default function ReportViewer() {
           <Share2 className="w-4 h-4" />
           {report.publicEnabled ? 'Shared' : 'Share'}
         </button>
+        <button
+          onClick={() => setEditMode(m => !m)}
+          className={`inline-flex items-center gap-2 font-semibold px-4 py-2 rounded-xl text-sm transition-colors ${
+            editMode
+              ? 'bg-brand-600 text-white hover:bg-brand-700'
+              : 'border border-brand-300 text-brand-700 bg-brand-50 hover:bg-brand-100'
+          }`}
+        >
+          <PenLine className="w-4 h-4" />
+          {editMode ? 'Editing…' : 'Edit Sections'}
+        </button>
       </div>
 
       {/* Share panel */}
@@ -993,7 +1276,21 @@ export default function ReportViewer() {
         </div>
       )}
 
-      {/* Report sections */}
+      {/* Report sections — edit or view mode */}
+      {editMode ? (
+        <EditSectionsPanel
+          reportId={id}
+          initialSections={sections}
+          onSaved={(updatedSections) => {
+            setReport(r => r ? {
+              ...r,
+              content: { ...r.content, sections: updatedSections },
+            } : r);
+            setEditMode(false);
+          }}
+          onCancel={() => setEditMode(false)}
+        />
+      ) : (
       <div className="space-y-5">
         {sections.map((section, i) => (
           <div key={section.id ?? i} className={`bg-white border rounded-2xl overflow-hidden ${
@@ -1069,6 +1366,7 @@ export default function ReportViewer() {
           </div>
         ))}
       </div>
+      )} {/* end editMode conditional */}
 
       {/* Review & audit trail */}
       <ReviewPanel
