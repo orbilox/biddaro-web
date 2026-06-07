@@ -856,8 +856,39 @@ export default function ProjectDetail() {
   const [captioningId, setCaptioningId] = useState<string | null>(null);
   // Lightbox state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  // Checklist tab
-  const [activeTab, setActiveTab] = useState<'captures' | 'checklist'>('captures');
+  // Tabs
+  const [activeTab, setActiveTab] = useState<'captures' | 'checklist' | 'tasks'>('captures');
+
+  // Project tasks (lazy-loaded when tasks tab opens)
+  interface ProjectTask {
+    id: string; title: string; description: string | null;
+    severity: string; status: string; assignedTo: string | null;
+    dueDate: string | null; sourceSection: string | null;
+    report: { id: string; title: string };
+  }
+  const [projectTasks, setProjectTasks] = useState<ProjectTask[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [changingTaskId, setChangingTaskId] = useState<string | null>(null);
+
+  const loadProjectTasks = useCallback(async () => {
+    if (!project) return;
+    setTasksLoading(true);
+    try {
+      const res = await inspectApi.listAllTasks({ projectId: project.id });
+      setProjectTasks((res.data as { data: ProjectTask[] }).data ?? []);
+    } catch { toast.error('Failed to load tasks'); }
+    finally { setTasksLoading(false); }
+  }, [project]);
+
+  const cycleTaskStatus = async (taskId: string, current: string) => {
+    const next = current === 'open' ? 'in_progress' : current === 'in_progress' ? 'done' : 'open';
+    setChangingTaskId(taskId);
+    try {
+      await inspectApi.updateTask(taskId, { status: next });
+      setProjectTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: next } : t));
+    } catch { toast.error('Failed to update task'); }
+    finally { setChangingTaskId(null); }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -1496,29 +1527,35 @@ export default function ProjectDetail() {
         {/* Captures column */}
         <div className="md:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            {/* Tab bar — show checklist tab only when a template is attached */}
-            {project.template ? (
-              <div className="flex items-center gap-1 bg-dark-100 rounded-xl p-1">
-                <button
-                  onClick={() => setActiveTab('captures')}
-                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'captures' ? 'bg-white text-dark-900 shadow-sm' : 'text-dark-500 hover:text-dark-800'}`}
-                >
-                  Captures
-                  <span className="ml-1.5 text-xs font-normal text-dark-400">({project.captures.length})</span>
-                </button>
+            {/* Tab bar — always visible */}
+            <div className="flex items-center gap-1 bg-dark-100 rounded-xl p-1">
+              <button
+                onClick={() => setActiveTab('captures')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'captures' ? 'bg-white text-dark-900 shadow-sm' : 'text-dark-500 hover:text-dark-800'}`}
+              >
+                Captures
+                <span className="ml-1.5 text-xs font-normal text-dark-400">({project.captures.length})</span>
+              </button>
+              <button
+                onClick={() => { setActiveTab('tasks'); loadProjectTasks(); }}
+                className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'tasks' ? 'bg-white text-dark-900 shadow-sm' : 'text-dark-500 hover:text-dark-800'}`}
+              >
+                Tasks
+                {projectTasks.filter(t => t.status !== 'done').length > 0 && (
+                  <span className="ml-1.5 text-xs font-normal text-amber-600">
+                    ({projectTasks.filter(t => t.status !== 'done').length} open)
+                  </span>
+                )}
+              </button>
+              {project.template && (
                 <button
                   onClick={() => setActiveTab('checklist')}
                   className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'checklist' ? 'bg-white text-dark-900 shadow-sm' : 'text-dark-500 hover:text-dark-800'}`}
                 >
                   Checklist
                 </button>
-              </div>
-            ) : (
-              <h2 className="font-bold text-dark-900">
-                Field Captures
-                <span className="ml-2 text-sm font-normal text-dark-400">({project.captures.length})</span>
-              </h2>
-            )}
+              )}
+            </div>
             <button
               onClick={() => setShowBulkUpload(true)}
               className="inline-flex items-center gap-1.5 border border-dark-200 text-dark-600 hover:bg-dark-50 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
@@ -1616,6 +1653,86 @@ export default function ProjectDetail() {
               </div>
             );
           })()}
+
+          {/* ── Tasks tab ──────────────────────────────────────────────────── */}
+          {activeTab === 'tasks' && (
+            <div>
+              {tasksLoading ? (
+                <div className="flex items-center gap-2 text-dark-400 text-sm py-8 justify-center">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading tasks…
+                </div>
+              ) : projectTasks.length === 0 ? (
+                <div className="bg-dark-50 border border-dashed border-dark-200 rounded-2xl p-10 text-center">
+                  <CheckCircle className="w-8 h-8 text-dark-200 mx-auto mb-3" />
+                  <p className="font-medium text-dark-600 mb-1">No tasks yet</p>
+                  <p className="text-dark-400 text-sm mb-3">Tasks are created from report findings. Generate a report and add tasks to track remediation.</p>
+                  <Link href="/inspect/tasks" className="text-xs text-brand-600 hover:underline font-medium">View global task board →</Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-dark-500">
+                      {projectTasks.filter(t => t.status === 'done').length} / {projectTasks.length} done
+                    </p>
+                    <Link href="/inspect/tasks" className="text-xs text-brand-600 hover:underline font-medium">Open task board →</Link>
+                  </div>
+                  {projectTasks.map(task => {
+                    const sevStyle = task.severity === 'critical' ? 'text-red-600 bg-red-50 border-red-100'
+                      : task.severity === 'warning' ? 'text-amber-600 bg-amber-50 border-amber-100'
+                      : 'text-dark-500 bg-dark-50 border-dark-100';
+                    return (
+                      <div key={task.id} className={`flex items-start gap-3 bg-white border rounded-xl p-3.5 ${task.status === 'done' ? 'opacity-60' : 'border-dark-100'}`}>
+                        <button
+                          onClick={() => cycleTaskStatus(task.id, task.status)}
+                          disabled={changingTaskId === task.id}
+                          title={`Status: ${task.status} — click to advance`}
+                          className="mt-0.5 flex-shrink-0 disabled:opacity-50"
+                        >
+                          {changingTaskId === task.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-brand-500" />
+                          ) : task.status === 'done' ? (
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          ) : task.status === 'in_progress' ? (
+                            <Clock className="w-4 h-4 text-amber-500" />
+                          ) : (
+                            <div className="w-4 h-4 rounded border-2 border-dark-300 bg-white" />
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-semibold text-dark-900 ${task.status === 'done' ? 'line-through text-dark-400' : ''}`}>
+                            {task.title}
+                          </p>
+                          {task.description && <p className="text-xs text-dark-500 mt-0.5 line-clamp-1">{task.description}</p>}
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${sevStyle}`}>
+                              {task.severity}
+                            </span>
+                            {task.sourceSection && (
+                              <span className="text-xs text-dark-400 bg-dark-50 px-2 py-0.5 rounded-full">{task.sourceSection}</span>
+                            )}
+                            {task.assignedTo && (
+                              <span className="text-xs text-dark-400 flex items-center gap-1">
+                                <User className="w-3 h-3" /> {task.assignedTo}
+                              </span>
+                            )}
+                            {task.dueDate && (
+                              <span className={`text-xs flex items-center gap-1 ${new Date(task.dueDate) < new Date() ? 'text-red-500' : 'text-dark-400'}`}>
+                                <Clock className="w-3 h-3" />
+                                {new Date(task.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              </span>
+                            )}
+                            <Link href={`/inspect/reports/${task.report.id}`} className="text-xs text-brand-600 hover:underline ml-auto">
+                              {task.report.title}
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {activeTab === 'captures' && (project.captures.length === 0 ? (
             <div className="bg-dark-50 border border-dashed border-dark-200 rounded-2xl p-10 text-center">
