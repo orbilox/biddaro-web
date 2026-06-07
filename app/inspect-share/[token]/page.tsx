@@ -12,6 +12,7 @@ interface ReportSection {
   title: string;
   content: string;
   findings?: string[];
+  recommendedActions?: string[];
   severity?: string;
 }
 
@@ -226,6 +227,21 @@ export default function PublicReportPage() {
                             section.severity === 'warning'  ? 'bg-amber-500' : 'bg-green-500'
                           }`} />
                           {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {section.recommendedActions && section.recommendedActions.length > 0 && (
+                  <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+                    <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-2.5">
+                      ✓ Recommended Actions
+                    </p>
+                    <ul className="space-y-1.5">
+                      {section.recommendedActions.map((a, ai) => (
+                        <li key={ai} className="flex items-start gap-2 text-sm text-gray-700">
+                          <span className="text-green-600 font-bold flex-shrink-0">→</span>
+                          {a}
                         </li>
                       ))}
                     </ul>

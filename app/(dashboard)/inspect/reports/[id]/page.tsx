@@ -25,6 +25,7 @@ interface ReportSection {
   title: string;
   content: string;
   findings?: string[];
+  recommendedActions?: string[];
   severity?: string;
 }
 
@@ -1019,7 +1020,7 @@ export default function ReportViewer() {
                 </div>
               )}
               {section.findings && section.findings.length > 0 && (
-                <div>
+                <div className={section.recommendedActions?.length ? 'mb-5' : ''}>
                   <p className="text-xs font-bold text-dark-600 uppercase tracking-wide mb-2">Key Findings</p>
                   <ul className="space-y-2">
                     {section.findings.map((f, fi) => (
@@ -1040,6 +1041,25 @@ export default function ReportViewer() {
                         >
                           <Plus className="w-3 h-3" /> Task
                         </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {section.recommendedActions && section.recommendedActions.length > 0 && (
+                <div className={`${
+                  section.severity === 'critical' ? 'bg-red-50 border-red-100' :
+                  section.severity === 'warning'  ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'
+                } border rounded-xl p-4`}>
+                  <p className="text-xs font-bold text-dark-600 uppercase tracking-wide mb-2.5 flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-brand-600" />
+                    Recommended Actions
+                  </p>
+                  <ul className="space-y-1.5">
+                    {section.recommendedActions.map((a, ai) => (
+                      <li key={ai} className="flex items-start gap-2 text-sm text-dark-700">
+                        <span className="text-brand-600 font-bold flex-shrink-0 mt-0.5">→</span>
+                        <span>{a}</span>
                       </li>
                     ))}
                   </ul>
