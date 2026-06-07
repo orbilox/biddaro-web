@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -12,6 +13,16 @@ import {
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
 
+// Dynamically imported to avoid SSR issues with Leaflet
+const CaptureMap = dynamic(() => import('./CaptureMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[420px] bg-dark-50 rounded-2xl flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-dark-400" />
+    </div>
+  ),
+});
+
 interface Capture {
   id: string;
   type: 'photo' | 'voice' | 'text';
@@ -21,6 +32,8 @@ interface Capture {
   section: string | null;
   severity: string;
   tags: string[];
+  gpsLat: number | null;
+  gpsLng: number | null;
   createdAt: string;
 }
 
@@ -1161,7 +1174,7 @@ export default function ProjectDetail() {
   // Annotation state
   const [annotatingPhoto, setAnnotatingPhoto] = useState<LightboxPhoto | null>(null);
   // Tabs
-  const [activeTab, setActiveTab] = useState<'captures' | 'checklist' | 'tasks'>('captures');
+  const [activeTab, setActiveTab] = useState<'captures' | 'checklist' | 'tasks' | 'map'>('captures');
 
   // Project tasks (lazy-loaded when tasks tab opens)
   interface ProjectTask {
@@ -1907,6 +1920,14 @@ export default function ProjectDetail() {
                   Checklist
                 </button>
               )}
+              {project.captures.some(c => c.gpsLat && c.gpsLng) && (
+                <button
+                  onClick={() => setActiveTab('map')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'map' ? 'bg-white text-dark-900 shadow-sm' : 'text-dark-500 hover:text-dark-800'}`}
+                >
+                  🗺 Map
+                </button>
+              )}
             </div>
             <button
               onClick={() => setShowBulkUpload(true)}
@@ -2085,6 +2106,40 @@ export default function ProjectDetail() {
               )}
             </div>
           )}
+
+          {/* Map tab */}
+          {activeTab === 'map' && (() => {
+            const gpsCaptures = project.captures.filter(c => c.gpsLat && c.gpsLng);
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-dark-500">
+                    <span className="font-semibold text-dark-800">{gpsCaptures.length}</span> of {project.captures.length} captures have GPS data
+                  </p>
+                  <div className="flex items-center gap-3 text-xs text-dark-400">
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" />Critical</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />Warning</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500 inline-block" />Normal</span>
+                  </div>
+                </div>
+                <CaptureMap
+                  captures={gpsCaptures.map(c => ({
+                    id: c.id,
+                    lat: c.gpsLat!,
+                    lng: c.gpsLng!,
+                    severity: c.severity,
+                    content: c.content,
+                    section: c.section,
+                    type: c.type,
+                    imageUrl: c.imageUrl,
+                  }))}
+                />
+                <p className="text-xs text-dark-400 mt-2 text-center">
+                  Click any marker to see capture details · Scroll to zoom · Drag to pan
+                </p>
+              </div>
+            );
+          })()}
 
           {activeTab === 'captures' && (project.captures.length === 0 ? (
             <div className="bg-dark-50 border border-dashed border-dark-200 rounded-2xl p-10 text-center">
