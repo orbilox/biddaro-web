@@ -31,6 +31,13 @@ interface Report {
   createdAt: string;
 }
 
+interface TemplateSection {
+  id: string;
+  title: string;
+  description?: string;
+  hasPhotos?: boolean;
+}
+
 interface Project {
   id: string;
   name: string;
@@ -39,7 +46,11 @@ interface Project {
   clientEmail: string | null;
   description: string | null;
   status: string;
-  template: { id: string; name: string } | null;
+  template: {
+    id: string;
+    name: string;
+    structure?: { sections?: TemplateSection[]; tone?: string; industry?: string };
+  } | null;
   captures: Capture[];
   reports: Report[];
 }
@@ -62,13 +73,18 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Add Capture Modal ────────────────────────────────────────────────────────
 
-function AddCaptureModal({ projectId, onAdded, onClose }: { projectId: string; onAdded: () => void; onClose: () => void }) {
+function AddCaptureModal({ projectId, onAdded, onClose, initialSection }: {
+  projectId: string;
+  onAdded: () => void;
+  onClose: () => void;
+  initialSection?: string;
+}) {
   const [type, setType] = useState<'text' | 'photo' | 'voice'>('text');
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [section, setSection] = useState('');
+  const [section, setSection] = useState(initialSection || '');
   const [severity, setSeverity] = useState('normal');
   const [annotation, setAnnotation] = useState('');
   const [saving, setSaving] = useState(false);
@@ -650,12 +666,15 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showCapture, setShowCapture] = useState(false);
+  const [captureInitialSection, setCaptureInitialSection] = useState<string | undefined>(undefined);
   const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
   const [language, setLanguage] = useState('en');
   const [captioningId, setCaptioningId] = useState<string | null>(null);
   // Lightbox state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Checklist tab
+  const [activeTab, setActiveTab] = useState<'captures' | 'checklist'>('captures');
 
   const load = useCallback(async () => {
     try {
@@ -898,7 +917,8 @@ export default function ProjectDetail() {
         <AddCaptureModal
           projectId={id}
           onAdded={load}
-          onClose={() => setShowCapture(false)}
+          onClose={() => { setShowCapture(false); setCaptureInitialSection(undefined); }}
+          initialSection={captureInitialSection}
         />
       )}
 
@@ -999,10 +1019,29 @@ export default function ProjectDetail() {
         {/* Captures column */}
         <div className="md:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-dark-900">
-              Field Captures
-              <span className="ml-2 text-sm font-normal text-dark-400">({project.captures.length})</span>
-            </h2>
+            {/* Tab bar — show checklist tab only when a template is attached */}
+            {project.template ? (
+              <div className="flex items-center gap-1 bg-dark-100 rounded-xl p-1">
+                <button
+                  onClick={() => setActiveTab('captures')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'captures' ? 'bg-white text-dark-900 shadow-sm' : 'text-dark-500 hover:text-dark-800'}`}
+                >
+                  Captures
+                  <span className="ml-1.5 text-xs font-normal text-dark-400">({project.captures.length})</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('checklist')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'checklist' ? 'bg-white text-dark-900 shadow-sm' : 'text-dark-500 hover:text-dark-800'}`}
+                >
+                  Checklist
+                </button>
+              </div>
+            ) : (
+              <h2 className="font-bold text-dark-900">
+                Field Captures
+                <span className="ml-2 text-sm font-normal text-dark-400">({project.captures.length})</span>
+              </h2>
+            )}
             <button
               onClick={() => setShowCapture(true)}
               className="inline-flex items-center gap-1.5 bg-dark-900 hover:bg-dark-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
@@ -1011,7 +1050,90 @@ export default function ProjectDetail() {
             </button>
           </div>
 
-          {project.captures.length === 0 ? (
+          {/* ── Checklist tab ──────────────────────────────────────────────────── */}
+          {activeTab === 'checklist' && project.template && (() => {
+            const tpl = project.template!;
+            const sections: TemplateSection[] = tpl.structure?.sections ?? [];
+
+            if (sections.length === 0) {
+              return (
+                <div className="bg-dark-50 border border-dashed border-dark-200 rounded-2xl p-10 text-center">
+                  <CheckCircle className="w-8 h-8 text-dark-200 mx-auto mb-3" />
+                  <p className="font-medium text-dark-600 mb-1">No checklist sections</p>
+                  <p className="text-dark-400 text-sm">Template &#34;{tpl.name}&#34; has no structured sections yet.</p>
+                </div>
+              );
+            }
+
+            const captureSectionSet = new Set(
+              project.captures.map(c => c.section?.trim().toLowerCase()).filter(Boolean)
+            );
+            const doneSections = sections.filter(s => captureSectionSet.has(s.title.trim().toLowerCase())).length;
+
+            return (
+              <div className="space-y-3">
+                {/* Progress bar */}
+                <div className="bg-white border border-dark-100 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-dark-800">
+                      {doneSections} of {sections.length} sections captured
+                    </p>
+                    <span className="text-xs font-bold text-brand-700">
+                      {Math.round((doneSections / sections.length) * 100)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-dark-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-full bg-brand-500 rounded-full transition-all"
+                      style={{ width: `${Math.round((doneSections / sections.length) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {sections.map(s => {
+                  const done = captureSectionSet.has(s.title.trim().toLowerCase());
+                  const count = project.captures.filter(c => c.section?.trim().toLowerCase() === s.title.trim().toLowerCase()).length;
+                  return (
+                    <div
+                      key={s.id}
+                      className={`flex items-start gap-3 p-4 rounded-xl border transition-all ${
+                        done ? 'bg-green-50 border-green-200' : 'bg-white border-dark-100'
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        done ? 'bg-green-500' : 'border-2 border-dark-200 bg-white'
+                      }`}>
+                        {done && <CheckCircle className="w-4 h-4 text-white" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold leading-snug ${done ? 'text-green-800' : 'text-dark-800'}`}>
+                          {s.title}
+                        </p>
+                        {s.description && (
+                          <p className="text-xs text-dark-400 mt-0.5 leading-relaxed">{s.description}</p>
+                        )}
+                        {done && count > 0 && (
+                          <p className="text-xs text-green-600 mt-1 font-medium">
+                            {count} capture{count !== 1 ? 's' : ''} recorded
+                          </p>
+                        )}
+                      </div>
+                      {!done && (
+                        <button
+                          onClick={() => { setCaptureInitialSection(s.title); setShowCapture(true); }}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          <Plus className="w-3 h-3" /> Capture
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {activeTab === 'captures' && (project.captures.length === 0 ? (
             <div className="bg-dark-50 border border-dashed border-dark-200 rounded-2xl p-10 text-center">
               <Camera className="w-8 h-8 text-dark-300 mx-auto mb-3" />
               <p className="font-medium text-dark-600 mb-1">No captures yet</p>
@@ -1305,8 +1427,8 @@ export default function ProjectDetail() {
                 );
               })}
             </div>
-          )}
-          {project.captures.some(c => c.type === 'photo') && (
+          ))}
+          {activeTab === 'captures' && project.captures.some(c => c.type === 'photo') && (
             <p className="text-xs text-dark-400 flex items-center gap-1.5 mt-2">
               <Sparkles className="w-3.5 h-3.5 text-brand-500" />
               Photos are auto-captioned by AI when you generate a report. Click ✨ on any photo to caption it now.
