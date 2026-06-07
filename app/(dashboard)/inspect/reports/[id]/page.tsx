@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -7,8 +7,9 @@ import {
   Clock, FileText, Loader2, Edit3, Save, X, Mail, FileDown,
   ListTodo, Plus, Circle, Timer, Trash2, ChevronDown, ChevronUp, User,
   MessageSquare, ThumbsUp, ThumbsDown, RotateCcw, GitBranch,
-  Share2, Link2, Copy, Globe, EyeOff, PenLine,
+  Share2, Link2, Copy, Globe, EyeOff, PenLine, QrCode,
 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
 
@@ -1015,6 +1016,61 @@ function VersionHistoryPanel({
   );
 }
 
+// ── QR Code download block ────────────────────────────────────────────────────
+function QrCodeBlock({ url, reportTitle }: { url: string; reportTitle: string }) {
+  const [show, setShow] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  function downloadQr() {
+    // The QRCodeCanvas renders into a canvas element — find it and export
+    const canvas = document.getElementById('inspect-qr-canvas') as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `${reportTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-qr.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  return (
+    <div className="border border-dark-100 rounded-xl p-3 bg-dark-50">
+      <button
+        onClick={() => setShow(v => !v)}
+        className="flex items-center justify-between w-full text-sm text-dark-600 font-medium hover:text-dark-900 transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          <QrCode className="w-4 h-4 text-dark-400" />
+          QR Code for client
+        </span>
+        <span className="text-xs text-dark-400">{show ? 'Hide' : 'Show'}</span>
+      </button>
+      {show && (
+        <div className="mt-3 flex items-start gap-4">
+          <div className="border border-dark-200 rounded-xl p-2 bg-white flex-shrink-0">
+            <QRCodeCanvas
+              id="inspect-qr-canvas"
+              value={url}
+              size={120}
+              level="M"
+              includeMargin={false}
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-dark-500 mb-2 leading-relaxed">
+              Share this QR code with your client. They can scan it to instantly open the inspection report — no typing required.
+            </p>
+            <button
+              onClick={downloadQr}
+              className="inline-flex items-center gap-1.5 bg-dark-800 hover:bg-dark-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Download className="w-3 h-3" /> Download QR Code
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ReportViewer() {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<Report | null>(null);
@@ -1368,6 +1424,9 @@ export default function ReportViewer() {
                   <Copy className="w-4 h-4" /> Copy
                 </button>
               </div>
+              {/* QR Code */}
+              <QrCodeBlock url={typeof window !== 'undefined' ? `${window.location.origin}/inspect-share/${report.publicToken}` : `/inspect-share/${report.publicToken}`} reportTitle={report.title} />
+
               {/* Client signature status */}
               {report.clientSignedByName && report.clientSignedAt ? (
                 <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5">
