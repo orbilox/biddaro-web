@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {
   Plus, FolderOpen, FileText, Camera, Clock, ArrowRight,
   Zap, ClipboardList, Sparkles, Send, AlertTriangle,
-  CheckCircle, Search, Loader2, X,
+  CheckCircle, Search, Loader2, X, CalendarDays, MapPin,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -15,6 +15,15 @@ interface DashStats {
   totalReports: number;
   draftReports: number;
   totalCaptures: number;
+}
+
+interface UpcomingSchedule {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  notes: string | null;
+  status: string;
+  project: { id: string; name: string; location: string | null };
 }
 
 interface RecentProject {
@@ -225,15 +234,21 @@ export default function InspectDashboard() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [upcomingSchedules, setUpcomingSchedules] = useState<UpcomingSchedule[]>([]);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await inspectApi.getDashboard();
-        const d = (res.data as { data: { stats: DashStats; recentProjects: RecentProject[]; recentReports: RecentReport[] } }).data;
+        const [dashRes, schedRes] = await Promise.all([
+          inspectApi.getDashboard(),
+          inspectApi.listUpcomingSchedules(),
+        ]);
+        const d = (dashRes.data as { data: { stats: DashStats; recentProjects: RecentProject[]; recentReports: RecentReport[] } }).data;
         setStats(d.stats);
         setRecentProjects(d.recentProjects);
         setRecentReports(d.recentReports);
+        const s = (schedRes.data as { data: { schedules: UpcomingSchedule[] } }).data;
+        setUpcomingSchedules(s.schedules ?? []);
       } catch {
         toast.error('Failed to load dashboard');
       } finally {
@@ -391,6 +406,61 @@ export default function InspectDashboard() {
           )}
         </div>
       </div>
+
+      {/* Upcoming Scheduled Inspections */}
+      {upcomingSchedules.length > 0 && (
+        <div className="bg-white border border-dark-100 rounded-2xl overflow-hidden shadow-sm mb-8">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-dark-50">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-brand-500" />
+              <h2 className="font-bold text-dark-900 text-sm">Upcoming Inspections</h2>
+              <span className="text-xs bg-brand-50 text-brand-700 font-semibold px-2 py-0.5 rounded-full">
+                {upcomingSchedules.length}
+              </span>
+            </div>
+          </div>
+          <div className="divide-y divide-dark-50">
+            {upcomingSchedules.map(s => {
+              const dt = new Date(s.scheduledAt);
+              const isToday = new Date().toDateString() === dt.toDateString();
+              const isTomorrow = new Date(Date.now() + 86400000).toDateString() === dt.toDateString();
+              const dayLabel = isToday ? 'Today' : isTomorrow ? 'Tomorrow'
+                : dt.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+              const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+              return (
+                <Link
+                  key={s.id}
+                  href={`/inspect/projects/${s.project.id}`}
+                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-dark-50 transition-colors"
+                >
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center text-center ${isToday ? 'bg-brand-600 text-white' : 'bg-dark-50 text-dark-700'}`}>
+                    <span className={`text-xs font-semibold leading-none ${isToday ? 'text-brand-100' : 'text-dark-400'}`}>{dayLabel.split(' ')[0]}</span>
+                    <span className="text-base font-bold leading-tight">{isToday || isTomorrow ? timeStr : dayLabel.split(' ').slice(1).join(' ')}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-dark-900 text-sm truncate">{s.title}</p>
+                    <div className="flex items-center gap-2 text-xs text-dark-400 mt-0.5">
+                      <span>{s.project.name}</span>
+                      {s.project.location && (
+                        <>
+                          <span>·</span>
+                          <span className="flex items-center gap-0.5">
+                            <MapPin className="w-3 h-3" />{s.project.location}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {(isToday || isTomorrow) && (
+                      <p className="text-xs text-dark-400 mt-0.5">{isToday ? 'Today' : 'Tomorrow'} at {timeStr}</p>
+                    )}
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-dark-300 flex-shrink-0" />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Quick start if empty */}
       {!loading && (stats?.totalProjects ?? 0) === 0 && (
