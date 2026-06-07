@@ -203,6 +203,7 @@ export default function ProjectDetail() {
   const [showCapture, setShowCapture] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [language, setLanguage] = useState('en');
   const [captioningId, setCaptioningId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -225,7 +226,7 @@ export default function ProjectDetail() {
     }
     setGenerating(true);
     try {
-      const res = await inspectApi.generateReport(id);
+      const res = await inspectApi.generateReport(id, language);
       const report = (res.data as { data: { id: string } }).data;
       toast.success('Report generated!');
       router.push(`/inspect/reports/${report.id}`);
@@ -330,8 +331,30 @@ export default function ProjectDetail() {
             onClick={() => setShowImport(true)}
             className="inline-flex items-center gap-2 border border-dark-200 text-dark-700 hover:bg-dark-50 font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
           >
-            <Upload className="w-4 h-4" /> Import PDF/DOCX
+            <Upload className="w-4 h-4" /> Import
           </button>
+          {/* Language picker */}
+          <select
+            value={language}
+            onChange={e => setLanguage(e.target.value)}
+            className="border border-dark-200 rounded-xl px-3 py-2.5 text-sm text-dark-700 bg-white focus:outline-none focus:border-brand-400 cursor-pointer"
+            title="Report language"
+          >
+            <option value="en">🌐 English</option>
+            <option value="ar">🇦🇪 Arabic</option>
+            <option value="hi">🇮🇳 Hindi</option>
+            <option value="fr">🇫🇷 French</option>
+            <option value="es">🇪🇸 Spanish</option>
+            <option value="zh">🇨🇳 Chinese</option>
+            <option value="de">🇩🇪 German</option>
+            <option value="ur">🇵🇰 Urdu</option>
+            <option value="ta">🇮🇳 Tamil</option>
+            <option value="te">🇮🇳 Telugu</option>
+            <option value="ml">🇮🇳 Malayalam</option>
+            <option value="bn">🇧🇩 Bengali</option>
+            <option value="pt">🇧🇷 Portuguese</option>
+            <option value="ja">🇯🇵 Japanese</option>
+          </select>
           <button
             onClick={generateReport}
             disabled={generating || project.captures.length === 0}

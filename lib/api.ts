@@ -766,13 +766,14 @@ export const inspectApi = {
   deleteCapture: (projectId: string, cid: string) => api.delete(`/inspect/projects/${projectId}/captures/${cid}`),
 
   // Reports
-  generateReport: (projectId: string) => api.post(`/inspect/projects/${projectId}/reports/generate`, {}),
+  generateReport: (projectId: string, language = 'en') => api.post(`/inspect/projects/${projectId}/reports/generate`, { language }),
   listReports: (projectId: string) => api.get(`/inspect/projects/${projectId}/reports`),
   getReport: (id: string) => api.get(`/inspect/reports/${id}`),
   updateReport: (id: string, data: Record<string, unknown>) => api.put(`/inspect/reports/${id}`, data),
   deleteReport: (id: string) => api.delete(`/inspect/reports/${id}`),
   sendReport: (id: string, sentTo: string) => api.post(`/inspect/reports/${id}/send`, { sentTo }),
   getAnalytics: () => api.get('/inspect/analytics'),
+  listLanguages: () => api.get('/inspect/languages'),
   // Legacy import
   importReport: (projectId: string, formData: FormData) =>
     api.post(`/inspect/projects/${projectId}/reports/import`, formData, {

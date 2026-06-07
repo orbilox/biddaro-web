@@ -11,6 +11,14 @@ import {
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English', ar: 'Arabic (العربية)', hi: 'Hindi (हिन्दी)',
+  fr: 'French (Français)', es: 'Spanish (Español)', zh: 'Chinese (中文)',
+  de: 'German (Deutsch)', ur: 'Urdu (اردو)', ta: 'Tamil (தமிழ்)',
+  te: 'Telugu (తెలుగు)', ml: 'Malayalam (മലയാളം)', bn: 'Bengali (বাংলা)',
+  pt: 'Portuguese (Português)', ja: 'Japanese (日本語)',
+};
+
 interface ReportSection {
   id: string;
   title: string;
@@ -34,6 +42,7 @@ interface Report {
   rawMarkdown: string | null;
   content: {
     title?: string;
+    language?: string;
     sections: ReportSection[];
     summary?: ReportSummary;
   };
@@ -802,6 +811,11 @@ export default function ReportViewer() {
             {report.status}
           </span>
           {summary && <OverallStatusBadge status={summary.overallStatus} />}
+          {report.content.language && report.content.language !== 'en' && (
+            <span className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-full font-medium">
+              🌐 {LANGUAGE_NAMES[report.content.language] ?? report.content.language}
+            </span>
+          )}
           {summary && (
             <div className="flex items-center gap-3 text-xs text-dark-500">
               {summary.criticalCount > 0 && <span className="text-red-600 font-semibold">{summary.criticalCount} critical</span>}
