@@ -758,6 +758,7 @@ export const inspectApi = {
   getProject: (id: string) => api.get(`/inspect/projects/${id}`),
   updateProject: (id: string, data: Record<string, unknown>) => api.put(`/inspect/projects/${id}`, data),
   deleteProject: (id: string) => api.delete(`/inspect/projects/${id}`),
+  cloneProject:  (id: string) => api.post(`/inspect/projects/${id}/clone`, {}),
 
   // Captures
   listCaptures: (projectId: string) => api.get(`/inspect/projects/${projectId}/captures`),

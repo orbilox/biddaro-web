@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {
   Plus, FolderOpen, MapPin, User, Camera, FileText,
   Search, ArrowRight, Loader2, Clock, MoreVertical,
-  CheckCircle2, Archive, Trash2, RefreshCw, AlertTriangle,
+  CheckCircle2, Archive, Trash2, RefreshCw, AlertTriangle, Copy,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -47,10 +47,11 @@ interface MenuProps {
   project: Project;
   onStatusChange: (id: string, status: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onClone: (id: string) => Promise<void>;
   saving: boolean;
 }
 
-function ProjectMenu({ project, onStatusChange, onDelete, saving }: MenuProps) {
+function ProjectMenu({ project, onStatusChange, onDelete, onClone, saving }: MenuProps) {
   const [open, setOpen]           = useState(false);
   const [confirmDelete, setConfirm] = useState(false);
   const menuRef                   = useRef<HTMLDivElement>(null);
@@ -103,6 +104,14 @@ function ProjectMenu({ project, onStatusChange, onDelete, saving }: MenuProps) {
               {a.label}
             </button>
           ))}
+          {/* Clone */}
+          <button
+            onClick={async () => { setOpen(false); await onClone(project.id); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark-700 hover:bg-dark-50 transition-colors"
+          >
+            <Copy className="w-3.5 h-3.5 text-dark-400" />
+            Duplicate
+          </button>
           <div className="border-t border-dark-100" />
           {/* Delete */}
           {!confirmDelete ? (
@@ -215,6 +224,22 @@ export default function AllProjectsPage() {
     }
   };
 
+  const handleClone = async (id: string) => {
+    setSavingId(id);
+    try {
+      const res = await inspectApi.cloneProject(id);
+      const cloned = (res.data as { data: Project }).data;
+      // Prepend clone to list and bump total
+      setProjects(prev => [cloned, ...prev]);
+      setTotal(t => t + 1);
+      toast.success('Project duplicated');
+    } catch {
+      toast.error('Failed to duplicate project');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
@@ -312,6 +337,7 @@ export default function AllProjectsPage() {
                       project={p}
                       onStatusChange={handleStatusChange}
                       onDelete={handleDelete}
+                      onClone={handleClone}
                       saving={savingId === p.id}
                     />
                   </div>
