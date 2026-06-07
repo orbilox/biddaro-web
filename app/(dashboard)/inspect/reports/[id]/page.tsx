@@ -569,21 +569,24 @@ function OverallStatusBadge({ status }: { status?: string }) {
   return <span className="bg-green-100 text-green-700 font-bold text-sm px-4 py-1.5 rounded-full">✓ Satisfactory</span>;
 }
 
-function SendModal({ reportId, onClose, onSent }: { reportId: string; onClose: () => void; onSent: () => void }) {
-  const [email, setEmail] = useState('');
-  const [sending, setSending] = useState(false);
+function SendModal({ reportId, defaultClientName, onClose, onSent }: {
+  reportId: string; defaultClientName?: string; onClose: () => void; onSent: () => void;
+}) {
+  const [email, setEmail]         = useState('');
+  const [clientName, setClientName] = useState(defaultClientName ?? '');
+  const [sending, setSending]     = useState(false);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
     setSending(true);
     try {
-      await inspectApi.sendReport(reportId, email);
-      toast.success(`Report marked as sent to ${email}`);
+      await inspectApi.sendReport(reportId, email, clientName);
+      toast.success(`Report sent to ${email}`);
       onSent();
       onClose();
     } catch {
-      toast.error('Failed to mark as sent');
+      toast.error('Failed to send report');
     } finally {
       setSending(false);
     }
@@ -593,10 +596,18 @@ function SendModal({ reportId, onClose, onSent }: { reportId: string; onClose: (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-bold text-dark-900 flex items-center gap-2"><Send className="w-4 h-4 text-brand-600" /> Send Report</h3>
+          <h3 className="font-bold text-dark-900 flex items-center gap-2"><Send className="w-4 h-4 text-brand-600" /> Send Report to Client</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-dark-400" /></button>
         </div>
         <form onSubmit={send} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-dark-700 mb-1.5">Client Name</label>
+            <input
+              type="text" value={clientName} onChange={e => setClientName(e.target.value)}
+              placeholder="e.g. Rahul Sharma"
+              className="w-full border border-dark-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400"
+            />
+          </div>
           <div>
             <label className="block text-sm font-semibold text-dark-700 mb-1.5">Client Email</label>
             <div className="relative">
@@ -608,14 +619,16 @@ function SendModal({ reportId, onClose, onSent }: { reportId: string; onClose: (
               />
             </div>
           </div>
-          <p className="text-xs text-dark-400">This marks the report as "Sent" and records the recipient. Email delivery integration coming soon.</p>
+          <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 text-xs text-brand-700">
+            ✉️ A branded email with a report summary will be sent to the client. If you have a public link enabled, it will be included in the email.
+          </div>
           <div className="flex gap-3">
             <button
               type="submit" disabled={sending}
               className="flex-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {sending ? 'Sending…' : 'Mark as Sent'}
+              {sending ? 'Sending…' : 'Send Report'}
             </button>
             <button type="button" onClick={onClose} className="px-5 py-2.5 border border-dark-200 rounded-xl text-dark-600 hover:bg-dark-50">Cancel</button>
           </div>
@@ -786,6 +799,7 @@ export default function ReportViewer() {
       {showSend && (
         <SendModal
           reportId={id}
+          defaultClientName={report.project.clientName ?? ''}
           onClose={() => setShowSend(false)}
           onSent={load}
         />
