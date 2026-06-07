@@ -48,6 +48,7 @@ interface Report {
     language?: string;
     sections: ReportSection[];
     summary?: ReportSummary;
+    coverImage?: string | null;
   };
   sentAt: string | null;
   sentTo: string | null;
@@ -1159,6 +1160,11 @@ export default function ReportViewer() {
   const [showShare, setShowShare] = useState(false);
   const [sharingLoading, setSharingLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  // Cover image
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [savingCover, setSavingCover] = useState(false);
+  const coverInputRef = React.useRef<HTMLInputElement>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [taskModal, setTaskModal] = useState<{
     title: string; severity: string; section: string; finding: string;
@@ -1170,6 +1176,7 @@ export default function ReportViewer() {
       const r = (res.data as { data: Report }).data;
       setReport(r);
       setTitleDraft(r.title);
+      setCoverImageUrl(r.content?.coverImage ?? '');
     } catch {
       toast.error('Failed to load report');
     } finally {
@@ -1200,6 +1207,39 @@ export default function ReportViewer() {
       toast.error('Failed to update status');
     } finally {
       setSavingStatus(false);
+    }
+  }
+
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    try {
+      const { uploadApi } = await import('@/lib/api');
+      const result = await uploadApi.images([file]);
+      const url = result.data?.data?.files?.[0]?.url;
+      if (url) {
+        setCoverImageUrl(url);
+        await saveCoverImage(url);
+      }
+    } catch {
+      toast.error('Cover image upload failed');
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
+  async function saveCoverImage(url: string) {
+    if (!report) return;
+    setSavingCover(true);
+    try {
+      await inspectApi.updateReport(id, { coverImage: url || null });
+      setReport(r => r ? { ...r, content: { ...r.content, coverImage: url || null } } : r);
+      toast.success(url ? 'Cover photo saved' : 'Cover photo removed');
+    } catch {
+      toast.error('Failed to save cover photo');
+    } finally {
+      setSavingCover(false);
     }
   }
 
@@ -1699,6 +1739,64 @@ export default function ReportViewer() {
         ))}
       </div>
       )} {/* end editMode conditional */}
+
+      {/* Cover Photo for PDF */}
+      <div className="bg-white border border-dark-100 rounded-2xl p-5 shadow-sm mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Camera className="w-4 h-4 text-brand-600" />
+          <p className="font-bold text-dark-900 text-sm">Report Cover Photo</p>
+          <span className="text-xs text-dark-400 ml-auto">Appears as hero on PDF cover page</span>
+        </div>
+        {coverImageUrl ? (
+          <div className="relative rounded-xl overflow-hidden border border-dark-200 mb-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={coverImageUrl} alt="Cover" className="w-full h-36 object-cover" />
+            <button
+              onClick={() => { setCoverImageUrl(''); saveCoverImage(''); }}
+              className="absolute top-2 right-2 bg-dark-900/70 hover:bg-dark-900 text-white rounded-lg p-1 transition-colors"
+              title="Remove cover photo"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => coverInputRef.current?.click()}
+            disabled={uploadingCover}
+            className="w-full h-24 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-dark-200 hover:border-brand-300 hover:text-brand-600 text-dark-400 rounded-xl transition-colors mb-3"
+          >
+            {uploadingCover
+              ? <Loader2 className="w-5 h-5 animate-spin" />
+              : <Camera className="w-5 h-5" />}
+            <span className="text-sm">{uploadingCover ? 'Uploading…' : 'Upload cover photo'}</span>
+          </button>
+        )}
+        <input
+          ref={coverInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleCoverUpload}
+        />
+        {!coverImageUrl && (
+          <div className="flex gap-2">
+            <input
+              value={coverImageUrl}
+              onChange={e => setCoverImageUrl(e.target.value)}
+              placeholder="Or paste image URL…"
+              className="flex-1 border border-dark-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+            />
+            <button
+              onClick={() => saveCoverImage(coverImageUrl)}
+              disabled={!coverImageUrl || savingCover}
+              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              {savingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Review & audit trail */}
       <ReviewPanel
