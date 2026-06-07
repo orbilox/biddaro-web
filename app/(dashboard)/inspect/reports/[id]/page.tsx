@@ -1081,6 +1081,7 @@ export default function ReportViewer() {
   const [savingStatus, setSavingStatus] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [pdfIncludePhotos, setPdfIncludePhotos] = useState(true);
   const [showShare, setShowShare] = useState(false);
   const [sharingLoading, setSharingLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -1165,7 +1166,7 @@ export default function ReportViewer() {
     if (!report) return;
     setDownloadingPdf(true);
     try {
-      const res = await inspectApi.exportPdf(id);
+      const res = await inspectApi.exportPdf(id, pdfIncludePhotos);
       const blob = new Blob([res.data as BlobPart], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1345,16 +1346,30 @@ export default function ReportViewer() {
             : <FileDown className="w-4 h-4" />}
           {downloadingDocx ? 'Generating…' : 'Word'}
         </button>
-        <button
-          onClick={downloadPdf}
-          disabled={downloadingPdf}
-          className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
-        >
-          {downloadingPdf
-            ? <Loader2 className="w-4 h-4 animate-spin" />
-            : <FileDown className="w-4 h-4" />}
-          {downloadingPdf ? 'Generating…' : 'PDF'}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={downloadPdf}
+            disabled={downloadingPdf}
+            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-l-xl text-sm transition-colors"
+          >
+            {downloadingPdf
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <FileDown className="w-4 h-4" />}
+            {downloadingPdf ? 'Generating…' : 'PDF'}
+          </button>
+          <label
+            className="bg-red-50 border border-red-200 hover:bg-red-100 px-2 py-2 rounded-r-xl cursor-pointer flex items-center gap-1.5 text-xs text-red-700 font-medium transition-colors h-full"
+            title={pdfIncludePhotos ? 'Photos included in PDF' : 'Photos excluded from PDF'}
+          >
+            <input
+              type="checkbox"
+              checked={pdfIncludePhotos}
+              onChange={e => setPdfIncludePhotos(e.target.checked)}
+              className="accent-red-600 w-3 h-3"
+            />
+            <Camera className="w-3 h-3" />
+          </label>
+        </div>
         <button
           onClick={downloadMarkdown}
           className="inline-flex items-center gap-2 border border-dark-200 text-dark-700 hover:bg-dark-50 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
