@@ -38,6 +38,11 @@ interface TemplateSection {
   hasPhotos?: boolean;
 }
 
+interface TemplateSummary {
+  id: string;
+  name: string;
+}
+
 interface Project {
   id: string;
   name: string;
@@ -853,6 +858,8 @@ export default function ProjectDetail() {
   const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
   const [language, setLanguage] = useState('en');
+  const [availableTemplates, setAvailableTemplates] = useState<TemplateSummary[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [captioningId, setCaptioningId] = useState<string | null>(null);
   // Lightbox state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -903,6 +910,12 @@ export default function ProjectDetail() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    inspectApi.listTemplates()
+      .then(res => setAvailableTemplates((res.data as { data: { id: string; name: string }[] }).data ?? []))
+      .catch(() => {});
+  }, []);
+
   async function generateReport() {
     if (!project || project.captures.length === 0) {
       toast.error('Add at least one field capture first');
@@ -910,7 +923,7 @@ export default function ProjectDetail() {
     }
     setGenerating(true);
     try {
-      const res = await inspectApi.generateReport(id, language);
+      const res = await inspectApi.generateReport(id, language, selectedTemplateId || undefined);
       const report = (res.data as { data: { id: string } }).data;
       toast.success('Report generated!');
       router.push(`/inspect/reports/${report.id}`);
@@ -1428,6 +1441,24 @@ export default function ProjectDetail() {
             <option value="pt">🇧🇷 Portuguese</option>
             <option value="ja">🇯🇵 Japanese</option>
           </select>
+          {/* Template picker */}
+          {availableTemplates.length > 0 && (
+            <select
+              value={selectedTemplateId}
+              onChange={e => setSelectedTemplateId(e.target.value)}
+              className="border border-dark-200 rounded-xl px-3 py-2.5 text-sm text-dark-700 bg-white focus:outline-none focus:border-brand-400 cursor-pointer max-w-[160px]"
+              title="Template to use for generation"
+            >
+              <option value="">
+                {project.template ? `📋 ${project.template.name}` : '📋 Default template'}
+              </option>
+              {availableTemplates
+                .filter(t => !project.template || t.id !== project.template.id)
+                .map(t => (
+                  <option key={t.id} value={t.id}>📋 {t.name}</option>
+                ))}
+            </select>
+          )}
           <button
             onClick={generateReport}
             disabled={generating || project.captures.length === 0}

@@ -768,7 +768,7 @@ export const inspectApi = {
   deleteCapture: (projectId: string, cid: string) => api.delete(`/inspect/projects/${projectId}/captures/${cid}`),
 
   // Reports
-  generateReport: (projectId: string, language = 'en') => api.post(`/inspect/projects/${projectId}/reports/generate`, { language }),
+  generateReport: (projectId: string, language = 'en', templateId?: string) => api.post(`/inspect/projects/${projectId}/reports/generate`, { language, ...(templateId ? { templateId } : {}) }),
   listReports: (projectId: string) => api.get(`/inspect/projects/${projectId}/reports`),
   listAllReports: (params?: Record<string, unknown>) => api.get('/inspect/reports', { params }),
   getReport: (id: string) => api.get(`/inspect/reports/${id}`),
