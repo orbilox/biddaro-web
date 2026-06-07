@@ -771,6 +771,26 @@ export default function ProjectDetail() {
     }
   };
 
+  const [changingSevId, setChangingSevId] = useState<string | null>(null);
+  const SEV_CYCLE: Record<string, string> = { normal: 'warning', warning: 'critical', critical: 'normal' };
+
+  const cycleCaptureSeverity = async (captureId: string, currentSev: string) => {
+    if (!project || changingSevId) return;
+    const next = SEV_CYCLE[currentSev] ?? 'normal';
+    setChangingSevId(captureId);
+    try {
+      await inspectApi.updateCapture(project.id, captureId, { severity: next });
+      setProject(prev => prev ? {
+        ...prev,
+        captures: prev.captures.map(c => c.id === captureId ? { ...c, severity: next } : c),
+      } : prev);
+    } catch {
+      toast.error('Failed to update severity');
+    } finally {
+      setChangingSevId(null);
+    }
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {/* Photo Lightbox */}
@@ -992,7 +1012,15 @@ export default function ProjectDetail() {
                       return <p className="text-dark-500 text-xs mt-1 italic">{c.annotation}</p>;
                     })()}
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      <SeverityBadge severity={c.severity} />
+                      {/* Clickable severity badge — cycles normal → warning → critical → normal */}
+                      <button
+                        onClick={() => cycleCaptureSeverity(c.id, c.severity ?? 'normal')}
+                        disabled={changingSevId === c.id}
+                        title="Click to cycle severity"
+                        className="transition-opacity disabled:opacity-50"
+                      >
+                        <SeverityBadge severity={c.severity ?? 'normal'} />
+                      </button>
                       {c.section && <span className="text-xs text-dark-400 bg-dark-50 px-2 py-0.5 rounded-full">{c.section}</span>}
                       <span className="text-xs text-dark-300 ml-auto">
                         {new Date(c.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
