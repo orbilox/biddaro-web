@@ -768,6 +768,7 @@ export const inspectApi = {
   // Reports
   generateReport: (projectId: string, language = 'en') => api.post(`/inspect/projects/${projectId}/reports/generate`, { language }),
   listReports: (projectId: string) => api.get(`/inspect/projects/${projectId}/reports`),
+  listAllReports: (params?: Record<string, unknown>) => api.get('/inspect/reports', { params }),
   getReport: (id: string) => api.get(`/inspect/reports/${id}`),
   updateReport: (id: string, data: Record<string, unknown>) => api.put(`/inspect/reports/${id}`, data),
   deleteReport: (id: string) => api.delete(`/inspect/reports/${id}`),
