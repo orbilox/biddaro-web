@@ -795,7 +795,8 @@ export const inspectApi = {
   exportDocx: (id: string) => api.get(`/inspect/reports/${id}/export/docx`, { responseType: 'blob' }),
   exportPdf:  (id: string) => api.get(`/inspect/reports/${id}/export/pdf`,  { responseType: 'blob' }),
   captionCapture: (projectId: string, cid: string) => api.post(`/inspect/projects/${projectId}/captures/${cid}/caption`, {}),
-  searchPortfolio: (query: string) => api.post('/inspect/search', { query }),
+  searchPortfolio:  (query: string) => api.post('/inspect/search', { query }),
+  compareReports:   (reportIdA: string, reportIdB: string) => api.post('/inspect/compare', { reportIdA, reportIdB }),
   // Tasks
   listTasks:   (reportId: string) => api.get(`/inspect/reports/${reportId}/tasks`),
   createTask:  (reportId: string, data: Record<string, unknown>) => api.post(`/inspect/reports/${reportId}/tasks`, data),

@@ -289,7 +289,7 @@ export default function InspectDashboard() {
           { href: '/inspect/projects', label: 'All Projects', emoji: '🏗️', desc: 'Browse & manage' },
           { href: '/inspect/reports',  label: 'All Reports',  emoji: '📄', desc: 'Review & export' },
           { href: '/inspect/analytics',label: 'Analytics',    emoji: '📊', desc: 'Trends & insights' },
-          { href: '/inspect/templates', label: 'Templates',   emoji: '🗂️', desc: 'Report structure' },
+          { href: '/inspect/compare',  label: 'Compare',      emoji: '🔀', desc: 'Delta analysis' },
         ].map(item => (
           <Link key={item.href} href={item.href}
             className="bg-white border border-dark-100 rounded-xl p-4 hover:border-brand-300 hover:shadow-sm transition-all group"
