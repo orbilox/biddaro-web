@@ -7,7 +7,7 @@ import {
   AlertTriangle, CheckCircle, Clock, ArrowRight, Loader2,
   MapPin, User, Mail, FolderOpen, Sparkles, Upload, X,
   CalendarDays, Bell, RotateCcw, PenLine, ChevronLeft, ChevronRight,
-  ZoomIn, Download, Search, Pencil,
+  ZoomIn, Download, Search, Pencil, Undo2, Square, Circle, Minus,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -711,6 +711,289 @@ function SchedulePanel({ projectId }: { projectId: string }) {
   );
 }
 
+// ─── Photo Annotator ──────────────────────────────────────────────────────────
+
+type DrawTool = 'pen' | 'rect' | 'circle' | 'line';
+const ANNOTATE_COLORS = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#ffffff'];
+
+function PhotoAnnotator({
+  imageUrl,
+  captureId,
+  projectId,
+  onSaved,
+  onClose,
+}: {
+  imageUrl: string;
+  captureId: string;
+  projectId: string;
+  onSaved: (newUrl: string) => void;
+  onClose: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [tool, setTool]         = useState<DrawTool>('pen');
+  const [color, setColor]       = useState('#ef4444');
+  const [strokeWidth, setStrokeWidth] = useState(3);
+  const [drawing, setDrawing]   = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError]   = useState(false);
+  const historyRef  = useRef<ImageData[]>([]);
+  const startPtRef  = useRef<{ x: number; y: number } | null>(null);
+  const snapshotRef = useRef<ImageData | null>(null); // snapshot before current stroke
+
+  // Draw the base image onto the canvas once loaded
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imgLoaded) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      ctx.drawImage(img, 0, 0);
+      historyRef.current = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+    };
+    img.onerror = () => setImgError(true);
+    img.src = imageUrl;
+  }, [imageUrl, imgLoaded]);
+
+  function getPos(e: React.MouseEvent<HTMLCanvasElement>): { x: number; y: number } {
+    const canvas = canvasRef.current!;
+    const rect   = canvas.getBoundingClientRect();
+    const scaleX = canvas.width  / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top)  * scaleY,
+    };
+  }
+
+  function onMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    const pos = getPos(e);
+    setDrawing(true);
+    startPtRef.current = pos;
+    // Save snapshot for shape tools (to redraw cleanly while dragging)
+    snapshotRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    if (tool === 'pen') {
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    }
+  }
+
+  function onMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
+    if (!drawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    const pos = getPos(e);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = strokeWidth;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+
+    if (tool === 'pen') {
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    } else if (snapshotRef.current && startPtRef.current) {
+      // Restore snapshot, then redraw shape preview
+      ctx.putImageData(snapshotRef.current, 0, 0);
+      const { x: sx, y: sy } = startPtRef.current;
+      ctx.beginPath();
+      if (tool === 'rect') {
+        ctx.strokeRect(sx, sy, pos.x - sx, pos.y - sy);
+      } else if (tool === 'circle') {
+        const rx = Math.abs(pos.x - sx) / 2;
+        const ry = Math.abs(pos.y - sy) / 2;
+        const cx = Math.min(sx, pos.x) + rx;
+        const cy = Math.min(sy, pos.y) + ry;
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (tool === 'line') {
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        // Arrow head
+        const angle = Math.atan2(pos.y - sy, pos.x - sx);
+        const hs = strokeWidth * 4;
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.lineTo(pos.x - hs * Math.cos(angle - Math.PI / 6), pos.y - hs * Math.sin(angle - Math.PI / 6));
+        ctx.moveTo(pos.x, pos.y);
+        ctx.lineTo(pos.x - hs * Math.cos(angle + Math.PI / 6), pos.y - hs * Math.sin(angle + Math.PI / 6));
+        ctx.stroke();
+      }
+    }
+  }
+
+  function onMouseUp() {
+    if (!drawing) return;
+    setDrawing(false);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    historyRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+  }
+
+  function undo() {
+    const canvas = canvasRef.current;
+    if (!canvas || historyRef.current.length <= 1) return;
+    historyRef.current.pop();
+    const prev = historyRef.current[historyRef.current.length - 1];
+    canvas.getContext('2d')!.putImageData(prev, 0, 0);
+  }
+
+  async function save() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setSaving(true);
+    try {
+      const blob = await new Promise<Blob>((res, rej) =>
+        canvas.toBlob(b => b ? res(b) : rej(new Error('toBlob failed')), 'image/jpeg', 0.92)
+      );
+      const file = new File([blob], `annotated-${captureId}.jpg`, { type: 'image/jpeg' });
+      const { uploadApi } = await import('@/lib/api');
+      const result = await uploadApi.images([file]);
+      const url = result.data?.data?.files?.[0]?.url;
+      if (!url) throw new Error('Upload returned no URL');
+      await inspectApi.updateCapture(projectId, captureId, { imageUrl: url });
+      onSaved(url);
+      toast.success('Annotation saved');
+    } catch {
+      toast.error('Failed to save annotation');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-dark-950/98 flex flex-col">
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-dark-900 border-b border-dark-700 flex-shrink-0">
+        {/* Tool buttons */}
+        <div className="flex items-center gap-1 bg-dark-800 rounded-xl p-1">
+          {([
+            { t: 'pen'    as DrawTool, icon: <Pencil className="w-4 h-4" />,   label: 'Freehand' },
+            { t: 'line'   as DrawTool, icon: <ArrowRight className="w-4 h-4" />, label: 'Arrow'  },
+            { t: 'rect'   as DrawTool, icon: <Square className="w-4 h-4" />,   label: 'Rectangle' },
+            { t: 'circle' as DrawTool, icon: <Circle className="w-4 h-4" />,   label: 'Circle'  },
+          ]).map(({ t, icon, label }) => (
+            <button
+              key={t}
+              title={label}
+              onClick={() => setTool(t)}
+              className={`p-2 rounded-lg transition-colors ${tool === t ? 'bg-brand-600 text-white' : 'text-dark-300 hover:text-white hover:bg-dark-700'}`}
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
+
+        {/* Color picker */}
+        <div className="flex items-center gap-1.5">
+          {ANNOTATE_COLORS.map(c => (
+            <button
+              key={c}
+              onClick={() => setColor(c)}
+              style={{ backgroundColor: c }}
+              className={`w-6 h-6 rounded-full border-2 transition-transform ${color === c ? 'scale-125 border-white' : 'border-transparent hover:scale-110'}`}
+            />
+          ))}
+        </div>
+
+        {/* Stroke width */}
+        <div className="flex items-center gap-1 bg-dark-800 rounded-xl p-1">
+          {[2, 4, 7].map(w => (
+            <button
+              key={w}
+              onClick={() => setStrokeWidth(w)}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-colors ${strokeWidth === w ? 'bg-brand-600 text-white' : 'text-dark-300 hover:text-white hover:bg-dark-700'}`}
+            >
+              <Minus className="w-3 h-3" style={{ strokeWidth: w }} />
+            </button>
+          ))}
+        </div>
+
+        {/* Undo */}
+        <button
+          onClick={undo}
+          className="p-2 rounded-xl text-dark-300 hover:text-white hover:bg-dark-700 transition-colors"
+          title="Undo last stroke"
+        >
+          <Undo2 className="w-4 h-4" />
+        </button>
+
+        <div className="flex-1" />
+
+        {/* Save + Cancel */}
+        <button
+          onClick={save}
+          disabled={saving}
+          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+          {saving ? 'Saving…' : 'Save Annotation'}
+        </button>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-xl text-dark-300 hover:text-white hover:bg-dark-700 transition-colors"
+          title="Discard and close"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Canvas area */}
+      <div className="flex-1 overflow-auto flex items-center justify-center p-4 bg-dark-950">
+        {imgError ? (
+          <div className="text-center text-dark-400">
+            <p className="text-sm mb-2">Could not load image for annotation.</p>
+            <p className="text-xs">The image may not support cross-origin access.</p>
+          </div>
+        ) : (
+          <>
+            {/* Hidden trigger to start loading */}
+            {!imgLoaded && (
+              <img
+                src={imageUrl}
+                alt=""
+                crossOrigin="anonymous"
+                className="hidden"
+                onLoad={() => setImgLoaded(true)}
+                onError={() => setImgError(true)}
+              />
+            )}
+            <canvas
+              ref={canvasRef}
+              className="max-w-full max-h-full rounded-xl shadow-2xl cursor-crosshair"
+              style={{ display: imgLoaded ? 'block' : 'none' }}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={onMouseUp}
+            />
+            {!imgLoaded && (
+              <div className="flex flex-col items-center gap-3 text-dark-400">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                <p className="text-sm">Loading image…</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="px-4 py-2 bg-dark-900 border-t border-dark-700 text-xs text-dark-400 text-center">
+        Draw annotations • Saving replaces the original photo with the annotated version
+      </div>
+    </div>
+  );
+}
+
 // ─── Photo Lightbox ───────────────────────────────────────────────────────────
 
 interface LightboxPhoto {
@@ -721,11 +1004,12 @@ interface LightboxPhoto {
 }
 
 function Lightbox({
-  photos, initialIndex, onClose,
+  photos, initialIndex, onClose, onAnnotate,
 }: {
   photos: LightboxPhoto[];
   initialIndex: number;
   onClose: () => void;
+  onAnnotate?: (photo: LightboxPhoto) => void;
 }) {
   const [idx, setIdx] = useState(initialIndex);
   const photo = photos[idx];
@@ -776,6 +1060,17 @@ function Lightbox({
       >
         <Download className="w-5 h-5" />
       </button>
+
+      {/* Annotate */}
+      {onAnnotate && (
+        <button
+          onClick={() => onAnnotate(photo)}
+          className="absolute top-4 right-24 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors z-10"
+          title="Annotate photo (draw arrows, circles, etc.)"
+        >
+          <Pencil className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Counter */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
@@ -863,6 +1158,8 @@ export default function ProjectDetail() {
   const [captioningId, setCaptioningId] = useState<string | null>(null);
   // Lightbox state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Annotation state
+  const [annotatingPhoto, setAnnotatingPhoto] = useState<LightboxPhoto | null>(null);
   // Tabs
   const [activeTab, setActiveTab] = useState<'captures' | 'checklist' | 'tasks'>('captures');
 
@@ -1270,12 +1567,36 @@ export default function ProjectDetail() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      {/* Photo Annotation Canvas */}
+      {annotatingPhoto && (
+        <PhotoAnnotator
+          imageUrl={annotatingPhoto.url}
+          captureId={annotatingPhoto.id}
+          projectId={id}
+          onSaved={(newUrl) => {
+            // Update the capture in local state so lightbox & cards refresh
+            setProject(prev => prev ? {
+              ...prev,
+              captures: prev.captures.map(c =>
+                c.id === annotatingPhoto.id ? { ...c, imageUrl: newUrl } : c
+              ),
+            } : prev);
+            setAnnotatingPhoto(null);
+          }}
+          onClose={() => setAnnotatingPhoto(null)}
+        />
+      )}
+
       {/* Photo Lightbox */}
       {lightboxIndex !== null && (
         <Lightbox
           photos={photoCaptures}
           initialIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
+          onAnnotate={(photo) => {
+            setLightboxIndex(null);
+            setAnnotatingPhoto(photo);
+          }}
         />
       )}
       {showCapture && (
