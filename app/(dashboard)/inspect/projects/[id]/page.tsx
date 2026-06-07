@@ -66,10 +66,32 @@ function AddCaptureModal({ projectId, onAdded, onClose }: { projectId: string; o
   const [type, setType] = useState<'text' | 'photo' | 'voice'>('text');
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [section, setSection] = useState('');
   const [severity, setSeverity] = useState('normal');
   const [annotation, setAnnotation] = useState('');
   const [saving, setSaving] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  async function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const { uploadApi } = await import('@/lib/api');
+      const result = await uploadApi.images([file]);
+      const url = result.data?.data?.files?.[0]?.url;
+      if (url) {
+        setImageUrl(url);
+        setPhotoPreview(url);
+      }
+    } catch {
+      toast.error('Photo upload failed');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -121,12 +143,48 @@ function AddCaptureModal({ projectId, onAdded, onClose }: { projectId: string; o
         <form onSubmit={submit} className="space-y-4">
           {type === 'photo' && (
             <div>
-              <label className="block text-sm font-semibold text-dark-700 mb-1.5">Photo URL / Upload path *</label>
+              <label className="block text-sm font-semibold text-dark-700 mb-1.5">Photo *</label>
+              {photoPreview ? (
+                <div className="relative rounded-xl overflow-hidden border border-dark-200 mb-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photoPreview} alt="Preview" className="w-full h-40 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => { setImageUrl(''); setPhotoPreview(null); }}
+                    className="absolute top-2 right-2 bg-dark-900/70 text-white rounded-lg p-1 hover:bg-dark-900"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="w-full h-28 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-dark-200 rounded-xl text-dark-400 hover:border-brand-300 hover:text-brand-600 transition-colors"
+                >
+                  {uploadingPhoto
+                    ? <Loader2 className="w-6 h-6 animate-spin" />
+                    : <Camera className="w-6 h-6" />}
+                  <span className="text-sm">{uploadingPhoto ? 'Uploading…' : 'Tap to upload photo'}</span>
+                </button>
+              )}
               <input
-                required value={imageUrl} onChange={e => setImageUrl(e.target.value)}
-                placeholder="https://... or /uploads/..."
-                className="w-full border border-dark-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400"
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handlePhotoFile}
               />
+              {/* Fallback: paste URL */}
+              {!photoPreview && (
+                <input
+                  value={imageUrl} onChange={e => setImageUrl(e.target.value)}
+                  placeholder="Or paste image URL…"
+                  className="w-full mt-2 border border-dark-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-brand-400"
+                />
+              )}
             </div>
           )}
 
