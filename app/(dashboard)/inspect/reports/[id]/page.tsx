@@ -29,6 +29,8 @@ interface InspectSettings {
   address: string | null;
   logoUrl: string | null;
   footerNote: string | null;
+  brandColor: string | null;
+  headerBg: string | null;
 }
 
 interface ReportSection {
@@ -1411,52 +1413,68 @@ export default function ReportViewer() {
       </Link>
 
       {/* Report header */}
-      <div className="bg-white border border-dark-100 rounded-2xl p-6 mb-6">
-        {/* Inspector branding strip */}
+      <div className="border border-dark-100 rounded-2xl overflow-hidden mb-6">
+        {/* Inspector branding strip — branded header */}
         {settings && (settings.companyName || settings.inspectorName || settings.logoUrl) && (
-          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-dark-100">
-            {settings.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={settings.logoUrl}
-                alt={settings.companyName ?? 'Company logo'}
-                className="w-10 h-10 rounded-lg object-contain border border-dark-100 bg-white flex-shrink-0"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center flex-shrink-0">
-                <Award className="w-5 h-5 text-brand-600" />
-              </div>
-            )}
-            <div className="min-w-0">
-              {settings.companyName && (
-                <p className="font-bold text-dark-900 text-sm leading-tight truncate">{settings.companyName}</p>
+          <div
+            className="px-6 pt-5 pb-4"
+            style={{ background: settings.headerBg || '#f8fafc' }}
+          >
+            <div className="flex items-center gap-3">
+              {settings.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={settings.logoUrl}
+                  alt={settings.companyName ?? 'Company logo'}
+                  className="w-10 h-10 rounded-lg object-contain border border-white/50 bg-white flex-shrink-0"
+                />
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: settings.brandColor || '#2563eb' }}
+                >
+                  <Award className="w-5 h-5 text-white" />
+                </div>
               )}
-              <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                {settings.inspectorName && (
-                  <span className="text-xs text-dark-500 flex items-center gap-1">
-                    <User className="w-3 h-3 flex-shrink-0" />
-                    {settings.inspectorName}
-                  </span>
+              <div className="min-w-0">
+                {settings.companyName && (
+                  <p
+                    className="font-bold text-sm leading-tight truncate"
+                    style={{ color: settings.brandColor || '#1e293b' }}
+                  >
+                    {settings.companyName}
+                  </p>
                 )}
-                {settings.licenseNo && (
-                  <span className="text-xs text-dark-400 font-mono bg-dark-50 border border-dark-100 px-1.5 py-0.5 rounded">
-                    Lic. {settings.licenseNo}
-                  </span>
-                )}
-                {settings.phone && (
-                  <span className="text-xs text-dark-400">{settings.phone}</span>
-                )}
+                <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                  {settings.inspectorName && (
+                    <span className="text-xs flex items-center gap-1" style={{ color: settings.brandColor ? settings.brandColor + 'cc' : '#64748b' }}>
+                      <User className="w-3 h-3 flex-shrink-0" />
+                      {settings.inspectorName}
+                    </span>
+                  )}
+                  {settings.licenseNo && (
+                    <span className="text-xs font-mono bg-white/60 border border-white/40 px-1.5 py-0.5 rounded" style={{ color: '#64748b' }}>
+                      Lic. {settings.licenseNo}
+                    </span>
+                  )}
+                  {settings.phone && (
+                    <span className="text-xs" style={{ color: '#94a3b8' }}>{settings.phone}</span>
+                  )}
+                </div>
               </div>
+              <Link
+                href="/inspect?tab=settings"
+                className="ml-auto text-xs transition-colors flex-shrink-0 opacity-40 hover:opacity-80"
+                title="Edit inspector settings"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </Link>
             </div>
-            <Link
-              href="/inspect?tab=settings"
-              className="ml-auto text-xs text-dark-400 hover:text-brand-600 transition-colors flex-shrink-0"
-              title="Edit inspector settings"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-            </Link>
+            {/* Brand color accent line */}
+            <div className="mt-3 h-0.5 rounded-full" style={{ background: settings.brandColor || '#2563eb', opacity: 0.4 }} />
           </div>
         )}
+        <div className="bg-white p-6">
 
         {/* Title */}
         <div className="flex items-start gap-3 mb-4">
@@ -1513,7 +1531,8 @@ export default function ReportViewer() {
             </div>
           )}
         </div>
-      </div>
+        </div>{/* /bg-white p-6 inner */}
+      </div>{/* /branded header outer */}
 
       {/* Actions bar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">

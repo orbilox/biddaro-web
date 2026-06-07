@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User, Building2, BadgeCheck, Phone, MapPin, Image, FileText,
-  Save, ArrowLeft, Loader2, CheckCircle, Upload, X,
+  Save, ArrowLeft, Loader2, CheckCircle, Upload, X, Palette,
 } from 'lucide-react';
 import { inspectApi, uploadApi } from '@/lib/api';
 
@@ -15,6 +15,8 @@ interface InspectSettings {
   address: string;
   logoUrl: string;
   footerNote: string;
+  brandColor: string;
+  headerBg: string;
 }
 
 const EMPTY: InspectSettings = {
@@ -25,7 +27,31 @@ const EMPTY: InspectSettings = {
   address: '',
   logoUrl: '',
   footerNote: '',
+  brandColor: '#2563eb',
+  headerBg: '#f8fafc',
 };
+
+const BRAND_PRESETS = [
+  { label: 'Biddaro Blue',   color: '#2563eb' },
+  { label: 'Navy',           color: '#1e3a8a' },
+  { label: 'Indigo',         color: '#4f46e5' },
+  { label: 'Teal',           color: '#0d9488' },
+  { label: 'Forest Green',   color: '#15803d' },
+  { label: 'Charcoal',       color: '#334155' },
+  { label: 'Warm Red',       color: '#dc2626' },
+  { label: 'Deep Orange',    color: '#c2410c' },
+];
+
+const HEADER_PRESETS = [
+  { label: 'White',          color: '#ffffff' },
+  { label: 'Cool Gray',      color: '#f8fafc' },
+  { label: 'Soft Blue',      color: '#eff6ff' },
+  { label: 'Teal Mist',      color: '#f0fdfa' },
+  { label: 'Lavender',       color: '#f5f3ff' },
+  { label: 'Dark Navy',      color: '#1e293b' },
+  { label: 'Charcoal',       color: '#1e3a8a' },
+  { label: 'Black',          color: '#0f172a' },
+];
 
 function Field({
   icon: Icon,
@@ -98,6 +124,8 @@ export default function InspectSettingsPage() {
             address:       data.address       ?? '',
             logoUrl:       data.logoUrl       ?? '',
             footerNote:    data.footerNote    ?? '',
+            brandColor:    data.brandColor    ?? '#2563eb',
+            headerBg:      data.headerBg      ?? '#f8fafc',
           });
         }
       } catch {
@@ -302,6 +330,128 @@ export default function InspectSettingsPage() {
               multiline
               hint="Appears at the bottom of every exported report"
             />
+          </div>
+        </div>
+
+        {/* Color Theme */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Palette className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Color Theme</h2>
+          </div>
+          <p className="text-xs text-gray-400 mb-5">Applied to report headers and accents when viewed or shared online.</p>
+
+          {/* Live preview strip */}
+          <div
+            className="rounded-xl overflow-hidden border border-gray-200 mb-5"
+            style={{ background: form.headerBg || '#f8fafc' }}
+          >
+            <div className="px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: form.brandColor || '#2563eb' }}
+                >
+                  <Building2 className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold leading-tight" style={{ color: form.brandColor || '#2563eb' }}>
+                    {form.companyName || 'Your Company'}
+                  </p>
+                  <p className="text-xs" style={{ color: (form.headerBg || '#f8fafc') === '#f8fafc' || (form.headerBg || '#f8fafc') === '#ffffff' ? '#64748b' : '#cbd5e1' }}>
+                    {form.inspectorName || 'Inspector Name'}
+                  </p>
+                </div>
+                <span
+                  className="ml-auto text-[10px] font-bold px-2 py-1 rounded-full"
+                  style={{ background: form.brandColor || '#2563eb', color: '#ffffff' }}
+                >
+                  Preview
+                </span>
+              </div>
+            </div>
+            <div className="h-0.5" style={{ background: form.brandColor || '#2563eb', opacity: 0.3 }} />
+          </div>
+
+          <div className="space-y-5">
+            {/* Accent / brand color */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-2">Accent Color</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {BRAND_PRESETS.map(p => (
+                  <button
+                    key={p.color}
+                    type="button"
+                    title={p.label}
+                    onClick={() => handleChange('brandColor', p.color)}
+                    className={`w-7 h-7 rounded-full border-2 transition-all ${
+                      form.brandColor === p.color ? 'border-gray-900 scale-110' : 'border-transparent hover:scale-105'
+                    }`}
+                    style={{ background: p.color }}
+                  />
+                ))}
+                {/* Custom color input */}
+                <label className="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-500 overflow-hidden" title="Custom color">
+                  <input
+                    type="color"
+                    value={form.brandColor || '#2563eb'}
+                    onChange={e => handleChange('brandColor', e.target.value)}
+                    className="opacity-0 absolute w-px h-px"
+                  />
+                  <span className="text-[10px] text-gray-400 font-bold">+</span>
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded border border-gray-200 flex-shrink-0" style={{ background: form.brandColor || '#2563eb' }} />
+                <input
+                  type="text"
+                  value={form.brandColor}
+                  onChange={e => handleChange('brandColor', e.target.value)}
+                  placeholder="#2563eb"
+                  className="w-28 text-xs font-mono border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-400"
+                />
+                <span className="text-xs text-gray-400">Used for headings, badges, and links</span>
+              </div>
+            </div>
+
+            {/* Header background */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-2">Header Background</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {HEADER_PRESETS.map(p => (
+                  <button
+                    key={p.color}
+                    type="button"
+                    title={p.label}
+                    onClick={() => handleChange('headerBg', p.color)}
+                    className={`w-7 h-7 rounded-full border-2 transition-all ${
+                      form.headerBg === p.color ? 'border-gray-900 scale-110' : 'border-transparent hover:scale-105'
+                    }`}
+                    style={{ background: p.color, boxShadow: p.color === '#ffffff' ? 'inset 0 0 0 1px #e2e8f0' : undefined }}
+                  />
+                ))}
+                <label className="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-500 overflow-hidden" title="Custom color">
+                  <input
+                    type="color"
+                    value={form.headerBg || '#f8fafc'}
+                    onChange={e => handleChange('headerBg', e.target.value)}
+                    className="opacity-0 absolute w-px h-px"
+                  />
+                  <span className="text-[10px] text-gray-400 font-bold">+</span>
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded border border-gray-200 flex-shrink-0" style={{ background: form.headerBg || '#f8fafc' }} />
+                <input
+                  type="text"
+                  value={form.headerBg}
+                  onChange={e => handleChange('headerBg', e.target.value)}
+                  placeholder="#f8fafc"
+                  className="w-28 text-xs font-mono border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-400"
+                />
+                <span className="text-xs text-gray-400">Report header strip background</span>
+              </div>
+            </div>
           </div>
         </div>
 
