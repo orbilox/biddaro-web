@@ -7,7 +7,7 @@ import {
   AlertTriangle, CheckCircle, Clock, ArrowRight, Loader2,
   MapPin, User, Mail, FolderOpen, Sparkles, Upload, X,
   CalendarDays, Bell, RotateCcw, PenLine, ChevronLeft, ChevronRight,
-  ZoomIn, Download, Search,
+  ZoomIn, Download, Search, Pencil,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -768,6 +768,11 @@ export default function ProjectDetail() {
   const [tagInput, setTagInput] = useState('');
   const [savingTagId, setSavingTagId] = useState<string | null>(null);
 
+  // Inline note editing state
+  const [editNoteId, setEditNoteId] = useState<string | null>(null);
+  const [editNoteContent, setEditNoteContent] = useState('');
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+
   // Collect all unique tags across this project's captures
   const allCaptureTags = Array.from(
     new Set((project?.captures ?? []).flatMap(c => c.tags ?? []))
@@ -826,6 +831,24 @@ export default function ProjectDetail() {
       toast.error('Failed to remove tag');
     } finally {
       setSavingTagId(null);
+    }
+  };
+
+  const saveNoteEdit = async (captureId: string) => {
+    const trimmed = editNoteContent.trim();
+    if (!project) return;
+    setSavingNoteId(captureId);
+    try {
+      await inspectApi.updateCapture(project.id, captureId, { content: trimmed || null });
+      setProject(prev => prev ? {
+        ...prev,
+        captures: prev.captures.map(c => c.id === captureId ? { ...c, content: trimmed || null } : c),
+      } : prev);
+      setEditNoteId(null);
+    } catch {
+      toast.error('Failed to save edit');
+    } finally {
+      setSavingNoteId(null);
     }
   };
 
@@ -1054,8 +1077,51 @@ export default function ProjectDetail() {
                         )}
                       </div>
                     )}
-                    {c.type !== 'photo' && c.content && (
-                      <p className="text-dark-700 text-sm leading-relaxed">{c.content}</p>
+                    {c.type !== 'photo' && (
+                      editNoteId === c.id ? (
+                        <div className="mb-2">
+                          <textarea
+                            autoFocus
+                            value={editNoteContent}
+                            onChange={e => setEditNoteContent(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Escape') setEditNoteId(null);
+                              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNoteEdit(c.id);
+                            }}
+                            rows={3}
+                            className="w-full text-sm border border-brand-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400 resize-none text-dark-800"
+                          />
+                          <div className="flex gap-2 mt-1.5">
+                            <button
+                              onClick={() => saveNoteEdit(c.id)}
+                              disabled={savingNoteId === c.id}
+                              className="text-xs bg-brand-600 hover:bg-brand-700 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+                            >
+                              {savingNoteId === c.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditNoteId(null)}
+                              className="text-xs border border-dark-200 text-dark-600 px-3 py-1.5 rounded-lg hover:bg-dark-50 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="group/note flex items-start gap-1.5 mb-2">
+                          <p className="text-dark-700 text-sm leading-relaxed flex-1">
+                            {c.content || <span className="text-dark-300 italic text-xs">No note — click ✎ to add</span>}
+                          </p>
+                          <button
+                            onClick={() => { setEditNoteId(c.id); setEditNoteContent(c.content ?? ''); }}
+                            className="opacity-0 group-hover/note:opacity-100 transition-opacity p-1 text-dark-300 hover:text-brand-600 rounded-md flex-shrink-0 mt-0.5"
+                            title="Edit note (⌘↵ to save)"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )
                     )}
                     {c.annotation && (() => {
                       try {
