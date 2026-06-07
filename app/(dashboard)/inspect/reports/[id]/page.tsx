@@ -910,6 +910,109 @@ function EditSectionsPanel({
   );
 }
 
+// ── Version History Panel ─────────────────────────────────────────────────────
+
+interface ReportVersion {
+  id: string;
+  versionNumber: number;
+  createdAt: string;
+  user: { firstName: string; lastName: string };
+}
+
+function VersionHistoryPanel({
+  reportId,
+  onRestored,
+}: {
+  reportId: string;
+  onRestored: () => void;
+}) {
+  const [versions, setVersions]       = useState<ReportVersion[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
+  useEffect(() => {
+    inspectApi.listVersions(reportId)
+      .then(r => setVersions((r.data as { data: { versions: ReportVersion[] } }).data.versions ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [reportId]);
+
+  async function restore(vid: string) {
+    if (!confirm('Restore this version? Your current content will be saved as a new version first.')) return;
+    setRestoringId(vid);
+    try {
+      await inspectApi.restoreVersion(reportId, vid);
+      toast.success('Version restored — reloading…');
+      onRestored();
+    } catch {
+      toast.error('Failed to restore version');
+    } finally {
+      setRestoringId(null);
+    }
+  }
+
+  return (
+    <div className="mt-6 bg-white border border-dark-100 rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-dark-100 bg-dark-50">
+        <RotateCcw className="w-4 h-4 text-brand-600" />
+        <h3 className="font-bold text-dark-900 text-sm">Version History</h3>
+        <span className="text-xs text-dark-400">— auto-saved on each content edit</span>
+      </div>
+      {loading ? (
+        <div className="px-5 py-4 text-sm text-dark-400 flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading history…
+        </div>
+      ) : versions.length === 0 ? (
+        <div className="px-5 py-4 text-sm text-dark-400">
+          No version history yet. Edit and save sections to start tracking changes.
+        </div>
+      ) : (
+        <div className="divide-y divide-dark-50">
+          {versions.map((v, vi) => (
+            <div key={v.id} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-dark-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                  vi === 0 ? 'bg-brand-100 text-brand-700' : 'bg-dark-100 text-dark-600'
+                }`}>
+                  v{v.versionNumber}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-dark-800">
+                    {vi === 0 ? (
+                      <span className="text-brand-600 font-semibold">Latest snapshot</span>
+                    ) : (
+                      `Version ${v.versionNumber}`
+                    )}
+                  </p>
+                  <p className="text-xs text-dark-400">
+                    {new Date(v.createdAt).toLocaleString('en-IN', {
+                      day: 'numeric', month: 'short', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                    {' · '}{v.user.firstName} {v.user.lastName}
+                  </p>
+                </div>
+              </div>
+              {vi > 0 && (
+                <button
+                  onClick={() => restore(v.id)}
+                  disabled={restoringId === v.id}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 border border-brand-200 hover:border-brand-400 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {restoringId === v.id
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <RotateCcw className="w-3.5 h-3.5" />}
+                  Restore
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ReportViewer() {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<Report | null>(null);
@@ -923,6 +1026,7 @@ export default function ReportViewer() {
   const [showShare, setShowShare] = useState(false);
   const [sharingLoading, setSharingLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [taskModal, setTaskModal] = useState<{
     title: string; severity: string; section: string; finding: string;
   } | null>(null);
@@ -1222,6 +1326,17 @@ export default function ReportViewer() {
           <PenLine className="w-4 h-4" />
           {editMode ? 'Editing…' : 'Edit Sections'}
         </button>
+        <button
+          onClick={() => setShowHistory(h => !h)}
+          className={`inline-flex items-center gap-2 font-semibold px-4 py-2 rounded-xl text-sm transition-colors ${
+            showHistory
+              ? 'bg-gray-800 text-white hover:bg-gray-900'
+              : 'border border-dark-200 text-dark-700 hover:bg-dark-50'
+          }`}
+        >
+          <RotateCcw className="w-4 h-4" />
+          History
+        </button>
       </div>
 
       {/* Share panel */}
@@ -1377,6 +1492,14 @@ export default function ReportViewer() {
 
       {/* Tasks panel */}
       <TasksPanel reportId={id} />
+
+      {/* Version history */}
+      {showHistory && (
+        <VersionHistoryPanel
+          reportId={id}
+          onRestored={() => { load(); setShowHistory(false); }}
+        />
+      )}
 
       {/* Footer */}
       <div className="mt-8 text-center text-xs text-dark-400 border-t border-dark-100 pt-6">

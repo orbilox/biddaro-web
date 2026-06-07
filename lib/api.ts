@@ -812,6 +812,9 @@ export const inspectApi = {
   updateSchedule:       (sid: string, data: Record<string, unknown>) => api.put(`/inspect/schedules/${sid}`, data),
   deleteSchedule:       (sid: string) => api.delete(`/inspect/schedules/${sid}`),
   listUpcomingSchedules: () => api.get('/inspect/schedules/upcoming'),
+  // Report versioning
+  listVersions:    (reportId: string) => api.get(`/inspect/reports/${reportId}/versions`),
+  restoreVersion:  (reportId: string, vid: string) => api.post(`/inspect/reports/${reportId}/versions/${vid}/restore`, {}),
 };
 
 export default api;
