@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Plus, Camera, Mic, FileText, Zap, Trash2,
   AlertTriangle, CheckCircle, Clock, ArrowRight, Loader2,
-  MapPin, User, Mail, FolderOpen,
+  MapPin, User, Mail, FolderOpen, Sparkles,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -201,6 +201,7 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showCapture, setShowCapture] = useState(false);
+  const [captioningId, setCaptioningId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -239,6 +240,24 @@ export default function ProjectDetail() {
       await load();
     } catch {
       toast.error('Failed to delete capture');
+    }
+  }
+
+  async function autoCaptionPhoto(cid: string) {
+    setCaptioningId(cid);
+    try {
+      const res = await inspectApi.captionCapture(id, cid);
+      const updated = (res.data as { data: Capture }).data;
+      // Update the capture in state without a full reload
+      setProject(p => p ? {
+        ...p,
+        captures: p.captures.map(c => c.id === cid ? { ...c, content: updated.content } : c),
+      } : p);
+      toast.success('Photo captioned by AI');
+    } catch {
+      toast.error('Auto-caption failed — check the image URL is publicly accessible');
+    } finally {
+      setCaptioningId(null);
     }
   }
 
@@ -334,15 +353,23 @@ export default function ProjectDetail() {
                   </div>
                   <div className="flex-1 min-w-0">
                     {c.type === 'photo' && c.imageUrl && (
-                      <div className="mb-2">
+                      <div className="mb-2 relative">
                         <img
                           src={c.imageUrl} alt="Site capture"
                           className="w-full max-h-48 object-cover rounded-lg bg-dark-100"
                           onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
+                        {/* AI caption badge overlay */}
+                        {c.content && (
+                          <div className="absolute bottom-2 left-2 right-2 bg-dark-900/80 backdrop-blur-sm rounded-lg px-3 py-2">
+                            <p className="text-white text-xs leading-relaxed">{c.content}</p>
+                          </div>
+                        )}
                       </div>
                     )}
-                    {c.content && <p className="text-dark-700 text-sm leading-relaxed">{c.content}</p>}
+                    {c.type !== 'photo' && c.content && (
+                      <p className="text-dark-700 text-sm leading-relaxed">{c.content}</p>
+                    )}
                     {c.annotation && <p className="text-dark-500 text-xs mt-1 italic">{c.annotation}</p>}
                     <div className="flex items-center gap-2 mt-2">
                       <SeverityBadge severity={c.severity} />
@@ -352,15 +379,35 @@ export default function ProjectDetail() {
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => deleteCapture(c.id)}
-                    className="text-dark-300 hover:text-red-500 transition-colors flex-shrink-0 p-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex flex-col gap-1 flex-shrink-0">
+                    {c.type === 'photo' && c.imageUrl && (
+                      <button
+                        onClick={() => autoCaptionPhoto(c.id)}
+                        disabled={captioningId === c.id}
+                        title="AI Auto-Caption"
+                        className="p-1.5 text-dark-300 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {captioningId === c.id
+                          ? <Loader2 className="w-4 h-4 animate-spin text-brand-500" />
+                          : <Sparkles className="w-4 h-4" />}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteCapture(c.id)}
+                      className="p-1.5 text-dark-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
+          )}
+          {project.captures.some(c => c.type === 'photo') && (
+            <p className="text-xs text-dark-400 flex items-center gap-1.5 mt-2">
+              <Sparkles className="w-3.5 h-3.5 text-brand-500" />
+              Photos are auto-captioned by AI when you generate a report. Click ✨ on any photo to caption it now.
+            </p>
           )}
         </div>
 
