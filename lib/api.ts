@@ -773,6 +773,9 @@ export const inspectApi = {
   updateReport: (id: string, data: Record<string, unknown>) => api.put(`/inspect/reports/${id}`, data),
   deleteReport: (id: string) => api.delete(`/inspect/reports/${id}`),
   sendReport: (id: string, sentTo: string) => api.post(`/inspect/reports/${id}/send`, { sentTo }),
+  shareReport: (id: string) => api.post(`/inspect/reports/${id}/share`, {}),
+  unshareReport: (id: string) => api.delete(`/inspect/reports/${id}/share`),
+  getPublicReport: (token: string) => api.get(`/inspect/public/${token}`),
   getAnalytics: () => api.get('/inspect/analytics'),
   listLanguages: () => api.get('/inspect/languages'),
   // Legacy import

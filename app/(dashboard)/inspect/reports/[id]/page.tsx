@@ -7,6 +7,7 @@ import {
   Clock, FileText, Loader2, Edit3, Save, X, Mail, FileDown,
   ListTodo, Plus, Circle, Timer, Trash2, ChevronDown, ChevronUp, User,
   MessageSquare, ThumbsUp, ThumbsDown, RotateCcw, GitBranch,
+  Share2, Link2, Copy, Globe, EyeOff,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -48,6 +49,8 @@ interface Report {
   };
   sentAt: string | null;
   sentTo: string | null;
+  publicToken: string | null;
+  publicEnabled: boolean;
   createdAt: string;
   updatedAt: string;
   project: {
@@ -632,6 +635,8 @@ export default function ReportViewer() {
   const [savingStatus, setSavingStatus] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [sharingLoading, setSharingLoading] = useState(false);
   const [taskModal, setTaskModal] = useState<{
     title: string; severity: string; section: string; finding: string;
   } | null>(null);
@@ -725,6 +730,35 @@ export default function ReportViewer() {
       toast.error('Failed to generate PDF');
     } finally {
       setDownloadingPdf(false);
+    }
+  }
+
+  async function enableShare() {
+    if (!report) return;
+    setSharingLoading(true);
+    try {
+      const res = await inspectApi.shareReport(id);
+      const d = (res.data as { data: { publicToken: string; publicEnabled: boolean } }).data;
+      setReport(r => r ? { ...r, publicToken: d.publicToken, publicEnabled: d.publicEnabled } : r);
+      toast.success('Public link enabled');
+    } catch {
+      toast.error('Failed to enable sharing');
+    } finally {
+      setSharingLoading(false);
+    }
+  }
+
+  async function disableShare() {
+    if (!report) return;
+    setSharingLoading(true);
+    try {
+      await inspectApi.unshareReport(id);
+      setReport(r => r ? { ...r, publicEnabled: false } : r);
+      toast.success('Public link disabled');
+    } catch {
+      toast.error('Failed to disable sharing');
+    } finally {
+      setSharingLoading(false);
     }
   }
 
@@ -878,7 +912,71 @@ export default function ReportViewer() {
         >
           <Download className="w-4 h-4" /> Markdown
         </button>
+        {/* Share button */}
+        <button
+          onClick={() => setShowShare(s => !s)}
+          className={`inline-flex items-center gap-2 font-semibold px-4 py-2 rounded-xl text-sm transition-colors ${
+            report.publicEnabled
+              ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
+              : 'border border-dark-200 text-dark-700 hover:bg-dark-50'
+          }`}
+        >
+          <Share2 className="w-4 h-4" />
+          {report.publicEnabled ? 'Shared' : 'Share'}
+        </button>
       </div>
+
+      {/* Share panel */}
+      {showShare && (
+        <div className="bg-white border border-dark-200 rounded-2xl p-5 mb-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <Globe className="w-4 h-4 text-brand-600" />
+            <p className="font-bold text-dark-900 text-sm">Client Portal Link</p>
+          </div>
+          <p className="text-dark-500 text-sm mb-4">
+            Share a read-only link with your client — no login required. They can view the full report, sections, and findings.
+          </p>
+          {report.publicEnabled && report.publicToken ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-dark-50 border border-dark-200 rounded-xl px-3 py-2 text-sm text-dark-600 font-mono truncate">
+                  {typeof window !== 'undefined' ? `${window.location.origin}/inspect-share/${report.publicToken}` : `/inspect-share/${report.publicToken}`}
+                </div>
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/inspect-share/${report.publicToken}`;
+                    navigator.clipboard.writeText(url);
+                    toast.success('Link copied to clipboard');
+                  }}
+                  className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors flex-shrink-0"
+                >
+                  <Copy className="w-4 h-4" /> Copy
+                </button>
+              </div>
+              <button
+                onClick={disableShare}
+                disabled={sharingLoading}
+                className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-700 text-sm font-medium disabled:opacity-50"
+              >
+                <EyeOff className="w-3.5 h-3.5" />
+                {sharingLoading ? 'Disabling…' : 'Disable public link'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={enableShare}
+                disabled={sharingLoading}
+                className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+              >
+                {sharingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                {sharingLoading ? 'Generating link…' : 'Generate Public Link'}
+              </button>
+              <p className="text-dark-400 text-xs">Anyone with the link can view this report.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Report sections */}
       <div className="space-y-5">
