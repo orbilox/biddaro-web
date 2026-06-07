@@ -15,6 +15,9 @@ interface DashStats {
   totalReports: number;
   draftReports: number;
   totalCaptures: number;
+  openTasks: number;
+  criticalTasks: number;
+  upcomingSchedulesCount: number;
 }
 
 interface UpcomingSchedule {
@@ -258,10 +261,13 @@ export default function InspectDashboard() {
   }, []);
 
   const statCards = [
-    { label: 'Active Projects', value: stats?.activeProjects ?? 0, icon: FolderOpen, color: 'text-brand-600', bg: 'bg-brand-50' },
-    { label: 'Total Reports',   value: stats?.totalReports ?? 0,   icon: FileText,   color: 'text-blue-600',  bg: 'bg-blue-50'  },
-    { label: 'Draft Reports',   value: stats?.draftReports ?? 0,   icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Field Captures',  value: stats?.totalCaptures ?? 0,  icon: Camera,     color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Active Projects',    value: stats?.activeProjects ?? 0,         icon: FolderOpen,    color: 'text-brand-600',  bg: 'bg-brand-50',  href: '/inspect/projects' },
+    { label: 'Total Reports',      value: stats?.totalReports ?? 0,            icon: FileText,      color: 'text-blue-600',   bg: 'bg-blue-50',   href: '/inspect/reports' },
+    { label: 'Open Tasks',         value: stats?.openTasks ?? 0,               icon: CheckCircle,   color: 'text-green-600',  bg: 'bg-green-50',  href: '/inspect/tasks' },
+    { label: 'Critical Tasks',     value: stats?.criticalTasks ?? 0,           icon: AlertTriangle, color: 'text-red-600',    bg: 'bg-red-50',    href: '/inspect/tasks' },
+    { label: 'Draft Reports',      value: stats?.draftReports ?? 0,            icon: ClipboardList, color: 'text-amber-600',  bg: 'bg-amber-50',  href: '/inspect/reports' },
+    { label: 'Field Captures',     value: stats?.totalCaptures ?? 0,           icon: Camera,        color: 'text-purple-600', bg: 'bg-purple-50', href: undefined },
+    { label: 'Upcoming (7 days)',  value: stats?.upcomingSchedulesCount ?? 0,  icon: CalendarDays,  color: 'text-sky-600',    bg: 'bg-sky-50',    href: '/inspect/schedules' },
   ];
 
   const hasReports = (stats?.totalReports ?? 0) > 0;
@@ -286,16 +292,28 @@ export default function InspectDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {statCards.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-white border border-dark-100 rounded-xl p-5">
-            <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center mb-3`}>
-              <Icon className={`w-5 h-5 ${color}`} />
-            </div>
-            <p className="text-2xl font-bold text-dark-900">{loading ? '—' : value}</p>
-            <p className="text-dark-500 text-xs mt-0.5">{label}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+        {statCards.map(({ label, value, icon: Icon, color, bg, href }) => {
+          const inner = (
+            <>
+              <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center mb-3`}>
+                <Icon className={`w-5 h-5 ${color}`} />
+              </div>
+              <p className="text-2xl font-bold text-dark-900">{loading ? '—' : value}</p>
+              <p className="text-dark-500 text-xs mt-0.5">{label}</p>
+            </>
+          );
+          return href ? (
+            <Link
+              key={label} href={href}
+              className="bg-white border border-dark-100 rounded-xl p-5 hover:border-brand-200 hover:shadow-sm transition-all"
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div key={label} className="bg-white border border-dark-100 rounded-xl p-5">{inner}</div>
+          );
+        })}
       </div>
 
       {/* Quick links */}
