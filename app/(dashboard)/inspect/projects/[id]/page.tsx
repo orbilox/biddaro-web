@@ -269,6 +269,188 @@ function AddCaptureModal({ projectId, onAdded, onClose, initialSection }: {
   );
 }
 
+// ─── Bulk Photo Upload Modal ──────────────────────────────────────────────────
+
+interface BulkItem {
+  file: File;
+  preview: string;
+  uploading: boolean;
+  done: boolean;
+  error: boolean;
+}
+
+function BulkPhotoUploadModal({ projectId, onDone, onClose }: {
+  projectId: string;
+  onDone: () => void;
+  onClose: () => void;
+}) {
+  const [items, setItems] = useState<BulkItem[]>([]);
+  const [section, setSection] = useState('');
+  const [severity, setSeverity] = useState('normal');
+  const [uploading, setUploading] = useState(false);
+  const [done, setDone] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = (fileList: FileList | null) => {
+    if (!fileList) return;
+    const newItems: BulkItem[] = Array.from(fileList).map(f => ({
+      file: f,
+      preview: URL.createObjectURL(f),
+      uploading: false,
+      done: false,
+      error: false,
+    }));
+    setItems(prev => [...prev, ...newItems]);
+  };
+
+  const removeItem = (idx: number) => {
+    setItems(prev => {
+      URL.revokeObjectURL(prev[idx].preview);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const uploadAll = async () => {
+    if (items.length === 0) return;
+    setUploading(true);
+    const { uploadApi, inspectApi: api } = await import('@/lib/api');
+
+    await Promise.all(items.map(async (item, i) => {
+      setItems(prev => prev.map((it, idx) => idx === i ? { ...it, uploading: true } : it));
+      try {
+        const upRes = await uploadApi.images([item.file]);
+        const url = upRes.data?.data?.files?.[0]?.url;
+        if (!url) throw new Error('no url');
+        await api.addCapture(projectId, { type: 'photo', imageUrl: url, section: section || undefined, severity });
+        setItems(prev => prev.map((it, idx) => idx === i ? { ...it, uploading: false, done: true } : it));
+      } catch {
+        setItems(prev => prev.map((it, idx) => idx === i ? { ...it, uploading: false, error: true } : it));
+      }
+    }));
+
+    setUploading(false);
+    setDone(true);
+    onDone();
+  };
+
+  const successCount = items.filter(i => i.done).length;
+  const errorCount = items.filter(i => i.error).length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-900/60 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-dark-900 text-lg">Bulk Photo Upload</h3>
+          <button onClick={onClose} className="text-dark-400 hover:text-dark-700 p-1"><X className="w-5 h-5" /></button>
+        </div>
+
+        {/* Drop zone */}
+        <div
+          className="border-2 border-dashed border-dark-200 rounded-xl p-6 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-colors mb-4"
+          onClick={() => inputRef.current?.click()}
+          onDragOver={e => e.preventDefault()}
+          onDrop={e => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
+        >
+          <Camera className="w-8 h-8 text-dark-300 mx-auto mb-2" />
+          <p className="text-sm text-dark-600 font-medium">Drop photos here or click to select</p>
+          <p className="text-xs text-dark-400 mt-1">Select multiple files at once</p>
+          <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
+        </div>
+
+        {/* Settings row */}
+        <div className="flex gap-3 mb-4">
+          <div className="flex-1">
+            <label className="block text-xs font-semibold text-dark-600 mb-1">Section (all photos)</label>
+            <input
+              type="text"
+              value={section}
+              onChange={e => setSection(e.target.value)}
+              placeholder="e.g. Foundation, Roof, Electrical…"
+              className="w-full border border-dark-200 rounded-lg px-3 py-1.5 text-sm text-dark-800 focus:outline-none focus:ring-1 focus:ring-brand-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-dark-600 mb-1">Severity</label>
+            <select
+              value={severity}
+              onChange={e => setSeverity(e.target.value)}
+              className="border border-dark-200 rounded-lg px-3 py-1.5 text-sm text-dark-700 focus:outline-none focus:ring-1 focus:ring-brand-400"
+            >
+              <option value="normal">Normal</option>
+              <option value="warning">Warning</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Preview grid */}
+        {items.length > 0 && (
+          <div className="overflow-y-auto flex-1 mb-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {items.map((item, i) => (
+                <div key={i} className="relative rounded-xl overflow-hidden bg-dark-100 aspect-square group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                  {item.uploading && (
+                    <div className="absolute inset-0 bg-dark-900/60 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    </div>
+                  )}
+                  {item.done && (
+                    <div className="absolute inset-0 bg-green-900/50 flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                  {item.error && (
+                    <div className="absolute inset-0 bg-red-900/50 flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                  {!item.uploading && !item.done && !item.error && (
+                    <button
+                      onClick={() => removeItem(i)}
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-dark-900/70 text-white rounded-lg p-0.5 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-3 border-t border-dark-100 mt-auto">
+          {done ? (
+            <p className="text-sm text-dark-600">
+              {successCount > 0 && <span className="text-green-600 font-semibold">{successCount} uploaded</span>}
+              {errorCount > 0 && <span className="text-red-600 font-semibold ml-2">{errorCount} failed</span>}
+            </p>
+          ) : (
+            <p className="text-sm text-dark-500">{items.length} photo{items.length !== 1 ? 's' : ''} selected</p>
+          )}
+          <div className="flex gap-2">
+            <button onClick={onClose} className="text-sm border border-dark-200 text-dark-600 px-4 py-2 rounded-xl hover:bg-dark-50 transition-colors">
+              {done ? 'Close' : 'Cancel'}
+            </button>
+            {!done && (
+              <button
+                onClick={uploadAll}
+                disabled={items.length === 0 || uploading}
+                className="text-sm bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold px-4 py-2 rounded-xl transition-colors flex items-center gap-1.5"
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                {uploading ? 'Uploading…' : 'Upload All'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Schedule Panel ──────────────────────────────────────────────────────────
 
 interface Schedule {
@@ -667,6 +849,7 @@ export default function ProjectDetail() {
   const [generating, setGenerating] = useState(false);
   const [showCapture, setShowCapture] = useState(false);
   const [captureInitialSection, setCaptureInitialSection] = useState<string | undefined>(undefined);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
   const [language, setLanguage] = useState('en');
@@ -895,6 +1078,32 @@ export default function ProjectDetail() {
     }
   };
 
+  const downloadCapturesCSV = () => {
+    if (!project) return;
+    const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['Date', 'Type', 'Section', 'Severity', 'Content', 'Has Photo', 'Has Annotation', 'Tags'],
+      ...project.captures.map(c => [
+        esc(c.createdAt ? new Date(c.createdAt).toISOString() : ''),
+        esc(c.type ?? ''),
+        esc(c.section ?? ''),
+        esc(c.severity ?? 'normal'),
+        esc(c.content ?? ''),
+        c.imageUrl ? 'Yes' : 'No',
+        c.annotation ? 'Yes' : 'No',
+        esc(Array.isArray(c.tags) ? c.tags.join(', ') : ''),
+      ]),
+    ];
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${project.name ?? 'captures'}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const saveNoteEdit = async (captureId: string) => {
     const trimmed = editNoteContent.trim();
     if (!project) return;
@@ -914,6 +1123,21 @@ export default function ProjectDetail() {
   };
 
   // Project header inline editing
+  const [changingStatus, setChangingStatus] = useState(false);
+
+  const changeProjectStatus = async (newStatus: string) => {
+    if (!project) return;
+    setChangingStatus(true);
+    try {
+      await inspectApi.updateProject(project.id, { status: newStatus });
+      setProject(prev => prev ? { ...prev, status: newStatus } : prev);
+    } catch {
+      toast.error('Failed to update status');
+    } finally {
+      setChangingStatus(false);
+    }
+  };
+
   const [editingField, setEditingField] = useState<'name' | 'clientName' | 'location' | null>(null);
   const [fieldDraft, setFieldDraft] = useState('');
   const [savingField, setSavingField] = useState(false);
@@ -975,6 +1199,13 @@ export default function ProjectDetail() {
           onAdded={load}
           onClose={() => { setShowCapture(false); setCaptureInitialSection(undefined); }}
           initialSection={captureInitialSection}
+        />
+      )}
+      {showBulkUpload && (
+        <BulkPhotoUploadModal
+          projectId={id}
+          onDone={load}
+          onClose={() => setShowBulkUpload(false)}
         />
       )}
 
@@ -1077,6 +1308,23 @@ export default function ProjectDetail() {
             )}
 
             {project.template && <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full border border-brand-100">📋 {project.template.name}</span>}
+            <select
+              value={project.status ?? 'active'}
+              onChange={e => changeProjectStatus(e.target.value)}
+              disabled={changingStatus}
+              title="Project status"
+              className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border appearance-none cursor-pointer transition-colors focus:outline-none disabled:opacity-60 ${
+                (project.status ?? 'active') === 'completed'
+                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                  : (project.status ?? 'active') === 'archived'
+                  ? 'bg-dark-100 text-dark-500 border-dark-200 hover:bg-dark-200'
+                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+              }`}
+            >
+              <option value="active">🟢 Active</option>
+              <option value="completed">✅ Completed</option>
+              <option value="archived">📦 Archived</option>
+            </select>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -1184,6 +1432,13 @@ export default function ProjectDetail() {
                 <span className="ml-2 text-sm font-normal text-dark-400">({project.captures.length})</span>
               </h2>
             )}
+            <button
+              onClick={() => setShowBulkUpload(true)}
+              className="inline-flex items-center gap-1.5 border border-dark-200 text-dark-600 hover:bg-dark-50 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+              title="Upload multiple photos at once"
+            >
+              <Camera className="w-3.5 h-3.5" /> Bulk Upload
+            </button>
             <button
               onClick={() => setShowCapture(true)}
               className="inline-flex items-center gap-1.5 bg-dark-900 hover:bg-dark-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
@@ -1329,6 +1584,13 @@ export default function ProjectDetail() {
                   >
                     ⊞ Group
                   </button>
+                  <button
+                    onClick={downloadCapturesCSV}
+                    className="text-xs px-2.5 py-1 rounded-full border border-dark-200 bg-white text-dark-500 font-medium hover:border-dark-400 hover:text-dark-700 transition-colors flex items-center gap-1"
+                    title="Export all captures as CSV"
+                  >
+                    ↓ Export CSV
+                  </button>
                   {(captureSearch || captureTypeFilter !== 'all' || captureSevFilter !== 'all' || captureTagFilter) && (
                     <button onClick={() => { setCaptureSearch(''); setCaptureTypeFilter('all'); setCaptureSevFilter('all'); setCaptureTagFilter(null); }}
                       className="text-xs text-red-500 hover:text-red-700 px-2 py-1 transition-colors">
@@ -1455,12 +1717,59 @@ export default function ProjectDetail() {
                             <span className="text-white text-xs font-medium">View full size</span>
                           </div>
                         </div>
-                        {/* AI caption badge overlay */}
-                        {c.content && (
-                          <div className="absolute bottom-2 left-2 right-2 bg-dark-900/80 backdrop-blur-sm rounded-lg px-3 py-2">
-                            <p className="text-white text-xs leading-relaxed line-clamp-2">{c.content}</p>
+                        {/* AI caption overlay — editable on hover */}
+                        {c.content && editNoteId !== c.id && (
+                          <div className="absolute bottom-2 left-2 right-2 bg-dark-900/80 backdrop-blur-sm rounded-lg px-3 py-2 group/caption">
+                            <p className="text-white text-xs leading-relaxed line-clamp-2 pr-5">{c.content}</p>
+                            <button
+                              onClick={e => { e.stopPropagation(); setEditNoteId(c.id); setEditNoteContent(c.content ?? ''); }}
+                              className="absolute top-1.5 right-2 opacity-0 group-hover/caption:opacity-100 transition-opacity text-white/60 hover:text-white"
+                              title="Edit caption (⌘↵ to save)"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
                           </div>
                         )}
+                        {!c.content && editNoteId !== c.id && (
+                          <button
+                            onClick={e => { e.stopPropagation(); setEditNoteId(c.id); setEditNoteContent(''); }}
+                            className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity bg-dark-900/60 hover:bg-dark-900/80 text-white/70 hover:text-white text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
+                          >
+                            <Pencil className="w-3 h-3" /> Add caption
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {c.type === 'photo' && editNoteId === c.id && (
+                      <div className="mb-2">
+                        <textarea
+                          autoFocus
+                          value={editNoteContent}
+                          onChange={e => setEditNoteContent(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Escape') setEditNoteId(null);
+                            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNoteEdit(c.id);
+                          }}
+                          rows={2}
+                          placeholder="Add a caption for this photo…"
+                          className="w-full text-sm border border-brand-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400 resize-none text-dark-800"
+                        />
+                        <div className="flex gap-2 mt-1.5">
+                          <button
+                            onClick={() => saveNoteEdit(c.id)}
+                            disabled={savingNoteId === c.id}
+                            className="text-xs bg-brand-600 hover:bg-brand-700 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {savingNoteId === c.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditNoteId(null)}
+                            className="text-xs border border-dark-200 text-dark-600 px-3 py-1.5 rounded-lg hover:bg-dark-50 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     )}
                     {c.type !== 'photo' && (
