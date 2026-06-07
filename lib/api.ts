@@ -762,6 +762,7 @@ export const inspectApi = {
   // Captures
   listCaptures: (projectId: string) => api.get(`/inspect/projects/${projectId}/captures`),
   addCapture: (projectId: string, data: Record<string, unknown>) => api.post(`/inspect/projects/${projectId}/captures`, data),
+  getCapture: (projectId: string, cid: string) => api.get(`/inspect/projects/${projectId}/captures/${cid}`),
   updateCapture: (projectId: string, cid: string, data: Record<string, unknown>) => api.put(`/inspect/projects/${projectId}/captures/${cid}`, data),
   deleteCapture: (projectId: string, cid: string) => api.delete(`/inspect/projects/${projectId}/captures/${cid}`),
 

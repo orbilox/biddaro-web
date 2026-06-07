@@ -6,7 +6,7 @@ import {
   ArrowLeft, Plus, Camera, Mic, FileText, Zap, Trash2,
   AlertTriangle, CheckCircle, Clock, ArrowRight, Loader2,
   MapPin, User, Mail, FolderOpen, Sparkles, Upload, X,
-  CalendarDays, Bell, RotateCcw,
+  CalendarDays, Bell, RotateCcw, PenLine,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -676,7 +676,18 @@ export default function ProjectDetail() {
                     {c.type !== 'photo' && c.content && (
                       <p className="text-dark-700 text-sm leading-relaxed">{c.content}</p>
                     )}
-                    {c.annotation && <p className="text-dark-500 text-xs mt-1 italic">{c.annotation}</p>}
+                    {c.annotation && (() => {
+                      try {
+                        const parsed = JSON.parse(c.annotation);
+                        const count = Array.isArray(parsed.shapes) ? parsed.shapes.length : 0;
+                        if (count > 0) return (
+                          <span className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full mt-1 inline-flex items-center gap-1">
+                            <PenLine className="w-2.5 h-2.5" /> {count} annotation{count !== 1 ? 's' : ''}
+                          </span>
+                        );
+                      } catch { /* not JSON */ }
+                      return <p className="text-dark-500 text-xs mt-1 italic">{c.annotation}</p>;
+                    })()}
                     <div className="flex items-center gap-2 mt-2">
                       <SeverityBadge severity={c.severity} />
                       {c.section && <span className="text-xs text-dark-400 bg-dark-50 px-2 py-0.5 rounded-full">{c.section}</span>}
@@ -687,16 +698,25 @@ export default function ProjectDetail() {
                   </div>
                   <div className="flex flex-col gap-1 flex-shrink-0">
                     {c.type === 'photo' && c.imageUrl && (
-                      <button
-                        onClick={() => autoCaptionPhoto(c.id)}
-                        disabled={captioningId === c.id}
-                        title="AI Auto-Caption"
-                        className="p-1.5 text-dark-300 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        {captioningId === c.id
-                          ? <Loader2 className="w-4 h-4 animate-spin text-brand-500" />
-                          : <Sparkles className="w-4 h-4" />}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => router.push(`/inspect/projects/${project.id}/captures/${c.id}/annotate`)}
+                          title="Annotate Photo"
+                          className="p-1.5 text-dark-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        >
+                          <PenLine className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => autoCaptionPhoto(c.id)}
+                          disabled={captioningId === c.id}
+                          title="AI Auto-Caption"
+                          className="p-1.5 text-dark-300 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {captioningId === c.id
+                            ? <Loader2 className="w-4 h-4 animate-spin text-brand-500" />
+                            : <Sparkles className="w-4 h-4" />}
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => deleteCapture(c.id)}
