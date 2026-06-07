@@ -7,7 +7,7 @@ import {
   AlertTriangle, CheckCircle, Clock, ArrowRight, Loader2,
   MapPin, User, Mail, FolderOpen, Sparkles, Upload, X,
   CalendarDays, Bell, RotateCcw, PenLine, ChevronLeft, ChevronRight,
-  ZoomIn, Download,
+  ZoomIn, Download, Search,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -698,6 +698,23 @@ export default function ProjectDetail() {
     .filter(c => c.type === 'photo' && c.imageUrl)
     .map(c => ({ id: c.id, url: c.imageUrl!, caption: c.content, section: c.section }));
 
+  // Capture filter state
+  const [captureSearch, setCaptureSearch] = useState('');
+  const [captureTypeFilter, setCaptureTypeFilter] = useState<'all' | 'photo' | 'text' | 'voice'>('all');
+  const [captureSevFilter, setCaptureSevFilter] = useState<'all' | 'critical' | 'warning' | 'normal'>('all');
+
+  const filteredCaptures = (project?.captures ?? []).filter(c => {
+    if (captureTypeFilter !== 'all' && c.type !== captureTypeFilter) return false;
+    if (captureSevFilter !== 'all' && (c.severity || 'normal') !== captureSevFilter) return false;
+    if (captureSearch.trim()) {
+      const q = captureSearch.toLowerCase();
+      const inContent = c.content?.toLowerCase().includes(q) ?? false;
+      const inSection = c.section?.toLowerCase().includes(q) ?? false;
+      if (!inContent && !inSection) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {/* Photo Lightbox */}
@@ -801,7 +818,57 @@ export default function ProjectDetail() {
             </div>
           ) : (
             <div className="space-y-3">
-              {project.captures.map(c => (
+              {/* Filter bar */}
+              <div className="bg-dark-50 border border-dark-100 rounded-xl p-3 space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={captureSearch}
+                    onChange={e => setCaptureSearch(e.target.value)}
+                    placeholder="Search captures by content or section…"
+                    className="w-full pl-9 pr-4 py-2 text-xs border border-dark-200 rounded-lg bg-white text-dark-800 placeholder:text-dark-300 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                  />
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {(['all', 'photo', 'text', 'voice'] as const).map(t => (
+                    <button key={t} onClick={() => setCaptureTypeFilter(t)}
+                      className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${captureTypeFilter === t ? 'bg-dark-800 text-white border-dark-800' : 'bg-white text-dark-500 border-dark-200 hover:border-dark-400'}`}>
+                      {t === 'all' ? 'All Types' : t.charAt(0).toUpperCase() + t.slice(1)}
+                    </button>
+                  ))}
+                  <span className="text-dark-200 text-xs py-1">|</span>
+                  {(['all', 'critical', 'warning', 'normal'] as const).map(s => (
+                    <button key={s} onClick={() => setCaptureSevFilter(s)}
+                      className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${captureSevFilter === s ? (
+                        s === 'critical' ? 'bg-red-600 text-white border-red-600' :
+                        s === 'warning'  ? 'bg-amber-500 text-white border-amber-500' :
+                        s === 'normal'   ? 'bg-green-600 text-white border-green-600' :
+                        'bg-dark-800 text-white border-dark-800'
+                      ) : 'bg-white text-dark-500 border-dark-200 hover:border-dark-400'}`}>
+                      {s === 'all' ? 'All Severity' : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                  {(captureSearch || captureTypeFilter !== 'all' || captureSevFilter !== 'all') && (
+                    <button onClick={() => { setCaptureSearch(''); setCaptureTypeFilter('all'); setCaptureSevFilter('all'); }}
+                      className="text-xs text-red-500 hover:text-red-700 px-2 py-1 transition-colors ml-auto">
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+                {(captureSearch || captureTypeFilter !== 'all' || captureSevFilter !== 'all') && (
+                  <p className="text-xs text-dark-400">
+                    Showing {filteredCaptures.length} of {project.captures.length} captures
+                  </p>
+                )}
+              </div>
+              {filteredCaptures.length === 0 && (
+                <div className="text-center py-8 text-dark-400 text-sm">
+                  <Search className="w-6 h-6 mx-auto mb-2 opacity-30" />
+                  No captures match the current filters.
+                </div>
+              )}
+              {filteredCaptures.map(c => (
                 <div key={c.id} className="bg-white border border-dark-100 rounded-xl p-4 flex gap-4">
                   <div className="w-8 h-8 rounded-lg bg-dark-50 flex items-center justify-center flex-shrink-0">
                     {captureTypeIcon(c.type)}
