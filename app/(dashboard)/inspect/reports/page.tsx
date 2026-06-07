@@ -3,7 +3,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   FileText, Search, ArrowRight, Send, CheckCircle, Clock,
-  Edit3, Loader2, FolderOpen, Filter,
+  Edit3, Loader2, FolderOpen, Filter, Download, X, Square,
+  CheckSquare, Package,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -46,13 +47,28 @@ function relativeDate(iso: string) {
   return `${Math.floor(days / 365)}y ago`;
 }
 
+/** Trigger a blob download in the browser */
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function AllReportsPage() {
-  const [reports, setReports]   = useState<Report[]>([]);
-  const [total, setTotal]       = useState(0);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
-  const [statusFilter, setStatus] = useState('all');
-  const [page, setPage]         = useState(1);
+  const [reports, setReports]       = useState<Report[]>([]);
+  const [total, setTotal]           = useState(0);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [statusFilter, setStatus]   = useState('all');
+  const [page, setPage]             = useState(1);
+  const [selected, setSelected]     = useState<Set<string>>(new Set());
+  const [exporting, setExporting]   = useState(false);
+  const [includePhotos, setInclude] = useState(false);
   const LIMIT = 20;
 
   const load = useCallback(async () => {
@@ -72,7 +88,7 @@ export default function AllReportsPage() {
   }, [page, statusFilter]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [statusFilter]);
+  useEffect(() => { setPage(1); setSelected(new Set()); }, [statusFilter]);
 
   const filtered = search.trim()
     ? reports.filter(r =>
@@ -84,11 +100,57 @@ export default function AllReportsPage() {
 
   const totalPages = Math.ceil(total / LIMIT);
 
-  // Status count summary
   const statusCounts = reports.reduce<Record<string, number>>((acc, r) => {
     acc[r.status] = (acc[r.status] ?? 0) + 1;
     return acc;
   }, {});
+
+  // ── Selection helpers ────────────────────────────────────────────────────────
+  const toggleRow = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every(r => selected.has(r.id));
+
+  const toggleAll = () => {
+    if (allVisibleSelected) {
+      setSelected(prev => {
+        const next = new Set(prev);
+        filtered.forEach(r => next.delete(r.id));
+        return next;
+      });
+    } else {
+      setSelected(prev => {
+        const next = new Set(prev);
+        filtered.forEach(r => next.add(r.id));
+        return next;
+      });
+    }
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  // ── Bulk export ──────────────────────────────────────────────────────────────
+  const handleBulkExport = async () => {
+    if (selected.size === 0) return;
+    setExporting(true);
+    try {
+      const res = await inspectApi.bulkExportReports(Array.from(selected), includePhotos);
+      const blob = new Blob([res.data as BlobPart], { type: 'application/zip' });
+      const dateStr = new Date().toISOString().slice(0, 10);
+      downloadBlob(blob, `biddaro-reports-${dateStr}.zip`);
+      toast.success(`Downloaded ${selected.size} report${selected.size !== 1 ? 's' : ''} as ZIP`);
+      clearSelection();
+    } catch {
+      toast.error('Failed to export reports. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -134,7 +196,7 @@ export default function AllReportsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => { setSearch(e.target.value); setSelected(new Set()); }}
             placeholder="Search by report title, project, or client…"
             className="w-full border border-dark-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-brand-400"
           />
@@ -188,7 +250,20 @@ export default function AllReportsPage() {
         <>
           <div className="bg-white border border-dark-100 rounded-2xl overflow-hidden mb-6">
             {/* Table header */}
-            <div className="grid grid-cols-[1fr_160px_120px_100px_36px] gap-4 px-5 py-3 bg-dark-50 border-b border-dark-100 text-xs font-bold text-dark-500 uppercase tracking-wider">
+            <div className="grid grid-cols-[36px_1fr_160px_120px_100px_36px] gap-4 px-5 py-3 bg-dark-50 border-b border-dark-100 text-xs font-bold text-dark-500 uppercase tracking-wider">
+              {/* Select-all checkbox */}
+              <div className="flex items-center justify-center">
+                <button
+                  onClick={toggleAll}
+                  className="text-dark-400 hover:text-brand-600 transition-colors"
+                  title={allVisibleSelected ? 'Deselect all' : 'Select all'}
+                >
+                  {allVisibleSelected
+                    ? <CheckSquare className="w-4 h-4 text-brand-600" />
+                    : <Square className="w-4 h-4" />
+                  }
+                </button>
+              </div>
               <div>Report</div>
               <div>Project</div>
               <div>Client</div>
@@ -199,14 +274,29 @@ export default function AllReportsPage() {
             <div className="divide-y divide-dark-50">
               {filtered.map(r => {
                 const { color, icon, label } = statusMeta(r.status);
+                const isChecked = selected.has(r.id);
                 return (
-                  <Link
+                  <div
                     key={r.id}
-                    href={`/inspect/reports/${r.id}`}
-                    className="grid grid-cols-[1fr_160px_120px_100px_36px] gap-4 px-5 py-4 hover:bg-dark-50 transition-colors group items-center"
+                    className={`grid grid-cols-[36px_1fr_160px_120px_100px_36px] gap-4 px-5 py-4 transition-colors group items-center ${
+                      isChecked ? 'bg-brand-50/60' : 'hover:bg-dark-50'
+                    }`}
                   >
-                    {/* Title + status */}
-                    <div className="min-w-0">
+                    {/* Row checkbox */}
+                    <div className="flex items-center justify-center">
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleRow(r.id); }}
+                        className="text-dark-300 hover:text-brand-600 transition-colors"
+                      >
+                        {isChecked
+                          ? <CheckSquare className="w-4 h-4 text-brand-600" />
+                          : <Square className="w-4 h-4" />
+                        }
+                      </button>
+                    </div>
+
+                    {/* Title + status — clicking navigates */}
+                    <Link href={`/inspect/reports/${r.id}`} className="min-w-0 block">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-dark-900 text-sm truncate group-hover:text-brand-700 transition-colors">
                           {r.title}
@@ -218,27 +308,27 @@ export default function AllReportsPage() {
                       {r.sentAt && r.sentTo && (
                         <p className="text-xs text-green-600 mt-0.5">Sent to {r.sentTo}</p>
                       )}
-                    </div>
+                    </Link>
                     {/* Project */}
-                    <div className="min-w-0">
+                    <Link href={`/inspect/reports/${r.id}`} className="min-w-0 block">
                       <p className="text-sm text-dark-700 truncate">{r.project.name}</p>
                       {r.project.location && (
                         <p className="text-xs text-dark-400 truncate">{r.project.location}</p>
                       )}
-                    </div>
+                    </Link>
                     {/* Client */}
-                    <div className="min-w-0">
+                    <Link href={`/inspect/reports/${r.id}`} className="min-w-0 block">
                       <p className="text-sm text-dark-600 truncate">{r.project.clientName ?? '—'}</p>
-                    </div>
+                    </Link>
                     {/* Date */}
-                    <div>
+                    <Link href={`/inspect/reports/${r.id}`} className="block">
                       <p className="text-sm text-dark-500">{relativeDate(r.createdAt)}</p>
-                    </div>
+                    </Link>
                     {/* Arrow */}
                     <div className="flex justify-end">
                       <ArrowRight className="w-4 h-4 text-dark-300 group-hover:text-brand-500 transition-colors" />
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
@@ -267,6 +357,52 @@ export default function AllReportsPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* ── Bulk action bar (floats at the bottom when items are selected) ── */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-dark-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-dark-700 animate-in slide-in-from-bottom-2 duration-200">
+          {/* Count */}
+          <span className="font-semibold text-sm flex items-center gap-2">
+            <Package className="w-4 h-4 text-brand-300" />
+            {selected.size} report{selected.size !== 1 ? 's' : ''} selected
+          </span>
+          <div className="w-px h-5 bg-dark-600" />
+
+          {/* Include photos toggle */}
+          <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includePhotos}
+              onChange={e => setInclude(e.target.checked)}
+              className="w-3.5 h-3.5 accent-brand-400"
+            />
+            <span className="text-dark-300">Include photos</span>
+          </label>
+          <div className="w-px h-5 bg-dark-600" />
+
+          {/* Export ZIP button */}
+          <button
+            onClick={handleBulkExport}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-400 disabled:opacity-50 text-white font-semibold text-sm px-4 py-1.5 rounded-xl transition-colors"
+          >
+            {exporting
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Download className="w-3.5 h-3.5" />
+            }
+            {exporting ? 'Generating…' : 'Export ZIP'}
+          </button>
+
+          {/* Clear selection */}
+          <button
+            onClick={clearSelection}
+            className="p-1 rounded-lg hover:bg-dark-700 transition-colors text-dark-400 hover:text-white"
+            title="Clear selection"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       )}
     </div>
   );

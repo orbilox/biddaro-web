@@ -798,6 +798,8 @@ export const inspectApi = {
   exportDocx:        (id: string) => api.get(`/inspect/reports/${id}/export/docx`, { responseType: 'blob' }),
   exportPdf:         (id: string, includePhotos = true) => api.get(`/inspect/reports/${id}/export/pdf${includePhotos ? '' : '?photos=0'}`, { responseType: 'blob' }),
   exportCertificate: (id: string) => api.get(`/inspect/reports/${id}/export/certificate`, { responseType: 'blob' }),
+  bulkExportReports: (reportIds: string[], includePhotos = false) =>
+    api.post('/inspect/reports/bulk-export', { reportIds, includePhotos }, { responseType: 'blob' }),
   captionCapture: (projectId: string, cid: string) => api.post(`/inspect/projects/${projectId}/captures/${cid}/caption`, {}),
   searchPortfolio:  (query: string) => api.post('/inspect/search', { query }),
   compareReports:   (reportIdA: string, reportIdB: string) => api.post('/inspect/compare', { reportIdA, reportIdB }),
