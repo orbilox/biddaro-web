@@ -106,7 +106,47 @@ function AddCaptureModal({ projectId, onAdded, onClose, initialSection }: {
   const [severity, setSeverity] = useState('normal');
   const [annotation, setAnnotation] = useState('');
   const [saving, setSaving] = useState(false);
+  const [recording, setRecording] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  function toggleRecording() {
+    // Web Speech API — only available in Chromium browsers
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      toast.error('Speech recognition is not supported in this browser. Use Chrome or Edge.');
+      return;
+    }
+    if (recording) {
+      recognitionRef.current?.stop();
+      setRecording(false);
+      return;
+    }
+    const rec = new SpeechRecognitionAPI();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = 'en-IN';
+    let finalTranscript = content;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalTranscript += e.results[i][0].transcript + ' ';
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      setContent(finalTranscript + interim);
+    };
+    rec.onend = () => { setRecording(false); setContent(finalTranscript.trim()); };
+    rec.onerror = () => { setRecording(false); toast.error('Recording stopped'); };
+    recognitionRef.current = rec;
+    rec.start();
+    setRecording(true);
+  }
 
   async function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -224,15 +264,39 @@ function AddCaptureModal({ projectId, onAdded, onClose, initialSection }: {
 
           {type !== 'photo' && (
             <div>
-              <label className="block text-sm font-semibold text-dark-700 mb-1.5">
-                {type === 'voice' ? 'Transcribed text / voice note' : 'Observation *'}
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-semibold text-dark-700">
+                  {type === 'voice' ? 'Voice Note / Transcription' : 'Observation *'}
+                </label>
+                {type === 'voice' && (
+                  <button
+                    type="button"
+                    onClick={toggleRecording}
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
+                      recording
+                        ? 'bg-red-600 text-white animate-pulse'
+                        : 'bg-brand-50 border border-brand-200 text-brand-700 hover:bg-brand-100'
+                    }`}
+                    title={recording ? 'Stop recording' : 'Start speech-to-text recording'}
+                  >
+                    <Mic className="w-3.5 h-3.5" />
+                    {recording ? '● Recording… tap to stop' : '🎙 Record'}
+                  </button>
+                )}
+              </div>
               <textarea
                 required={type === 'text'} value={content} onChange={e => setContent(e.target.value)}
                 rows={4}
-                placeholder={type === 'voice' ? 'Paste transcribed voice note here...' : 'Describe what you observed on site...'}
-                className="w-full border border-dark-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400 resize-none"
+                placeholder={type === 'voice' ? recording ? 'Listening… speak your observation' : 'Tap 🎙 Record to dictate, or type here…' : 'Describe what you observed on site...'}
+                className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none resize-none transition-colors ${
+                  recording ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-dark-200 focus:border-brand-400'
+                }`}
               />
+              {type === 'voice' && (
+                <p className="text-xs text-dark-400 mt-1">
+                  Uses your browser&apos;s speech recognition. Works best in Chrome/Edge on mobile.
+                </p>
+              )}
             </div>
           )}
 
