@@ -802,6 +802,9 @@ export const inspectApi = {
   createTask:  (reportId: string, data: Record<string, unknown>) => api.post(`/inspect/reports/${reportId}/tasks`, data),
   updateTask:  (tid: string, data: Record<string, unknown>) => api.put(`/inspect/tasks/${tid}`, data),
   deleteTask:  (tid: string) => api.delete(`/inspect/tasks/${tid}`),
+  // Inspector settings
+  getSettings:    () => api.get('/inspect/settings'),
+  upsertSettings: (data: Record<string, unknown>) => api.put('/inspect/settings', data),
 };
 
 export default api;
