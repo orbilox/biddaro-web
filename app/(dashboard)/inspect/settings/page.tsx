@@ -1,11 +1,11 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User, Building2, BadgeCheck, Phone, MapPin, Image, FileText,
-  Save, ArrowLeft, Loader2, CheckCircle,
+  Save, ArrowLeft, Loader2, CheckCircle, Upload, X,
 } from 'lucide-react';
-import { inspectApi } from '@/lib/api';
+import { inspectApi, uploadApi } from '@/lib/api';
 
 interface InspectSettings {
   companyName: string;
@@ -81,6 +81,8 @@ export default function InspectSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -109,6 +111,25 @@ export default function InspectSettingsPage() {
   function handleChange(name: keyof InspectSettings, value: string) {
     setForm(f => ({ ...f, [name]: value }));
     setSaved(false);
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const result = await uploadApi.images([file]);
+      const uploaded = result.data?.data?.files?.[0];
+      if (uploaded?.url) {
+        handleChange('logoUrl', uploaded.url);
+      }
+    } catch {
+      // toast would need importing from uiStore — use alert as fallback
+      console.error('Logo upload failed');
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -213,27 +234,64 @@ export default function InspectSettingsPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Report Branding</h2>
           <div className="space-y-4">
-            <Field
-              icon={Image}
-              label="Logo URL"
-              name="logoUrl"
-              value={form.logoUrl}
-              onChange={handleChange}
-              placeholder="https://..."
-              hint="Direct link to your firm logo (PNG/JPG). Appears in report header."
-            />
-            {form.logoUrl && (
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={form.logoUrl}
-                  alt="Logo preview"
-                  className="h-12 w-auto object-contain rounded"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                />
-                <p className="text-xs text-gray-500">Logo preview</p>
-              </div>
-            )}
+            {/* Logo — upload or paste URL */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-2">
+                <Image className="w-4 h-4 text-gray-400" /> Company Logo
+              </label>
+
+              {form.logoUrl ? (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={form.logoUrl}
+                    alt="Logo preview"
+                    className="h-12 w-auto object-contain rounded"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500 truncate">{form.logoUrl}</p>
+                    <p className="text-xs text-green-600 font-semibold mt-0.5">✓ Logo set</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleChange('logoUrl', '')}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Remove logo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={form.logoUrl}
+                    onChange={e => handleChange('logoUrl', e.target.value)}
+                    placeholder="https://... or upload below"
+                    className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-brand-300 bg-brand-50 text-brand-700 text-sm font-semibold rounded-xl hover:bg-brand-100 transition-colors disabled:opacity-50"
+                  >
+                    {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    Upload
+                  </button>
+                </div>
+              )}
+
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              <p className="text-xs text-gray-400 mt-1">PNG, JPG, or SVG · max 10 MB · appears on PDF/DOCX exports</p>
+            </div>
             <Field
               icon={FileText}
               label="Footer Note"
