@@ -1,12 +1,13 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Plus, Camera, Mic, FileText, Zap, Trash2,
   AlertTriangle, CheckCircle, Clock, ArrowRight, Loader2,
   MapPin, User, Mail, FolderOpen, Sparkles, Upload, X,
-  CalendarDays, Bell, RotateCcw, PenLine,
+  CalendarDays, Bell, RotateCcw, PenLine, ChevronLeft, ChevronRight,
+  ZoomIn, Download,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -448,6 +449,139 @@ function SchedulePanel({ projectId }: { projectId: string }) {
   );
 }
 
+// ─── Photo Lightbox ───────────────────────────────────────────────────────────
+
+interface LightboxPhoto {
+  id: string;
+  url: string;
+  caption: string | null;
+  section: string | null;
+}
+
+function Lightbox({
+  photos, initialIndex, onClose,
+}: {
+  photos: LightboxPhoto[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [idx, setIdx] = useState(initialIndex);
+  const photo = photos[idx];
+
+  const prev = useCallback(() => setIdx(i => (i - 1 + photos.length) % photos.length), [photos.length]);
+  const next = useCallback(() => setIdx(i => (i + 1) % photos.length), [photos.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if (e.key === 'Escape')     onClose();
+      if (e.key === 'ArrowLeft')  prev();
+      if (e.key === 'ArrowRight') next();
+    }
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose, prev, next]);
+
+  function downloadPhoto() {
+    if (!photo?.url) return;
+    const a = document.createElement('a');
+    a.href = photo.url;
+    a.download = `capture-${photo.id}.jpg`;
+    a.target = '_blank';
+    a.click();
+  }
+
+  if (!photo) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-dark-950/95 flex items-center justify-center"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      {/* Close */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors z-10"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* Download */}
+      <button
+        onClick={downloadPhoto}
+        className="absolute top-4 right-14 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors z-10"
+        title="Download photo"
+      >
+        <Download className="w-5 h-5" />
+      </button>
+
+      {/* Counter */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
+        {idx + 1} / {photos.length}
+      </div>
+
+      {/* Prev */}
+      {photos.length > 1 && (
+        <button
+          onClick={prev}
+          className="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-2xl transition-colors"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Main photo */}
+      <div className="max-w-5xl max-h-[80vh] mx-16 flex flex-col items-center gap-4">
+        <img
+          src={photo.url}
+          alt={photo.caption ?? 'Site capture'}
+          className="max-w-full max-h-[65vh] object-contain rounded-2xl shadow-2xl"
+          onError={e => { (e.target as HTMLImageElement).style.opacity = '0.3'; }}
+        />
+        {(photo.caption || photo.section) && (
+          <div className="text-center max-w-2xl">
+            {photo.section && (
+              <span className="text-xs text-white/50 uppercase tracking-wider font-semibold block mb-1">
+                {photo.section}
+              </span>
+            )}
+            {photo.caption && (
+              <p className="text-white/80 text-sm leading-relaxed">{photo.caption}</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Next */}
+      {photos.length > 1 && (
+        <button
+          onClick={next}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-2xl transition-colors"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Thumbnail strip */}
+      {photos.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 overflow-x-auto max-w-[90vw] px-4">
+          {photos.map((p, i) => (
+            <button
+              key={p.id}
+              onClick={() => setIdx(i)}
+              className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                i === idx ? 'border-white scale-110' : 'border-white/20 opacity-60 hover:opacity-80'
+              }`}
+            >
+              <img src={p.url} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ProjectDetail() {
@@ -461,6 +595,8 @@ export default function ProjectDetail() {
   const [importing, setImporting] = useState(false);
   const [language, setLanguage] = useState('en');
   const [captioningId, setCaptioningId] = useState<string | null>(null);
+  // Lightbox state
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -557,8 +693,21 @@ export default function ProjectDetail() {
     return <FileText className="w-4 h-4 text-dark-400" />;
   };
 
+  // Compute photo-only captures for lightbox navigation
+  const photoCaptures: LightboxPhoto[] = (project?.captures ?? [])
+    .filter(c => c.type === 'photo' && c.imageUrl)
+    .map(c => ({ id: c.id, url: c.imageUrl!, caption: c.content, section: c.section }));
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      {/* Photo Lightbox */}
+      {lightboxIndex !== null && (
+        <Lightbox
+          photos={photoCaptures}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
       {showCapture && (
         <AddCaptureModal
           projectId={id}
@@ -659,16 +808,28 @@ export default function ProjectDetail() {
                   </div>
                   <div className="flex-1 min-w-0">
                     {c.type === 'photo' && c.imageUrl && (
-                      <div className="mb-2 relative">
+                      <div className="mb-2 relative group cursor-pointer"
+                        onClick={() => {
+                          const i = photoCaptures.findIndex(p => p.id === c.id);
+                          if (i >= 0) setLightboxIndex(i);
+                        }}
+                      >
                         <img
                           src={c.imageUrl} alt="Site capture"
-                          className="w-full max-h-48 object-cover rounded-lg bg-dark-100"
+                          className="w-full max-h-48 object-cover rounded-lg bg-dark-100 transition-opacity group-hover:opacity-90"
                           onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
+                        {/* Zoom hint on hover */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="bg-dark-900/70 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                            <ZoomIn className="w-4 h-4 text-white" />
+                            <span className="text-white text-xs font-medium">View full size</span>
+                          </div>
+                        </div>
                         {/* AI caption badge overlay */}
                         {c.content && (
                           <div className="absolute bottom-2 left-2 right-2 bg-dark-900/80 backdrop-blur-sm rounded-lg px-3 py-2">
-                            <p className="text-white text-xs leading-relaxed">{c.content}</p>
+                            <p className="text-white text-xs leading-relaxed line-clamp-2">{c.content}</p>
                           </div>
                         )}
                       </div>
