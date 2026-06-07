@@ -773,6 +773,9 @@ export default function ProjectDetail() {
   const [editNoteContent, setEditNoteContent] = useState('');
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
 
+  // Section grouping toggle
+  const [groupBySection, setGroupBySection] = useState(false);
+
   // Collect all unique tags across this project's captures
   const allCaptureTags = Array.from(
     new Set((project?.captures ?? []).flatMap(c => c.tags ?? []))
@@ -791,6 +794,15 @@ export default function ProjectDetail() {
     }
     return true;
   });
+
+  // When grouping, sort by section (named sections first, then no-section)
+  const displayCaptures = groupBySection
+    ? [...filteredCaptures].sort((a, b) => {
+        const sa = a.section?.trim() || '￿';   // sort no-section to end
+        const sb = b.section?.trim() || '￿';
+        return sa.localeCompare(sb);
+      })
+    : filteredCaptures;
 
   const addTagToCapture = async (captureId: string, newTag: string) => {
     const trimmed = newTag.trim().toLowerCase();
@@ -1044,9 +1056,18 @@ export default function ProjectDetail() {
                       {s === 'all' ? 'All Severity' : s.charAt(0).toUpperCase() + s.slice(1)}
                     </button>
                   ))}
+                  <button
+                    onClick={() => setGroupBySection(v => !v)}
+                    className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ml-auto ${
+                      groupBySection ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-dark-500 border-dark-200 hover:border-dark-400'
+                    }`}
+                    title="Toggle group by section"
+                  >
+                    ⊞ Group
+                  </button>
                   {(captureSearch || captureTypeFilter !== 'all' || captureSevFilter !== 'all' || captureTagFilter) && (
                     <button onClick={() => { setCaptureSearch(''); setCaptureTypeFilter('all'); setCaptureSevFilter('all'); setCaptureTagFilter(null); }}
-                      className="text-xs text-red-500 hover:text-red-700 px-2 py-1 transition-colors ml-auto">
+                      className="text-xs text-red-500 hover:text-red-700 px-2 py-1 transition-colors">
                       Clear filters
                     </button>
                   )}
@@ -1082,8 +1103,25 @@ export default function ProjectDetail() {
                   No captures match the current filters.
                 </div>
               )}
-              {filteredCaptures.map(c => (
-                <div key={c.id} className="bg-white border border-dark-100 rounded-xl p-4 flex gap-4">
+              {displayCaptures.map((c, idx) => {
+                const currentSection = c.section?.trim() || '(No Section)';
+                const prevSection = idx > 0 ? (displayCaptures[idx - 1].section?.trim() || '(No Section)') : null;
+                const showHeader = groupBySection && currentSection !== prevSection;
+                const sectionCount = groupBySection
+                  ? displayCaptures.filter(dc => (dc.section?.trim() || '(No Section)') === currentSection).length
+                  : 0;
+                return (
+                <React.Fragment key={c.id}>
+                  {showHeader && (
+                    <div className="flex items-center gap-2 pt-1 pb-0.5">
+                      <div className="flex-1 flex items-center gap-2">
+                        <span className="text-xs font-bold text-dark-600 uppercase tracking-wider">{currentSection}</span>
+                        <span className="text-xs bg-dark-100 text-dark-500 px-2 py-0.5 rounded-full font-semibold">{sectionCount}</span>
+                      </div>
+                      <div className="h-px flex-1 bg-dark-100" />
+                    </div>
+                  )}
+                <div className="bg-white border border-dark-100 rounded-xl p-4 flex gap-4">
                   <div className="w-8 h-8 rounded-lg bg-dark-50 flex items-center justify-center flex-shrink-0">
                     {captureTypeIcon(c.type)}
                   </div>
@@ -1263,7 +1301,9 @@ export default function ProjectDetail() {
                     </button>
                   </div>
                 </div>
-              ))}
+                </React.Fragment>
+                );
+              })}
             </div>
           )}
           {project.captures.some(c => c.type === 'photo') && (
