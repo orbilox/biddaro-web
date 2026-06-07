@@ -913,6 +913,32 @@ export default function ProjectDetail() {
     }
   };
 
+  // Project header inline editing
+  const [editingField, setEditingField] = useState<'name' | 'clientName' | 'location' | null>(null);
+  const [fieldDraft, setFieldDraft] = useState('');
+  const [savingField, setSavingField] = useState(false);
+
+  const startEditField = (field: 'name' | 'clientName' | 'location') => {
+    setEditingField(field);
+    setFieldDraft(project?.[field] ?? '');
+  };
+
+  const saveField = async () => {
+    if (!project || !editingField) return;
+    const trimmed = fieldDraft.trim();
+    if (editingField === 'name' && !trimmed) return;
+    setSavingField(true);
+    try {
+      await inspectApi.updateProject(project.id, { [editingField]: trimmed || null });
+      setProject(prev => prev ? { ...prev, [editingField]: trimmed || null } : prev);
+      setEditingField(null);
+    } catch {
+      toast.error('Failed to save');
+    } finally {
+      setSavingField(false);
+    }
+  };
+
   const [changingSevId, setChangingSevId] = useState<string | null>(null);
   const SEV_CYCLE: Record<string, string> = { normal: 'warning', warning: 'critical', critical: 'normal' };
 
@@ -957,13 +983,99 @@ export default function ProjectDetail() {
         <ArrowLeft className="w-4 h-4" /> Biddaro Inspect
       </Link>
 
-      {/* Project header */}
+      {/* Project header — click any field to edit inline */}
       <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-dark-900">{project.name}</h1>
+        <div className="min-w-0">
+          {/* Project name */}
+          {editingField === 'name' ? (
+            <div className="flex items-center gap-2 mb-1">
+              <input
+                autoFocus
+                value={fieldDraft}
+                onChange={e => setFieldDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveField(); if (e.key === 'Escape') setEditingField(null); }}
+                className="text-2xl font-bold text-dark-900 border-b-2 border-brand-400 focus:outline-none bg-transparent w-full max-w-md"
+              />
+              <button onClick={saveField} disabled={savingField} className="p-1 text-brand-600 hover:text-brand-700 disabled:opacity-50 flex-shrink-0">
+                {savingField ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              </button>
+              <button onClick={() => setEditingField(null)} className="p-1 text-dark-400 hover:text-dark-600 flex-shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="group/name flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-dark-900">{project.name}</h1>
+              <button
+                onClick={() => startEditField('name')}
+                className="opacity-0 group-hover/name:opacity-100 p-1 text-dark-300 hover:text-brand-600 rounded transition-all"
+                title="Edit project name"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Meta fields row */}
           <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-dark-500">
-            {project.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{project.location}</span>}
-            {project.clientName && <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{project.clientName}</span>}
+            {/* Location */}
+            {editingField === 'location' ? (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                <input
+                  autoFocus
+                  value={fieldDraft}
+                  onChange={e => setFieldDraft(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveField(); if (e.key === 'Escape') setEditingField(null); }}
+                  placeholder="Add location…"
+                  className="border-b border-brand-400 focus:outline-none text-sm bg-transparent min-w-[140px]"
+                />
+                <button onClick={saveField} disabled={savingField} className="text-brand-600 disabled:opacity-50">
+                  {savingField ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                </button>
+                <button onClick={() => setEditingField(null)} className="text-dark-400"><X className="w-3 h-3" /></button>
+              </div>
+            ) : (
+              <button
+                onClick={() => startEditField('location')}
+                className="flex items-center gap-1 hover:text-brand-600 hover:bg-brand-50 px-1.5 py-0.5 rounded-lg transition-colors group/loc"
+                title="Edit location"
+              >
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{project.location || <span className="text-dark-300 italic">Add location</span>}</span>
+                <Pencil className="w-2.5 h-2.5 opacity-0 group-hover/loc:opacity-60 ml-0.5" />
+              </button>
+            )}
+
+            {/* Client name */}
+            {editingField === 'clientName' ? (
+              <div className="flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 flex-shrink-0" />
+                <input
+                  autoFocus
+                  value={fieldDraft}
+                  onChange={e => setFieldDraft(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveField(); if (e.key === 'Escape') setEditingField(null); }}
+                  placeholder="Client name…"
+                  className="border-b border-brand-400 focus:outline-none text-sm bg-transparent min-w-[120px]"
+                />
+                <button onClick={saveField} disabled={savingField} className="text-brand-600 disabled:opacity-50">
+                  {savingField ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                </button>
+                <button onClick={() => setEditingField(null)} className="text-dark-400"><X className="w-3 h-3" /></button>
+              </div>
+            ) : (
+              <button
+                onClick={() => startEditField('clientName')}
+                className="flex items-center gap-1 hover:text-brand-600 hover:bg-brand-50 px-1.5 py-0.5 rounded-lg transition-colors group/client"
+                title="Edit client name"
+              >
+                <User className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{project.clientName || <span className="text-dark-300 italic">Add client</span>}</span>
+                <Pencil className="w-2.5 h-2.5 opacity-0 group-hover/client:opacity-60 ml-0.5" />
+              </button>
+            )}
+
             {project.template && <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full border border-brand-100">📋 {project.template.name}</span>}
           </div>
         </div>
