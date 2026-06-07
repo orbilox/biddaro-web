@@ -779,7 +779,8 @@ export const inspectApi = {
   getPublicReport:    (token: string) => api.get(`/inspect/public/${token}`),
   signPublicReport:   (token: string, signerName: string, signatureData: string) =>
     api.post(`/inspect/public/${token}/sign`, { signerName, signatureData }),
-  getAnalytics: () => api.get('/inspect/analytics'),
+  getAnalytics:     () => api.get('/inspect/analytics'),
+  generateTrendSummary: () => api.post('/inspect/analytics/trend', {}),
   listLanguages: () => api.get('/inspect/languages'),
   // Legacy import
   importReport: (projectId: string, formData: FormData) =>

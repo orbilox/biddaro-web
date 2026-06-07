@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import {
   ArrowLeft, TrendingUp, AlertTriangle, CheckCircle, Activity,
   BarChart2, PieChart, Clock, Layers, Target, ShieldAlert,
-  Loader2, RefreshCw,
+  Loader2, RefreshCw, Sparkles, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 
@@ -173,11 +173,74 @@ function SeverityTrendChart({ data }: { data: MonthPoint[] }) {
   );
 }
 
+// ─── AI Trend Summary card ────────────────────────────────────────────────────
+
+/**
+ * Renders the AI-generated trend summary. The text uses ## headings which
+ * we convert to styled section headers inline.
+ */
+function TrendSummaryCard({ summary, generatedAt }: { summary: string; generatedAt: string }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Split on ## headings to produce labeled sections
+  const sections = summary.split(/(?=## )/g).filter(Boolean);
+
+  return (
+    <div className="bg-gradient-to-br from-brand-50 to-indigo-50 border border-brand-100 rounded-2xl overflow-hidden">
+      {/* Card header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-brand-100">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-brand-100 rounded-xl">
+            <Sparkles className="w-4 h-4 text-brand-700" />
+          </div>
+          <div>
+            <h3 className="font-bold text-dark-900 text-sm">AI Defect Trend Summary</h3>
+            <p className="text-xs text-dark-400">
+              Generated {new Date(generatedAt).toLocaleString('en-IN', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+              })}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setCollapsed(c => !c)}
+          className="p-1.5 rounded-lg hover:bg-brand-100 transition-colors text-brand-600"
+          title={collapsed ? 'Expand' : 'Collapse'}
+        >
+          {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {!collapsed && (
+        <div className="px-6 py-5 space-y-4">
+          {sections.map((section, i) => {
+            const lines = section.split('\n').filter(Boolean);
+            const heading = lines[0]?.replace(/^##\s*/, '').trim();
+            const body    = lines.slice(1).join('\n').trim();
+            return (
+              <div key={i}>
+                {heading && (
+                  <h4 className="text-sm font-bold text-brand-800 mb-1">{heading}</h4>
+                )}
+                <p className="text-sm text-dark-700 leading-relaxed whitespace-pre-line">
+                  {body || (heading ? '' : section)}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InspectAnalyticsPage() {
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [trendSummary, setTrendSummary] = useState<{ summary: string; generatedAt: string } | null>(null);
+  const [loadingTrend, setLoadingTrend] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -190,6 +253,19 @@ export default function InspectAnalyticsPage() {
       setLoading(false);
     }
   }, []);
+
+  const generateTrend = async () => {
+    setLoadingTrend(true);
+    try {
+      const res = await inspectApi.generateTrendSummary();
+      const d = (res.data as { data: { summary: string; generatedAt: string } }).data;
+      setTrendSummary(d);
+    } catch {
+      toast.error('Failed to generate trend summary');
+    } finally {
+      setLoadingTrend(false);
+    }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -237,12 +313,25 @@ export default function InspectAnalyticsPage() {
             <p className="text-sm text-dark-400">Portfolio-wide insights across all projects</p>
           </div>
         </div>
-        <button
-          onClick={load}
-          className="inline-flex items-center gap-2 text-sm border border-dark-200 px-3 py-1.5 rounded-lg hover:bg-dark-50 text-dark-600 transition-colors"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={generateTrend}
+            disabled={loadingTrend}
+            className="inline-flex items-center gap-2 text-sm bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold px-4 py-1.5 rounded-lg transition-colors"
+          >
+            {loadingTrend
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Sparkles className="w-3.5 h-3.5" />
+            }
+            {loadingTrend ? 'Analysing…' : trendSummary ? 'Regenerate AI Summary' : 'AI Trend Summary'}
+          </button>
+          <button
+            onClick={load}
+            className="inline-flex items-center gap-2 text-sm border border-dark-200 px-3 py-1.5 rounded-lg hover:bg-dark-50 text-dark-600 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* KPI row */}
@@ -429,6 +518,33 @@ export default function InspectAnalyticsPage() {
           )}
         </div>
       </div>
+
+      {/* AI Trend Summary */}
+      {trendSummary ? (
+        <TrendSummaryCard summary={trendSummary.summary} generatedAt={trendSummary.generatedAt} />
+      ) : (
+        <div className="bg-dark-50 border border-dashed border-dark-200 rounded-2xl p-8 flex flex-col items-center text-center gap-3">
+          <div className="p-3 bg-brand-50 rounded-2xl">
+            <Sparkles className="w-6 h-6 text-brand-600" />
+          </div>
+          <p className="font-semibold text-dark-800">AI Defect Trend Summary</p>
+          <p className="text-sm text-dark-400 max-w-md">
+            Click <strong>"AI Trend Summary"</strong> to get a GPT-powered narrative covering portfolio health,
+            recurring defect themes, projects that need attention, and specific recommendations.
+          </p>
+          <button
+            onClick={generateTrend}
+            disabled={loadingTrend}
+            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm"
+          >
+            {loadingTrend
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Sparkles className="w-4 h-4" />
+            }
+            {loadingTrend ? 'Analysing…' : 'Generate AI Trend Summary'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
