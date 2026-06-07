@@ -725,6 +725,16 @@ function EditSectionsPanel({
     setSections(ss => ss.filter((_, i) => i !== idx));
   }
 
+  function moveSection(idx: number, dir: 'up' | 'down') {
+    setSections(ss => {
+      const next  = [...ss];
+      const swap  = dir === 'up' ? idx - 1 : idx + 1;
+      if (swap < 0 || swap >= next.length) return ss;
+      [next[idx], next[swap]] = [next[swap], next[idx]];
+      return next;
+    });
+  }
+
   async function save() {
     setSaving(true);
     try {
@@ -819,6 +829,25 @@ function EditSectionsPanel({
               <option value="warning">Warning</option>
               <option value="critical">Critical</option>
             </select>
+            {/* Move up / move down */}
+            <div className="flex flex-col gap-0.5">
+              <button
+                onClick={() => moveSection(si, 'up')}
+                disabled={si === 0}
+                className="p-0.5 rounded text-gray-400 hover:text-gray-700 disabled:opacity-25 transition-colors"
+                title="Move section up"
+              >
+                <ChevronUp className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => moveSection(si, 'down')}
+                disabled={si === sections.length - 1}
+                className="p-0.5 rounded text-gray-400 hover:text-gray-700 disabled:opacity-25 transition-colors"
+                title="Move section down"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
             <button
               onClick={() => removeSection(si)}
               className="text-red-400 hover:text-red-600 ml-1"
