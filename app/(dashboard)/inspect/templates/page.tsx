@@ -128,6 +128,16 @@ function UploadModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
             />
           </div>
 
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 space-y-1.5">
+            <p className="text-xs font-semibold text-indigo-800">✨ Template Variables</p>
+            <p className="text-xs text-indigo-700">Use these tokens in section titles or descriptions — they&apos;ll be auto-filled at generation time:</p>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {['{{project_name}}', '{{client_name}}', '{{location}}', '{{date}}', '{{year}}', '{{month}}'].map(v => (
+                <code key={v} className="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-mono">{v}</code>
+              ))}
+            </div>
+          </div>
+
           <p className="text-xs text-dark-400 bg-brand-50 border border-brand-100 rounded-lg p-3">
             <span className="font-semibold text-brand-700">How it works:</span> Our AI reads your template, extracts the section structure, and uses it as the format for all reports generated in projects linked to this template.
           </p>
