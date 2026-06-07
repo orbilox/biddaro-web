@@ -814,6 +814,36 @@ export default function ProjectDetail() {
     return true;
   });
 
+  // Bulk-select state
+  const [selectedCaptures, setSelectedCaptures] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelectedCaptures(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedCaptures(new Set(displayCaptures.map(c => c.id)));
+  const clearSelection = () => setSelectedCaptures(new Set());
+
+  const bulkDelete = async () => {
+    if (!project || selectedCaptures.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      await Promise.all(Array.from(selectedCaptures).map(cid => inspectApi.deleteCapture(project.id, cid)));
+      setProject(prev => prev ? { ...prev, captures: prev.captures.filter(c => !selectedCaptures.has(c.id)) } : prev);
+      clearSelection();
+      toast.success(`${selectedCaptures.size} capture${selectedCaptures.size !== 1 ? 's' : ''} deleted`);
+    } catch {
+      toast.error('Bulk delete failed');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   // When grouping, sort by section (named sections first, then no-section)
   const displayCaptures = groupBySection
     ? [...filteredCaptures].sort((a, b) => {
@@ -1219,6 +1249,34 @@ export default function ProjectDetail() {
                   </p>
                 )}
               </div>
+
+              {/* Bulk action bar */}
+              {selectedCaptures.size > 0 && (
+                <div className="flex items-center gap-3 bg-dark-900 text-white rounded-xl px-4 py-2.5 text-sm">
+                  <span className="font-semibold flex-1">{selectedCaptures.size} selected</span>
+                  <button
+                    onClick={selectAll}
+                    className="text-xs text-dark-300 hover:text-white transition-colors"
+                  >
+                    Select all ({displayCaptures.length})
+                  </button>
+                  <button
+                    onClick={clearSelection}
+                    className="text-xs text-dark-300 hover:text-white transition-colors"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={bulkDelete}
+                    disabled={bulkDeleting}
+                    className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    {bulkDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    Delete
+                  </button>
+                </div>
+              )}
+
               {filteredCaptures.length === 0 && (
                 <div className="text-center py-8 text-dark-400 text-sm">
                   <Search className="w-6 h-6 mx-auto mb-2 opacity-30" />
@@ -1243,7 +1301,25 @@ export default function ProjectDetail() {
                       <div className="h-px flex-1 bg-dark-100" />
                     </div>
                   )}
-                <div className="bg-white border border-dark-100 rounded-xl p-4 flex gap-4">
+                <div className={`bg-white border rounded-xl p-4 flex gap-3 transition-colors ${
+                  selectedCaptures.has(c.id) ? 'border-brand-300 bg-brand-50/30' : 'border-dark-100'
+                }`}>
+                  {/* Checkbox */}
+                  <button
+                    onClick={() => toggleSelect(c.id)}
+                    className={`w-5 h-5 rounded border-2 flex-shrink-0 mt-1.5 flex items-center justify-center transition-colors ${
+                      selectedCaptures.has(c.id)
+                        ? 'bg-brand-600 border-brand-600'
+                        : 'border-dark-200 bg-white hover:border-brand-400'
+                    }`}
+                    title="Select capture"
+                  >
+                    {selectedCaptures.has(c.id) && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
+                        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
                   <div className="w-8 h-8 rounded-lg bg-dark-50 flex items-center justify-center flex-shrink-0">
                     {captureTypeIcon(c.type)}
                   </div>
