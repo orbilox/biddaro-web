@@ -455,6 +455,20 @@ export default function ProjectDetail() {
               {generating ? 'Generating…' : 'New AI Report'}
             </button>
           )}
+
+          {/* Floor plans link */}
+          <Link
+            href={`/inspect/projects/${project.id}/floor-plans`}
+            className="mt-4 w-full flex items-center gap-3 border border-dark-200 hover:border-brand-300 rounded-xl p-4 transition-all group"
+          >
+            <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
+              <span className="text-xl">🗺️</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-dark-800 group-hover:text-brand-700">Floor Plan Markup</p>
+              <p className="text-xs text-dark-400">Place defect pins on site plans</p>
+            </div>
+          </Link>
         </div>
       </div>
     </div>

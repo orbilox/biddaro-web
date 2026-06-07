@@ -773,6 +773,11 @@ export const inspectApi = {
   deleteReport: (id: string) => api.delete(`/inspect/reports/${id}`),
   sendReport: (id: string, sentTo: string) => api.post(`/inspect/reports/${id}/send`, { sentTo }),
   getAnalytics: () => api.get('/inspect/analytics'),
+  // Floor plans
+  listFloorPlans:   (projectId: string) => api.get(`/inspect/projects/${projectId}/floor-plans`),
+  createFloorPlan:  (projectId: string, data: Record<string, unknown>) => api.post(`/inspect/projects/${projectId}/floor-plans`, data),
+  updateFloorPlan:  (fid: string, data: Record<string, unknown>) => api.put(`/inspect/floor-plans/${fid}`, data),
+  deleteFloorPlan:  (fid: string) => api.delete(`/inspect/floor-plans/${fid}`),
   // Review notes
   listReviewNotes:  (reportId: string) => api.get(`/inspect/reports/${reportId}/review/notes`),
   addReviewNote:    (reportId: string, data: Record<string, unknown>) => api.post(`/inspect/reports/${reportId}/review/notes`, data),
