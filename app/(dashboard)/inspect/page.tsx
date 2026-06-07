@@ -272,6 +272,24 @@ export default function InspectDashboard() {
 
   const hasReports = (stats?.totalReports ?? 0) > 0;
 
+  // Build "Needs Attention" alerts — only items that need a user decision
+  const needsAttention: { label: string; count: number; href: string; color: string; icon: React.ReactNode }[] = [];
+  if (!loading && stats) {
+    const todaySchedules = upcomingSchedules.filter(s => {
+      const dt = new Date(s.scheduledAt);
+      return new Date().toDateString() === dt.toDateString();
+    });
+    if (todaySchedules.length > 0)
+      needsAttention.push({ label: `inspection${todaySchedules.length !== 1 ? 's' : ''} today`, count: todaySchedules.length, href: '/inspect/schedules', color: 'bg-brand-50 border-brand-200 text-brand-700', icon: <CalendarDays className="w-4 h-4" /> });
+    if (stats.criticalTasks > 0)
+      needsAttention.push({ label: 'critical task', count: stats.criticalTasks, href: '/inspect/tasks', color: 'bg-red-50 border-red-200 text-red-700', icon: <AlertTriangle className="w-4 h-4" /> });
+    const reviewReports = recentReports.filter(r => r.status === 'review');
+    if (reviewReports.length > 0)
+      needsAttention.push({ label: `report${reviewReports.length !== 1 ? 's' : ''} awaiting review`, count: reviewReports.length, href: '/inspect/reports', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: <ClipboardList className="w-4 h-4" /> });
+    if (stats.draftReports > 0)
+      needsAttention.push({ label: `draft report${stats.draftReports !== 1 ? 's' : ''} not sent`, count: stats.draftReports, href: '/inspect/reports', color: 'bg-dark-50 border-dark-200 text-dark-600', icon: <FileText className="w-4 h-4" /> });
+  }
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
 
@@ -316,13 +334,32 @@ export default function InspectDashboard() {
         })}
       </div>
 
+      {/* Needs attention strip */}
+      {needsAttention.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <span className="text-xs font-bold text-dark-500 uppercase tracking-wider">Needs attention</span>
+          {needsAttention.map((item, i) => (
+            <Link
+              key={i}
+              href={item.href}
+              className={`inline-flex items-center gap-2 border rounded-xl px-3.5 py-2 text-sm font-semibold transition-all hover:shadow-sm ${item.color}`}
+            >
+              {item.icon}
+              <span>{item.count} {item.label}</span>
+              <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Quick links */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3 mb-8">
         {[
           { href: '/inspect/projects',  label: 'All Projects', emoji: '🏗️', desc: 'Browse & manage' },
           { href: '/inspect/reports',   label: 'All Reports',  emoji: '📄', desc: 'Review & export' },
           { href: '/inspect/schedules', label: 'Schedules',    emoji: '📅', desc: 'Upcoming visits' },
           { href: '/inspect/tasks',     label: 'Tasks',        emoji: '✅', desc: 'Remediation items' },
+          { href: '/inspect/templates',  label: 'Templates',    emoji: '📋', desc: 'Report templates' },
           { href: '/inspect/analytics', label: 'Analytics',    emoji: '📊', desc: 'Trends & insights' },
           { href: '/inspect/compare',   label: 'Compare',      emoji: '🔀', desc: 'Delta analysis' },
           { href: '/inspect/search',    label: 'AI Search',    emoji: '✨', desc: 'Ask your portfolio' },
