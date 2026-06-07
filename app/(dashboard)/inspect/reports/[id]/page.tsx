@@ -401,6 +401,7 @@ export default function ReportViewer() {
   const [showSend, setShowSend] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [taskModal, setTaskModal] = useState<{
     title: string; severity: string; section: string; finding: string;
   } | null>(null);
@@ -474,6 +475,26 @@ export default function ReportViewer() {
       toast.error('Failed to generate Word document');
     } finally {
       setDownloadingDocx(false);
+    }
+  }
+
+  async function downloadPdf() {
+    if (!report) return;
+    setDownloadingPdf(true);
+    try {
+      const res = await inspectApi.exportPdf(id);
+      const blob = new Blob([res.data as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${report.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Failed to generate PDF');
+    } finally {
+      setDownloadingPdf(false);
     }
   }
 
@@ -604,13 +625,23 @@ export default function ReportViewer() {
           {downloadingDocx
             ? <Loader2 className="w-4 h-4 animate-spin" />
             : <FileDown className="w-4 h-4" />}
-          {downloadingDocx ? 'Generating…' : 'Download Word'}
+          {downloadingDocx ? 'Generating…' : 'Word'}
+        </button>
+        <button
+          onClick={downloadPdf}
+          disabled={downloadingPdf}
+          className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+        >
+          {downloadingPdf
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <FileDown className="w-4 h-4" />}
+          {downloadingPdf ? 'Generating…' : 'PDF'}
         </button>
         <button
           onClick={downloadMarkdown}
           className="inline-flex items-center gap-2 border border-dark-200 text-dark-700 hover:bg-dark-50 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
         >
-          <Download className="w-4 h-4" /> Download (.md)
+          <Download className="w-4 h-4" /> Markdown
         </button>
       </div>
 

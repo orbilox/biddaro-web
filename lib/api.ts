@@ -773,6 +773,7 @@ export const inspectApi = {
   deleteReport: (id: string) => api.delete(`/inspect/reports/${id}`),
   sendReport: (id: string, sentTo: string) => api.post(`/inspect/reports/${id}/send`, { sentTo }),
   exportDocx: (id: string) => api.get(`/inspect/reports/${id}/export/docx`, { responseType: 'blob' }),
+  exportPdf:  (id: string) => api.get(`/inspect/reports/${id}/export/pdf`,  { responseType: 'blob' }),
   captionCapture: (projectId: string, cid: string) => api.post(`/inspect/projects/${projectId}/captures/${cid}/caption`, {}),
   searchPortfolio: (query: string) => api.post('/inspect/search', { query }),
   // Tasks
