@@ -5,6 +5,7 @@ import {
   Plus, FolderOpen, MapPin, User, Camera, FileText,
   Search, ArrowRight, Loader2, Clock, MoreVertical,
   CheckCircle2, Archive, Trash2, RefreshCw, AlertTriangle, Copy,
+  LayoutGrid, List,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -160,6 +161,7 @@ export default function AllProjectsPage() {
   const [statusFilter, setStatus] = useState('all');
   const [page, setPage]           = useState(1);
   const [savingId, setSavingId]   = useState<string | null>(null);
+  const [viewMode, setViewMode]   = useState<'grid' | 'list'>('grid');
   const LIMIT = 18;
 
   const load = useCallback(async () => {
@@ -287,9 +289,26 @@ export default function AllProjectsPage() {
             </button>
           ))}
         </div>
+        {/* View mode toggle */}
+        <div className="flex items-center bg-dark-50 border border-dark-200 rounded-lg p-1 gap-1">
+          <button
+            onClick={() => setViewMode('grid')}
+            title="Grid view"
+            className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-brand-600' : 'text-dark-400 hover:text-dark-700'}`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            title="List view"
+            className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-600' : 'text-dark-400 hover:text-dark-700'}`}
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Grid */}
+      {/* Projects */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -316,70 +335,103 @@ export default function AllProjectsPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {filtered.map(p => (
-              <div key={p.id} className={`group relative bg-white border border-dark-100 rounded-2xl p-5 hover:border-brand-300 hover:shadow-md transition-all ${p.status === 'archived' ? 'opacity-70' : ''}`}>
-                {/* Top: name + status + menu */}
-                <div className="flex items-start gap-2 mb-3">
-                  <Link href={`/inspect/projects/${p.id}`} className="flex-1 min-w-0">
-                    <p className="font-bold text-dark-900 text-sm leading-snug truncate group-hover:text-brand-700 transition-colors">
-                      {p.name}
-                    </p>
-                    {p.template && (
-                      <p className="text-xs text-dark-400 mt-0.5 truncate">Template: {p.template.name}</p>
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {filtered.map(p => (
+                <div key={p.id} className={`group relative bg-white border border-dark-100 rounded-2xl p-5 hover:border-brand-300 hover:shadow-md transition-all ${p.status === 'archived' ? 'opacity-70' : ''}`}>
+                  {/* Top: name + status + menu */}
+                  <div className="flex items-start gap-2 mb-3">
+                    <Link href={`/inspect/projects/${p.id}`} className="flex-1 min-w-0">
+                      <p className="font-bold text-dark-900 text-sm leading-snug truncate group-hover:text-brand-700 transition-colors">
+                        {p.name}
+                      </p>
+                      {p.template && (
+                        <p className="text-xs text-dark-400 mt-0.5 truncate">Template: {p.template.name}</p>
+                      )}
+                    </Link>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${statusColor(p.status)}`}>
+                        {p.status}
+                      </span>
+                      <ProjectMenu
+                        project={p}
+                        onStatusChange={handleStatusChange}
+                        onDelete={handleDelete}
+                        onClone={handleClone}
+                        saving={savingId === p.id}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Meta */}
+                  <Link href={`/inspect/projects/${p.id}`} className="block space-y-1.5 mb-4">
+                    {p.clientName && (
+                      <div className="flex items-center gap-1.5 text-xs text-dark-500">
+                        <User className="w-3.5 h-3.5" />
+                        <span className="truncate">{p.clientName}</span>
+                      </div>
                     )}
+                    {p.location && (
+                      <div className="flex items-center gap-1.5 text-xs text-dark-500">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span className="truncate">{p.location}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 text-xs text-dark-400">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Updated {relativeDate(p.updatedAt)}</span>
+                    </div>
                   </Link>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${statusColor(p.status)}`}>
-                      {p.status}
-                    </span>
-                    <ProjectMenu
-                      project={p}
-                      onStatusChange={handleStatusChange}
-                      onDelete={handleDelete}
-                      onClone={handleClone}
-                      saving={savingId === p.id}
-                    />
-                  </div>
+
+                  {/* Counts + arrow */}
+                  <Link href={`/inspect/projects/${p.id}`} className="flex items-center justify-between border-t border-dark-50 pt-3">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5 text-xs text-dark-500">
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>{p._count.captures} capture{p._count.captures !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-dark-500">
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>{p._count.reports} report{p._count.reports !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-dark-300 group-hover:text-brand-500 transition-colors" />
+                  </Link>
                 </div>
-
-                {/* Meta */}
-                <Link href={`/inspect/projects/${p.id}`} className="block space-y-1.5 mb-4">
-                  {p.clientName && (
-                    <div className="flex items-center gap-1.5 text-xs text-dark-500">
-                      <User className="w-3.5 h-3.5" />
-                      <span className="truncate">{p.clientName}</span>
+              ))}
+            </div>
+          ) : (
+            /* List view */
+            <div className="mb-6 border border-dark-100 rounded-2xl overflow-hidden divide-y divide-dark-50">
+              {filtered.map(p => (
+                <div key={p.id} className={`group flex items-center gap-4 px-5 py-3.5 bg-white hover:bg-dark-50/50 transition-colors ${p.status === 'archived' ? 'opacity-70' : ''}`}>
+                  <Link href={`/inspect/projects/${p.id}`} className="flex-1 min-w-0 flex items-center gap-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-dark-900 text-sm truncate group-hover:text-brand-700">{p.name}</p>
+                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                        {p.clientName && <span className="text-xs text-dark-400 flex items-center gap-1"><User className="w-3 h-3" />{p.clientName}</span>}
+                        {p.location && <span className="text-xs text-dark-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{p.location}</span>}
+                        {p.template && <span className="text-xs text-dark-400">📋 {p.template.name}</span>}
+                      </div>
                     </div>
-                  )}
-                  {p.location && (
-                    <div className="flex items-center gap-1.5 text-xs text-dark-500">
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span className="truncate">{p.location}</span>
+                    <div className="flex items-center gap-5 flex-shrink-0">
+                      <span className="text-xs text-dark-500 flex items-center gap-1"><Camera className="w-3.5 h-3.5" />{p._count.captures}</span>
+                      <span className="text-xs text-dark-500 flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{p._count.reports}</span>
+                      <span className="text-xs text-dark-400 hidden sm:block">{relativeDate(p.updatedAt)}</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${statusColor(p.status)}`}>{p.status}</span>
                     </div>
-                  )}
-                  <div className="flex items-center gap-1.5 text-xs text-dark-400">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>Updated {relativeDate(p.updatedAt)}</span>
-                  </div>
-                </Link>
-
-                {/* Counts + arrow */}
-                <Link href={`/inspect/projects/${p.id}`} className="flex items-center justify-between border-t border-dark-50 pt-3">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5 text-xs text-dark-500">
-                      <Camera className="w-3.5 h-3.5" />
-                      <span>{p._count.captures} capture{p._count.captures !== 1 ? 's' : ''}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-dark-500">
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>{p._count.reports} report{p._count.reports !== 1 ? 's' : ''}</span>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-dark-300 group-hover:text-brand-500 transition-colors" />
-                </Link>
-              </div>
-            ))}
-          </div>
+                  </Link>
+                  <ProjectMenu
+                    project={p}
+                    onStatusChange={handleStatusChange}
+                    onDelete={handleDelete}
+                    onClone={handleClone}
+                    saving={savingId === p.id}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (
