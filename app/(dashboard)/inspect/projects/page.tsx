@@ -1,9 +1,10 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   Plus, FolderOpen, MapPin, User, Camera, FileText,
-  Search, ArrowRight, Loader2, AlertTriangle, Clock,
+  Search, ArrowRight, Loader2, Clock, MoreVertical,
+  CheckCircle2, Archive, Trash2, RefreshCw, AlertTriangle,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -26,7 +27,7 @@ const STATUS_OPTIONS = ['all', 'active', 'completed', 'archived'];
 
 function statusColor(status: string) {
   if (status === 'completed') return 'bg-blue-100 text-blue-700';
-  if (status === 'archived') return 'bg-dark-100 text-dark-500';
+  if (status === 'archived')  return 'bg-dark-100 text-dark-500';
   return 'bg-brand-100 text-brand-700'; // active
 }
 
@@ -35,10 +36,112 @@ function relativeDate(iso: string) {
   const days = Math.floor(diff / 86400000);
   if (days === 0) return 'Today';
   if (days === 1) return 'Yesterday';
-  if (days < 30) return `${days}d ago`;
+  if (days < 30)  return `${days}d ago`;
   if (days < 365) return `${Math.floor(days / 30)}mo ago`;
   return `${Math.floor(days / 365)}y ago`;
 }
+
+// ─── Project card context menu ────────────────────────────────────────────────
+
+interface MenuProps {
+  project: Project;
+  onStatusChange: (id: string, status: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  saving: boolean;
+}
+
+function ProjectMenu({ project, onStatusChange, onDelete, saving }: MenuProps) {
+  const [open, setOpen]           = useState(false);
+  const [confirmDelete, setConfirm] = useState(false);
+  const menuRef                   = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const statusActions: { label: string; icon: React.ReactNode; status: string }[] = [
+    { label: 'Mark Active',    icon: <RefreshCw className="w-3.5 h-3.5" />,     status: 'active'    },
+    { label: 'Mark Complete',  icon: <CheckCircle2 className="w-3.5 h-3.5" />,  status: 'completed' },
+    { label: 'Archive',        icon: <Archive className="w-3.5 h-3.5" />,        status: 'archived'  },
+  ].filter(a => a.status !== project.status);
+
+  return (
+    <div ref={menuRef} className="relative" onClick={e => e.preventDefault()}>
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
+        className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
+          open ? 'bg-dark-100 text-dark-700' : 'text-dark-200 hover:text-dark-600 hover:bg-dark-50'
+        }`}
+        title="Project actions"
+        disabled={saving}
+      >
+        {saving
+          ? <Loader2 className="w-4 h-4 animate-spin" />
+          : <MoreVertical className="w-4 h-4" />
+        }
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-8 w-44 bg-white border border-dark-200 rounded-xl shadow-lg z-20 overflow-hidden">
+          {/* Status change actions */}
+          {statusActions.map(a => (
+            <button
+              key={a.status}
+              onClick={async () => {
+                setOpen(false);
+                await onStatusChange(project.id, a.status);
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark-700 hover:bg-dark-50 transition-colors"
+            >
+              <span className="text-dark-400">{a.icon}</span>
+              {a.label}
+            </button>
+          ))}
+          <div className="border-t border-dark-100" />
+          {/* Delete */}
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirm(true)}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete Project
+            </button>
+          ) : (
+            <div className="p-3">
+              <p className="text-xs text-dark-600 mb-2 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                Delete permanently?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setConfirm(false); setOpen(false); }}
+                  className="flex-1 text-xs border border-dark-200 rounded-lg py-1.5 hover:bg-dark-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => { setOpen(false); await onDelete(project.id); }}
+                  className="flex-1 text-xs bg-red-600 text-white rounded-lg py-1.5 hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AllProjectsPage() {
   const [projects, setProjects]   = useState<Project[]>([]);
@@ -47,6 +150,7 @@ export default function AllProjectsPage() {
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatus] = useState('all');
   const [page, setPage]           = useState(1);
+  const [savingId, setSavingId]   = useState<string | null>(null);
   const LIMIT = 18;
 
   const load = useCallback(async () => {
@@ -68,7 +172,7 @@ export default function AllProjectsPage() {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [statusFilter]);
 
-  // Client-side search filter (server doesn't support text search yet)
+  // Client-side search filter
   const filtered = search.trim()
     ? projects.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -78,6 +182,38 @@ export default function AllProjectsPage() {
     : projects;
 
   const totalPages = Math.ceil(total / LIMIT);
+
+  const handleStatusChange = async (id: string, status: string) => {
+    setSavingId(id);
+    try {
+      await inspectApi.updateProject(id, { status });
+      // Optimistic update — change status in local state
+      setProjects(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+      toast.success(`Project marked as ${status}`);
+      // If filtering by a specific status, remove it from view after a short delay
+      if (statusFilter !== 'all' && status !== statusFilter) {
+        setTimeout(() => setProjects(prev => prev.filter(p => p.id !== id)), 1000);
+      }
+    } catch {
+      toast.error('Failed to update project status');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setSavingId(id);
+    try {
+      await inspectApi.deleteProject(id);
+      setProjects(prev => prev.filter(p => p.id !== id));
+      setTotal(t => t - 1);
+      toast.success('Project deleted');
+    } catch {
+      toast.error('Failed to delete project');
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -102,7 +238,6 @@ export default function AllProjectsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
           <input
@@ -112,7 +247,6 @@ export default function AllProjectsPage() {
             className="w-full border border-dark-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-brand-400"
           />
         </div>
-        {/* Status filter */}
         <div className="flex items-center gap-1.5 bg-dark-50 border border-dark-200 rounded-xl p-1">
           {STATUS_OPTIONS.map(s => (
             <button
@@ -142,9 +276,11 @@ export default function AllProjectsPage() {
           <FolderOpen className="w-12 h-12 text-dark-200 mb-4" />
           <p className="text-dark-600 font-semibold">No projects found</p>
           <p className="text-dark-400 text-sm mt-1 mb-5">
-            {search ? 'Try a different search term' : 'Create your first inspection project to get started'}
+            {search ? 'Try a different search term' : statusFilter !== 'all'
+              ? `No ${statusFilter} projects`
+              : 'Create your first inspection project to get started'}
           </p>
-          {!search && (
+          {!search && statusFilter === 'all' && (
             <Link
               href="/inspect/projects/new"
               className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
@@ -157,28 +293,32 @@ export default function AllProjectsPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {filtered.map(p => (
-              <Link
-                key={p.id}
-                href={`/inspect/projects/${p.id}`}
-                className="group bg-white border border-dark-100 rounded-2xl p-5 hover:border-brand-300 hover:shadow-md transition-all"
-              >
-                {/* Top: name + status */}
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="min-w-0">
+              <div key={p.id} className={`group relative bg-white border border-dark-100 rounded-2xl p-5 hover:border-brand-300 hover:shadow-md transition-all ${p.status === 'archived' ? 'opacity-70' : ''}`}>
+                {/* Top: name + status + menu */}
+                <div className="flex items-start gap-2 mb-3">
+                  <Link href={`/inspect/projects/${p.id}`} className="flex-1 min-w-0">
                     <p className="font-bold text-dark-900 text-sm leading-snug truncate group-hover:text-brand-700 transition-colors">
                       {p.name}
                     </p>
                     {p.template && (
                       <p className="text-xs text-dark-400 mt-0.5 truncate">Template: {p.template.name}</p>
                     )}
+                  </Link>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${statusColor(p.status)}`}>
+                      {p.status}
+                    </span>
+                    <ProjectMenu
+                      project={p}
+                      onStatusChange={handleStatusChange}
+                      onDelete={handleDelete}
+                      saving={savingId === p.id}
+                    />
                   </div>
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize flex-shrink-0 ${statusColor(p.status)}`}>
-                    {p.status}
-                  </span>
                 </div>
 
                 {/* Meta */}
-                <div className="space-y-1.5 mb-4">
+                <Link href={`/inspect/projects/${p.id}`} className="block space-y-1.5 mb-4">
                   {p.clientName && (
                     <div className="flex items-center gap-1.5 text-xs text-dark-500">
                       <User className="w-3.5 h-3.5" />
@@ -195,10 +335,10 @@ export default function AllProjectsPage() {
                     <Clock className="w-3.5 h-3.5" />
                     <span>Updated {relativeDate(p.updatedAt)}</span>
                   </div>
-                </div>
+                </Link>
 
                 {/* Counts + arrow */}
-                <div className="flex items-center justify-between border-t border-dark-50 pt-3">
+                <Link href={`/inspect/projects/${p.id}`} className="flex items-center justify-between border-t border-dark-50 pt-3">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5 text-xs text-dark-500">
                       <Camera className="w-3.5 h-3.5" />
@@ -210,8 +350,8 @@ export default function AllProjectsPage() {
                     </div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-dark-300 group-hover:text-brand-500 transition-colors" />
-                </div>
-              </Link>
+                </Link>
+              </div>
             ))}
           </div>
 
