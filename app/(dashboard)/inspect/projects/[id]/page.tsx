@@ -945,6 +945,44 @@ export default function ProjectDetail() {
         </div>
       </div>
 
+      {/* ── Severity summary bar ──────────────────────────────────────────────── */}
+      {project.captures.length > 0 && (() => {
+        const counts = { critical: 0, warning: 0, normal: 0 };
+        project.captures.forEach(c => { counts[(c.severity as keyof typeof counts) ?? 'normal']++; });
+        return (
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
+            {([
+              { key: 'critical', label: 'Critical', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', activeBg: 'bg-red-600', activeText: 'text-white', dot: 'bg-red-500' },
+              { key: 'warning',  label: 'Warning',  bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', activeBg: 'bg-amber-500', activeText: 'text-white', dot: 'bg-amber-400' },
+              { key: 'normal',   label: 'Normal',   bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', activeBg: 'bg-green-600', activeText: 'text-white', dot: 'bg-green-400' },
+            ] as const).map(({ key, label, bg, border, text, activeBg, activeText, dot }) => {
+              const active = captureSevFilter === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setCaptureSevFilter(active ? 'all' : key)}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border font-semibold text-sm transition-all ${
+                    active ? `${activeBg} ${activeText} border-transparent shadow-sm` : `${bg} ${border} ${text} hover:shadow-sm`
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? 'bg-white/80' : dot}`} />
+                  <span>{counts[key]}</span>
+                  <span className="font-medium">{label}</span>
+                </button>
+              );
+            })}
+            {captureSevFilter !== 'all' && (
+              <button
+                onClick={() => setCaptureSevFilter('all')}
+                className="text-xs text-dark-400 hover:text-dark-700 transition-colors"
+              >
+                Show all
+              </button>
+            )}
+          </div>
+        );
+      })()}
+
       <div className="grid md:grid-cols-3 gap-6">
         {/* Captures column */}
         <div className="md:col-span-2 space-y-4">
