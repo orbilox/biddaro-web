@@ -773,6 +773,11 @@ export const inspectApi = {
   deleteReport: (id: string) => api.delete(`/inspect/reports/${id}`),
   sendReport: (id: string, sentTo: string) => api.post(`/inspect/reports/${id}/send`, { sentTo }),
   getAnalytics: () => api.get('/inspect/analytics'),
+  // Legacy import
+  importReport: (projectId: string, formData: FormData) =>
+    api.post(`/inspect/projects/${projectId}/reports/import`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
   // Floor plans
   listFloorPlans:   (projectId: string) => api.get(`/inspect/projects/${projectId}/floor-plans`),
   createFloorPlan:  (projectId: string, data: Record<string, unknown>) => api.post(`/inspect/projects/${projectId}/floor-plans`, data),

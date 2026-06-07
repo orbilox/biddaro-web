@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Plus, Camera, Mic, FileText, Zap, Trash2,
   AlertTriangle, CheckCircle, Clock, ArrowRight, Loader2,
-  MapPin, User, Mail, FolderOpen, Sparkles,
+  MapPin, User, Mail, FolderOpen, Sparkles, Upload, X,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -201,6 +201,8 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showCapture, setShowCapture] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [captioningId, setCaptioningId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -231,6 +233,23 @@ export default function ProjectDetail() {
       toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Generation failed');
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function importLegacyReport(file: File) {
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await inspectApi.importReport(id, fd);
+      const report = (res.data as { data: { id: string } }).data;
+      toast.success('Report imported and digitized!');
+      router.push(`/inspect/reports/${report.id}`);
+    } catch (err: unknown) {
+      toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Import failed');
+    } finally {
+      setImporting(false);
+      setShowImport(false);
     }
   }
 
@@ -306,14 +325,22 @@ export default function ProjectDetail() {
             {project.template && <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full border border-brand-100">📋 {project.template.name}</span>}
           </div>
         </div>
-        <button
-          onClick={generateReport}
-          disabled={generating || project.captures.length === 0}
-          className="flex-shrink-0 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold px-5 py-3 rounded-xl transition-colors"
-        >
-          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-          {generating ? 'Generating…' : 'Generate AI Report'}
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setShowImport(true)}
+            className="inline-flex items-center gap-2 border border-dark-200 text-dark-700 hover:bg-dark-50 font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
+          >
+            <Upload className="w-4 h-4" /> Import PDF/DOCX
+          </button>
+          <button
+            onClick={generateReport}
+            disabled={generating || project.captures.length === 0}
+            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold px-5 py-3 rounded-xl transition-colors"
+          >
+            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+            {generating ? 'Generating…' : 'Generate AI Report'}
+          </button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -471,6 +498,45 @@ export default function ProjectDetail() {
           </Link>
         </div>
       </div>
+
+      {/* Legacy import modal */}
+      {showImport && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-dark-900 flex items-center gap-2">
+                <Upload className="w-4 h-4 text-brand-500" /> Import Legacy Report
+              </h3>
+              <button onClick={() => setShowImport(false)} className="text-dark-400 hover:text-dark-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-dark-500">
+              Upload an existing inspection report (.pdf or .docx) and AI will digitize it into
+              Biddaro Inspect format automatically.
+            </p>
+            <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-colors ${
+              importing ? 'border-brand-300 bg-brand-50' : 'border-dark-200 hover:border-brand-300 hover:bg-brand-50'
+            }`}>
+              {importing ? (
+                <><Loader2 className="w-8 h-8 text-brand-500 animate-spin mb-2" /><p className="text-sm text-brand-600 font-semibold">Digitizing…</p><p className="text-xs text-brand-400">AI is parsing your report</p></>
+              ) : (
+                <><Upload className="w-8 h-8 text-dark-300 mb-2" /><p className="text-sm text-dark-700 font-semibold">Click to upload PDF or DOCX</p><p className="text-xs text-dark-400 mt-1">Max 20 MB</p></>
+              )}
+              <input
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                disabled={importing}
+                onChange={e => { const f = e.target.files?.[0]; if (f) importLegacyReport(f); }}
+              />
+            </label>
+            <div className="flex justify-end">
+              <button onClick={() => setShowImport(false)} className="text-sm text-dark-500 hover:text-dark-700 px-4 py-2">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
