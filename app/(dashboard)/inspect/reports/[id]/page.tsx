@@ -52,6 +52,8 @@ interface Report {
   sentTo: string | null;
   publicToken: string | null;
   publicEnabled: boolean;
+  clientSignedByName: string | null;
+  clientSignedAt: string | null;
   createdAt: string;
   updatedAt: string;
   project: {
@@ -1366,6 +1368,28 @@ export default function ReportViewer() {
                   <Copy className="w-4 h-4" /> Copy
                 </button>
               </div>
+              {/* Client signature status */}
+              {report.clientSignedByName && report.clientSignedAt ? (
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5">
+                  <CheckCircle className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-blue-900">
+                      Signed by {report.clientSignedByName}
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      {new Date(report.clientSignedAt).toLocaleDateString('en-IN', {
+                        day: 'numeric', month: 'long', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-dark-400 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                  Awaiting client signature
+                </p>
+              )}
               <button
                 onClick={disableShare}
                 disabled={sharingLoading}
