@@ -805,6 +805,7 @@ export const inspectApi = {
   searchPortfolio:  (query: string) => api.post('/inspect/search', { query }),
   compareReports:   (reportIdA: string, reportIdB: string) => api.post('/inspect/compare', { reportIdA, reportIdB }),
   // Tasks
+  listAllTasks: (params?: Record<string, string>) => api.get('/inspect/tasks', { params }),
   listTasks:   (reportId: string) => api.get(`/inspect/reports/${reportId}/tasks`),
   createTask:  (reportId: string, data: Record<string, unknown>) => api.post(`/inspect/reports/${reportId}/tasks`, data),
   updateTask:  (tid: string, data: Record<string, unknown>) => api.put(`/inspect/tasks/${tid}`, data),
