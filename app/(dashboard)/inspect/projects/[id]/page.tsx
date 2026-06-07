@@ -6,6 +6,7 @@ import {
   ArrowLeft, Plus, Camera, Mic, FileText, Zap, Trash2,
   AlertTriangle, CheckCircle, Clock, ArrowRight, Loader2,
   MapPin, User, Mail, FolderOpen, Sparkles, Upload, X,
+  CalendarDays, Bell, RotateCcw,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -188,6 +189,261 @@ function AddCaptureModal({ projectId, onAdded, onClose }: { projectId: string; o
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ─── Schedule Panel ──────────────────────────────────────────────────────────
+
+interface Schedule {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  notes: string | null;
+  notifyEmail: string | null;
+  recurrence: string | null;
+  status: string;
+  completedAt: string | null;
+}
+
+function SchedulePanel({ projectId }: { projectId: string }) {
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    title: '', scheduledAt: '', notes: '', notifyEmail: '', recurrence: 'none',
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    inspectApi.listSchedules(projectId)
+      .then(r => setSchedules((r.data as { data: { schedules: Schedule[] } }).data.schedules ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [projectId]);
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title || !form.scheduledAt) return;
+    setSaving(true);
+    try {
+      const res = await inspectApi.createSchedule(projectId, {
+        ...form,
+        scheduledAt: new Date(form.scheduledAt).toISOString(),
+      });
+      const created = (res.data as { data: Schedule }).data;
+      setSchedules(s => [...s, created].sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()));
+      setForm({ title: '', scheduledAt: '', notes: '', notifyEmail: '', recurrence: 'none' });
+      setShowForm(false);
+      toast.success('Inspection scheduled');
+    } catch {
+      toast.error('Failed to schedule');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function markDone(id: string) {
+    try {
+      await inspectApi.updateSchedule(id, { status: 'completed' });
+      setSchedules(ss => ss.map(s => s.id === id ? { ...s, status: 'completed', completedAt: new Date().toISOString() } : s));
+      toast.success('Marked complete');
+    } catch {
+      toast.error('Failed to update');
+    }
+  }
+
+  async function remove(id: string) {
+    try {
+      await inspectApi.deleteSchedule(id);
+      setSchedules(ss => ss.filter(s => s.id !== id));
+      toast.success('Schedule removed');
+    } catch {
+      toast.error('Failed to remove');
+    }
+  }
+
+  const pending   = schedules.filter(s => s.status === 'pending');
+  const completed = schedules.filter(s => s.status !== 'pending');
+
+  const RECURRENCE_LABELS: Record<string, string> = {
+    none: 'One-time', weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly',
+  };
+
+  function formatDate(dt: string) {
+    return new Date(dt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function isOverdue(dt: string) {
+    return new Date(dt) < new Date();
+  }
+
+  return (
+    <div className="mt-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-bold text-dark-900 flex items-center gap-2">
+          <CalendarDays className="w-5 h-5 text-brand-500" />
+          Inspection Schedule
+          {pending.length > 0 && (
+            <span className="ml-1 text-xs bg-brand-100 text-brand-700 font-bold px-2 py-0.5 rounded-full">
+              {pending.length} upcoming
+            </span>
+          )}
+        </h2>
+        <button
+          onClick={() => setShowForm(f => !f)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold border border-brand-300 text-brand-700 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" /> Schedule Inspection
+        </button>
+      </div>
+
+      {/* Create form */}
+      {showForm && (
+        <form onSubmit={handleCreate} className="bg-brand-50 border border-brand-200 rounded-2xl p-5 mb-4 space-y-3">
+          <h3 className="text-sm font-bold text-brand-700 flex items-center gap-1.5">
+            <CalendarDays className="w-4 h-4" /> New Scheduled Inspection
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="text-xs font-semibold text-dark-600 block mb-1">Title *</label>
+              <input
+                required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="e.g. Q3 Structural Inspection"
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-dark-600 block mb-1">Date & Time *</label>
+              <input
+                required type="datetime-local" value={form.scheduledAt}
+                onChange={e => setForm(f => ({ ...f, scheduledAt: e.target.value }))}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-dark-600 block mb-1">Recurrence</label>
+              <select
+                value={form.recurrence} onChange={e => setForm(f => ({ ...f, recurrence: e.target.value }))}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
+              >
+                <option value="none">One-time</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-dark-600 block mb-1 flex items-center gap-1">
+                <Bell className="w-3 h-3" /> Notify Email
+              </label>
+              <input
+                type="email" value={form.notifyEmail} onChange={e => setForm(f => ({ ...f, notifyEmail: e.target.value }))}
+                placeholder="client@example.com"
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-dark-600 block mb-1">Notes</label>
+              <input
+                value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Prep instructions, access requirements…"
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button type="submit" disabled={saving}
+              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold text-sm px-5 py-2 rounded-xl transition-colors"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarDays className="w-4 h-4" />}
+              {saving ? 'Saving…' : 'Save Schedule'}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)}
+              className="px-4 py-2 text-sm border border-dark-200 rounded-xl text-dark-600 hover:bg-dark-50"
+            >Cancel</button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-dark-400 text-sm py-4">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading schedule…
+        </div>
+      ) : schedules.length === 0 ? (
+        <div className="bg-dark-50 border border-dashed border-dark-200 rounded-xl p-6 text-center text-sm text-dark-400">
+          <CalendarDays className="w-6 h-6 mx-auto mb-2 opacity-40" />
+          No inspections scheduled yet. Click "Schedule Inspection" to plan a future visit.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {pending.map(s => (
+            <div key={s.id} className={`bg-white border rounded-xl p-4 flex items-start justify-between gap-3 ${
+              isOverdue(s.scheduledAt) ? 'border-red-200 bg-red-50' : 'border-dark-100'
+            }`}>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <p className="font-semibold text-sm text-dark-900">{s.title}</p>
+                  {s.recurrence && s.recurrence !== 'none' && (
+                    <span className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                      <RotateCcw className="w-2.5 h-2.5" /> {RECURRENCE_LABELS[s.recurrence] ?? s.recurrence}
+                    </span>
+                  )}
+                  {isOverdue(s.scheduledAt) && (
+                    <span className="text-xs text-red-600 font-bold">OVERDUE</span>
+                  )}
+                </div>
+                <p className={`text-xs flex items-center gap-1.5 ${isOverdue(s.scheduledAt) ? 'text-red-500 font-semibold' : 'text-dark-500'}`}>
+                  <Clock className="w-3 h-3" /> {formatDate(s.scheduledAt)}
+                </p>
+                {s.notes && <p className="text-xs text-dark-400 mt-1 line-clamp-1">{s.notes}</p>}
+                {s.notifyEmail && (
+                  <p className="text-xs text-dark-400 mt-0.5 flex items-center gap-1">
+                    <Bell className="w-3 h-3" /> {s.notifyEmail}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  onClick={() => markDone(s.id)}
+                  title="Mark as completed"
+                  className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => remove(s.id)}
+                  title="Remove"
+                  className="p-1.5 text-dark-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {completed.length > 0 && (
+            <details className="mt-2">
+              <summary className="text-xs text-dark-400 cursor-pointer hover:text-dark-600 select-none py-1">
+                {completed.length} completed inspection{completed.length !== 1 ? 's' : ''}
+              </summary>
+              <div className="space-y-1.5 mt-2 pl-2">
+                {completed.map(s => (
+                  <div key={s.id} className="bg-dark-50 border border-dark-100 rounded-lg p-3 flex items-center justify-between gap-3 opacity-60">
+                    <div>
+                      <p className="text-sm text-dark-600 line-through">{s.title}</p>
+                      <p className="text-xs text-dark-400">{formatDate(s.scheduledAt)}</p>
+                    </div>
+                    <button onClick={() => remove(s.id)} className="p-1 text-dark-300 hover:text-red-500 rounded transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -560,6 +816,9 @@ export default function ProjectDetail() {
           </div>
         </div>
       )}
+
+      {/* Inspection Schedule */}
+      <SchedulePanel projectId={project.id} />
     </div>
   );
 }

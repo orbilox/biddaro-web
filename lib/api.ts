@@ -805,6 +805,12 @@ export const inspectApi = {
   // Inspector settings
   getSettings:    () => api.get('/inspect/settings'),
   upsertSettings: (data: Record<string, unknown>) => api.put('/inspect/settings', data),
+  // Scheduling
+  listSchedules:        (projectId: string) => api.get(`/inspect/projects/${projectId}/schedules`),
+  createSchedule:       (projectId: string, data: Record<string, unknown>) => api.post(`/inspect/projects/${projectId}/schedules`, data),
+  updateSchedule:       (sid: string, data: Record<string, unknown>) => api.put(`/inspect/schedules/${sid}`, data),
+  deleteSchedule:       (sid: string) => api.delete(`/inspect/schedules/${sid}`),
+  listUpcomingSchedules: () => api.get('/inspect/schedules/upcoming'),
 };
 
 export default api;
