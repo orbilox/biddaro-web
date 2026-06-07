@@ -64,6 +64,8 @@ interface Report {
   sentTo: string | null;
   publicToken: string | null;
   publicEnabled: boolean;
+  publicExpiry: string | null;
+  publicViewCount: number;
   clientSignedByName: string | null;
   clientSignedAt: string | null;
   createdAt: string;
@@ -1169,6 +1171,7 @@ export default function ReportViewer() {
   const [pdfIncludePhotos, setPdfIncludePhotos] = useState(true);
   const [showShare, setShowShare] = useState(false);
   const [sharingLoading, setSharingLoading] = useState(false);
+  const [shareExpiry, setShareExpiry] = useState('');
   const [editMode, setEditMode] = useState(false);
   // Cover image
   const [coverImageUrl, setCoverImageUrl] = useState('');
@@ -1339,9 +1342,9 @@ export default function ReportViewer() {
     if (!report) return;
     setSharingLoading(true);
     try {
-      const res = await inspectApi.shareReport(id);
-      const d = (res.data as { data: { publicToken: string; publicEnabled: boolean } }).data;
-      setReport(r => r ? { ...r, publicToken: d.publicToken, publicEnabled: d.publicEnabled } : r);
+      const res = await inspectApi.shareReport(id, shareExpiry || undefined);
+      const d = (res.data as { data: { publicToken: string; publicEnabled: boolean; publicExpiry: string | null; publicViewCount: number } }).data;
+      setReport(r => r ? { ...r, publicToken: d.publicToken, publicEnabled: d.publicEnabled, publicExpiry: d.publicExpiry, publicViewCount: d.publicViewCount } : r);
       toast.success('Public link enabled');
     } catch {
       toast.error('Failed to enable sharing');
@@ -1687,6 +1690,21 @@ export default function ReportViewer() {
                   Awaiting client signature
                 </p>
               )}
+              {/* View counter + expiry */}
+              <div className="flex flex-wrap items-center gap-4 text-xs text-dark-500 bg-dark-50 border border-dark-100 rounded-xl px-3 py-2">
+                <span className="flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-brand-500" />
+                  <span className="font-semibold text-dark-800">{report.publicViewCount ?? 0}</span> view{(report.publicViewCount ?? 0) !== 1 ? 's' : ''}
+                </span>
+                {report.publicExpiry ? (
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                    Expires {new Date(report.publicExpiry).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                ) : (
+                  <span className="text-dark-400">No expiry set</span>
+                )}
+              </div>
               <button
                 onClick={disableShare}
                 disabled={sharingLoading}
@@ -1697,16 +1715,30 @@ export default function ReportViewer() {
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={enableShare}
-                disabled={sharingLoading}
-                className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
-              >
-                {sharingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-                {sharingLoading ? 'Generating link…' : 'Generate Public Link'}
-              </button>
-              <p className="text-dark-400 text-xs">Anyone with the link can view this report.</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div>
+                  <label className="block text-xs text-dark-500 font-medium mb-1">Link expiry (optional)</label>
+                  <input
+                    type="date"
+                    value={shareExpiry}
+                    onChange={e => setShareExpiry(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="border border-dark-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={enableShare}
+                    disabled={sharingLoading}
+                    className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+                  >
+                    {sharingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                    {sharingLoading ? 'Generating link…' : 'Generate Public Link'}
+                  </button>
+                  <p className="text-dark-400 text-xs">Anyone with the link can view this report.</p>
+                </div>
+              </div>
             </div>
           )}
         </div>
