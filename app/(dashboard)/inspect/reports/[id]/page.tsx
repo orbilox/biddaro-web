@@ -1016,6 +1016,51 @@ function VersionHistoryPanel({
   );
 }
 
+// ── Workflow Stepper ──────────────────────────────────────────────────────────
+
+const WORKFLOW_STEPS = ['draft', 'review', 'approved', 'sent'] as const;
+const STEP_LABELS: Record<string, string> = {
+  draft:    'Draft',
+  review:   'In Review',
+  approved: 'Approved',
+  sent:     'Sent',
+};
+const STEP_ICONS: Record<string, React.ReactNode> = {
+  draft:    <Edit3 className="w-3.5 h-3.5" />,
+  review:   <MessageSquare className="w-3.5 h-3.5" />,
+  approved: <CheckCircle className="w-3.5 h-3.5" />,
+  sent:     <Send className="w-3.5 h-3.5" />,
+};
+
+function WorkflowStepper({ status }: { status: string }) {
+  const currentIdx = WORKFLOW_STEPS.indexOf(status as (typeof WORKFLOW_STEPS)[number]);
+  return (
+    <div className="flex items-center gap-0 mb-4 bg-dark-50 rounded-xl p-1">
+      {WORKFLOW_STEPS.map((step, i) => {
+        const isCurrent  = step === status;
+        const isComplete = currentIdx > i;
+        return (
+          <React.Fragment key={step}>
+            <div className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors ${
+              isCurrent  ? 'bg-white text-brand-700 shadow-sm border border-dark-100' :
+              isComplete ? 'text-green-600' :
+              'text-dark-400'
+            }`}>
+              <span className={isComplete ? 'text-green-500' : isCurrent ? 'text-brand-500' : 'text-dark-300'}>
+                {isComplete ? <CheckCircle className="w-3.5 h-3.5" /> : STEP_ICONS[step]}
+              </span>
+              <span className="hidden sm:inline">{STEP_LABELS[step]}</span>
+            </div>
+            {i < WORKFLOW_STEPS.length - 1 && (
+              <div className={`w-4 h-0.5 flex-shrink-0 ${currentIdx > i ? 'bg-green-400' : 'bg-dark-200'}`} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── QR Code download block ────────────────────────────────────────────────────
 function QrCodeBlock({ url, reportTitle }: { url: string; reportTitle: string }) {
   const [show, setShow] = useState(false);
@@ -1309,6 +1354,9 @@ export default function ReportViewer() {
           {report.project.clientName && <span>Client: {report.project.clientName}</span>}
           {report.sentAt && <span className="text-green-600">Sent to {report.sentTo}</span>}
         </div>
+
+        {/* Workflow progress stepper */}
+        <WorkflowStepper status={report.status} />
 
         {/* Status + summary */}
         <div className="flex flex-wrap items-center gap-3">
