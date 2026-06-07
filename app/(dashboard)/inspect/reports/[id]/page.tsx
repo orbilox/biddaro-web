@@ -7,7 +7,7 @@ import {
   Clock, FileText, Loader2, Edit3, Save, X, Mail, FileDown,
   ListTodo, Plus, Circle, Timer, Trash2, ChevronDown, ChevronUp, User,
   MessageSquare, ThumbsUp, ThumbsDown, RotateCcw, GitBranch,
-  Share2, Link2, Copy, Globe, EyeOff, PenLine, QrCode, Camera, Award,
+  Share2, Link2, Copy, Globe, EyeOff, PenLine, QrCode, Camera, Award, Printer,
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { inspectApi } from '@/lib/api';
@@ -1474,6 +1474,15 @@ export default function ReportViewer() {
         >
           <Download className="w-4 h-4" /> Markdown
         </button>
+        {/* Print preview */}
+        <Link
+          href={`/inspect/reports/${id}/print`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 border border-dark-200 text-dark-700 hover:bg-dark-50 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+        >
+          <Printer className="w-4 h-4" /> Print
+        </Link>
         {/* Certificate button */}
         <button
           onClick={downloadCertificate}
