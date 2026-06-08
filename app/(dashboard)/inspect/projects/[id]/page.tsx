@@ -155,6 +155,9 @@ function AddCaptureModal({ projectId, onAdded, onClose, initialSection }: {
   async function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Show local preview immediately so the user sees the photo right away
+    const localUrl = URL.createObjectURL(file);
+    setPhotoPreview(localUrl);
     setUploadingPhoto(true);
     try {
       const { uploadApi } = await import('@/lib/api');
@@ -163,9 +166,15 @@ function AddCaptureModal({ projectId, onAdded, onClose, initialSection }: {
       if (url) {
         setImageUrl(url);
         setPhotoPreview(url);
+        URL.revokeObjectURL(localUrl);
+      } else {
+        toast.error('Upload succeeded but no URL returned');
+        setPhotoPreview(null);
       }
     } catch {
       toast.error('Photo upload failed');
+      setPhotoPreview(null);
+      URL.revokeObjectURL(localUrl);
     } finally {
       setUploadingPhoto(false);
     }
