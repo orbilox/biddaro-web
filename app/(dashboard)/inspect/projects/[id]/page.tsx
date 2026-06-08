@@ -1225,6 +1225,58 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showCapture, setShowCapture] = useState(false);
+  // Quick capture FAB (mobile)
+  const [showQuickCapture, setShowQuickCapture] = useState(false);
+  const [qcSeverity, setQcSeverity] = useState<'normal' | 'warning' | 'critical'>('normal');
+  const [qcSection, setQcSection]   = useState('');
+  const [qcNote, setQcNote]         = useState('');
+  const [qcGps, setQcGps]           = useState<{ lat: number; lng: number } | null>(null);
+  const [qcGpsLoading, setQcGpsLoading] = useState(false);
+  const [qcSubmitting, setQcSubmitting] = useState(false);
+  const qcCameraRef = useRef<HTMLInputElement>(null);
+
+  function qcGetGps() {
+    if (!navigator.geolocation) { toast.error('GPS not available'); return; }
+    setQcGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setQcGps({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setQcGpsLoading(false);
+      },
+      () => { toast.error('Could not get location'); setQcGpsLoading(false); },
+      { timeout: 8000 }
+    );
+  }
+
+  async function qcHandleCameraFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setQcSubmitting(true);
+    try {
+      const { uploadApi } = await import('@/lib/api');
+      const upRes = await uploadApi.images([file]);
+      const url = upRes.data?.data?.files?.[0]?.url;
+      if (!url) throw new Error('Upload failed');
+      await inspectApi.addCapture(id, {
+        type: 'photo',
+        imageUrl: url,
+        section: qcSection || undefined,
+        severity: qcSeverity,
+        content: qcNote || undefined,
+        gpsLat: qcGps?.lat,
+        gpsLng: qcGps?.lng,
+      });
+      load();
+      setShowQuickCapture(false);
+      setQcNote(''); setQcSection(''); setQcGps(null);
+      toast.success('Photo captured!');
+    } catch {
+      toast.error('Capture failed');
+    } finally {
+      setQcSubmitting(false);
+      if (qcCameraRef.current) qcCameraRef.current.value = '';
+    }
+  }
   const [captureInitialSection, setCaptureInitialSection] = useState<string | undefined>(undefined);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -1690,6 +1742,113 @@ export default function ProjectDetail() {
           onDone={load}
           onClose={() => setShowBulkUpload(false)}
         />
+      )}
+
+      {/* ── Quick Capture FAB (mobile) ────────────────────────────── */}
+      {/* Hidden camera input */}
+      <input
+        ref={qcCameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={qcHandleCameraFile}
+      />
+
+      {/* Floating action button */}
+      <button
+        onClick={() => setShowQuickCapture(q => !q)}
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 md:hidden"
+        style={{ background: '#2563eb' }}
+        title="Quick Capture"
+      >
+        {qcSubmitting ? (
+          <Loader2 className="w-6 h-6 text-white animate-spin" />
+        ) : showQuickCapture ? (
+          <X className="w-6 h-6 text-white" />
+        ) : (
+          <Camera className="w-6 h-6 text-white" />
+        )}
+      </button>
+
+      {/* Mobile bottom drawer */}
+      {showQuickCapture && (
+        <div className="fixed inset-0 z-30 md:hidden">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowQuickCapture(false)} />
+          {/* Drawer */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl px-5 py-6 space-y-5">
+            <div className="w-10 h-1 bg-dark-200 rounded-full mx-auto -mt-2 mb-2" />
+            <h3 className="font-bold text-dark-900 text-lg">Quick Capture</h3>
+
+            {/* Severity selector */}
+            <div>
+              <p className="text-xs font-semibold text-dark-500 uppercase tracking-wider mb-2">Severity</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(['normal', 'warning', 'critical'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setQcSeverity(s)}
+                    className={`py-3 rounded-2xl font-bold text-sm capitalize transition-all ${
+                      qcSeverity === s
+                        ? s === 'critical' ? 'bg-red-600 text-white shadow-lg scale-105'
+                          : s === 'warning' ? 'bg-amber-500 text-white shadow-lg scale-105'
+                          : 'bg-green-600 text-white shadow-lg scale-105'
+                        : 'bg-dark-50 text-dark-600 border border-dark-200'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Section + GPS row */}
+            <div className="flex gap-2">
+              <input
+                value={qcSection}
+                onChange={e => setQcSection(e.target.value)}
+                placeholder="Section (optional)"
+                className="flex-1 border border-dark-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400"
+              />
+              <button
+                onClick={qcGetGps}
+                disabled={qcGpsLoading}
+                className={`px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                  qcGps ? 'bg-green-50 border-green-300 text-green-700' : 'border-dark-200 text-dark-600 hover:border-brand-400'
+                }`}
+              >
+                {qcGpsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                {qcGps ? 'GPS ✓' : 'GPS'}
+              </button>
+            </div>
+
+            {/* Note */}
+            <input
+              value={qcNote}
+              onChange={e => setQcNote(e.target.value)}
+              placeholder="Quick note (optional)"
+              className="w-full border border-dark-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400"
+            />
+
+            {/* Camera button */}
+            <button
+              onClick={() => qcCameraRef.current?.click()}
+              disabled={qcSubmitting}
+              className="w-full flex items-center justify-center gap-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base transition-colors"
+            >
+              {qcSubmitting ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Uploading…</>
+              ) : (
+                <><Camera className="w-5 h-5" /> Take Photo</>
+              )}
+            </button>
+
+            <p className="text-xs text-dark-400 text-center">
+              Opens your phone camera · photo uploads instantly
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Breadcrumb */}
