@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import {
   ArrowLeft, Plus, Trash2, MapPin, Upload, X, Loader2,
-  AlertTriangle, CheckCircle, Info,
+  AlertTriangle, CheckCircle, Info, Flame, Download,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 
@@ -47,6 +47,72 @@ function SevIcon({ sev }: { sev: string }) {
   if (sev === 'critical') return <AlertTriangle className="w-3 h-3" />;
   if (sev === 'warning')  return <AlertTriangle className="w-3 h-3" />;
   return <CheckCircle className="w-3 h-3" />;
+}
+
+// ─── Heatmap canvas overlay ───────────────────────────────────────────────────
+
+// Maps severity → RGBA components for radial gradient
+const SEV_RGBA: Record<string, { r: number; g: number; b: number }> = {
+  critical: { r: 239, g: 68,  b: 68  },
+  warning:  { r: 245, g: 158, b: 11  },
+  normal:   { r: 16,  g: 185, b: 129 },
+};
+const SEV_WEIGHT: Record<string, number> = { critical: 1.0, warning: 0.65, normal: 0.35 };
+
+function drawHeatmap(
+  canvas: HTMLCanvasElement,
+  pins: FloorPin[],
+  radius: number,
+  opacity: number,
+) {
+  const ctx = canvas.getContext('2d')!;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (const pin of pins) {
+    const cx = pin.x * canvas.width;
+    const cy = pin.y * canvas.height;
+    const r  = radius;
+    const { r: pr, g: pg, b: pb } = SEV_RGBA[pin.severity] ?? SEV_RGBA.normal;
+    const weight = SEV_WEIGHT[pin.severity] ?? 0.35;
+
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    grad.addColorStop(0,   `rgba(${pr},${pg},${pb},${(opacity * weight).toFixed(2)})`);
+    grad.addColorStop(0.4, `rgba(${pr},${pg},${pb},${(opacity * weight * 0.55).toFixed(2)})`);
+    grad.addColorStop(1,   `rgba(${pr},${pg},${pb},0)`);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+}
+
+function HeatmapCanvas({
+  pins,
+  radius,
+  opacity,
+}: {
+  pins: FloorPin[];
+  radius: number;
+  opacity: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    drawHeatmap(canvas, pins, radius, opacity);
+  }, [pins, radius, opacity]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={1200}
+      height={900}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ mixBlendMode: 'multiply' }}
+    />
+  );
 }
 
 // ─── Pin popup ────────────────────────────────────────────────────────────────
@@ -128,7 +194,15 @@ function FloorPlanCanvas({
   const [pins, setPins]           = useState<FloorPin[]>(plan.pins ?? []);
   const [activePin, setActivePin] = useState<string | null>(null);
   const [adding, setAdding]       = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+  const [heatmap, setHeatmap]     = useState(false);
+  const [radius, setRadius]       = useState(120);
+  const [opacity, setOpacity]     = useState(0.7);
+  const imgRef       = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const critCount = pins.filter(p => p.severity === 'critical').length;
+  const warnCount = pins.filter(p => p.severity === 'warning').length;
+  const normCount = pins.filter(p => p.severity === 'normal').length;
 
   function handleImageClick(e: React.MouseEvent<HTMLImageElement>) {
     if (!adding) return;
@@ -162,12 +236,88 @@ function FloorPlanCanvas({
     setActivePin(null);
   }
 
+  function downloadHeatmap() {
+    const container = containerRef.current;
+    if (!container) return;
+    // Find the heatmap canvas inside the container
+    const heatCanvas = container.querySelector('canvas') as HTMLCanvasElement | null;
+    if (!heatCanvas) { toast.error('Enable heatmap first'); return; }
+    const img = imgRef.current;
+    if (!img) return;
+
+    // Composite: draw background image + heatmap onto an offscreen canvas
+    const off = document.createElement('canvas');
+    off.width  = img.naturalWidth  || 1200;
+    off.height = img.naturalHeight || 900;
+    const ctx = off.getContext('2d')!;
+    ctx.drawImage(img, 0, 0, off.width, off.height);
+
+    // Re-draw heatmap at native res
+    const heatOff = document.createElement('canvas');
+    heatOff.width  = off.width;
+    heatOff.height = off.height;
+    const scaleX = off.width  / heatCanvas.width;
+    const scaleY = off.height / heatCanvas.height;
+    drawHeatmap(heatOff, pins, radius * scaleX, opacity);
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(heatOff, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Draw pin labels
+    for (let i = 0; i < pins.length; i++) {
+      const pin = pins[i];
+      const cx = pin.x * off.width;
+      const cy = pin.y * off.height;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 14, 10, 0, Math.PI * 2);
+      ctx.fillStyle = sevColor(pin.severity);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(i + 1), cx, cy - 14);
+    }
+
+    off.toBlob(blob => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${plan.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-heatmap.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
   return (
     <div className="space-y-3">
+      {/* Stats bar */}
+      {pins.length > 0 && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-xs font-semibold text-dark-500">{pins.length} pin{pins.length !== 1 ? 's' : ''}</span>
+          {critCount > 0 && (
+            <span className="flex items-center gap-1 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+              <AlertTriangle className="w-3 h-3" /> {critCount} Critical
+            </span>
+          )}
+          {warnCount > 0 && (
+            <span className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+              <AlertTriangle className="w-3 h-3" /> {warnCount} Warning
+            </span>
+          )}
+          {normCount > 0 && (
+            <span className="flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+              <CheckCircle className="w-3 h-3" /> {normCount} Normal
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Toolbar */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
-          onClick={() => setAdding(a => !a)}
+          onClick={() => { setAdding(a => !a); setHeatmap(false); }}
           className={`inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border transition-colors ${
             adding
               ? 'bg-brand-600 text-white border-brand-600'
@@ -175,13 +325,58 @@ function FloorPlanCanvas({
           }`}
         >
           <MapPin className="w-4 h-4" />
-          {adding ? 'Click on plan to place pin…' : 'Add Pin'}
+          {adding ? 'Click on plan to place…' : 'Add Pin'}
         </button>
-        <span className="text-xs text-dark-400">{pins.length} pin{pins.length !== 1 ? 's' : ''}</span>
+
+        {pins.length > 0 && (
+          <>
+            <button
+              onClick={() => { setHeatmap(h => !h); setAdding(false); }}
+              className={`inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border transition-colors ${
+                heatmap
+                  ? 'bg-orange-500 text-white border-orange-500'
+                  : 'bg-white border-dark-200 text-dark-700 hover:border-orange-300'
+              }`}
+            >
+              <Flame className="w-4 h-4" />
+              {heatmap ? 'Heatmap On' : 'Heatmap'}
+            </button>
+
+            {heatmap && (
+              <>
+                <div className="flex items-center gap-1.5 bg-dark-50 border border-dark-200 rounded-xl px-3 py-2">
+                  <span className="text-xs text-dark-500 font-medium whitespace-nowrap">Radius</span>
+                  <input
+                    type="range" min={40} max={250} value={radius}
+                    onChange={e => setRadius(+e.target.value)}
+                    className="w-20 accent-orange-500"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 bg-dark-50 border border-dark-200 rounded-xl px-3 py-2">
+                  <span className="text-xs text-dark-500 font-medium whitespace-nowrap">Intensity</span>
+                  <input
+                    type="range" min={0.2} max={1} step={0.05} value={opacity}
+                    onChange={e => setOpacity(+e.target.value)}
+                    className="w-20 accent-orange-500"
+                  />
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={downloadHeatmap}
+              disabled={!heatmap}
+              className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border border-dark-200 text-dark-700 bg-white hover:bg-dark-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              title="Enable heatmap first, then download"
+            >
+              <Download className="w-4 h-4" /> Export PNG
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Image + pins */}
-      <div className="relative inline-block w-full border border-dark-200 rounded-xl overflow-hidden bg-dark-50">
+      {/* Image + pins + heatmap */}
+      <div ref={containerRef} className="relative inline-block w-full border border-dark-200 rounded-xl overflow-hidden bg-dark-50">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={imgRef}
@@ -190,10 +385,16 @@ function FloorPlanCanvas({
           className={`w-full object-contain max-h-[600px] ${adding ? 'cursor-crosshair' : 'cursor-default'}`}
           onClick={handleImageClick}
           draggable={false}
+          crossOrigin="anonymous"
         />
 
+        {/* Heatmap canvas overlay */}
+        {heatmap && (
+          <HeatmapCanvas pins={pins} radius={radius} opacity={opacity} />
+        )}
+
         {/* Render pins */}
-        {pins.map(pin => (
+        {pins.map((pin, idx) => (
           <div
             key={pin.id}
             className="absolute"
@@ -201,11 +402,11 @@ function FloorPlanCanvas({
           >
             <button
               onClick={(e) => { e.stopPropagation(); setActivePin(a => a === pin.id ? null : pin.id); }}
-              className="w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+              className="w-7 h-7 rounded-full border-2 border-white shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95 text-white text-[10px] font-bold"
               style={{ backgroundColor: sevColor(pin.severity) }}
               title={pin.title}
             >
-              <MapPin className="w-3 h-3 text-white fill-white" />
+              {idx + 1}
             </button>
 
             {/* Popup */}
@@ -219,10 +420,27 @@ function FloorPlanCanvas({
             )}
           </div>
         ))}
+
+        {/* Heatmap legend */}
+        {heatmap && (
+          <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-dark-100 text-xs space-y-1.5">
+            <p className="font-bold text-dark-700 mb-1">Severity</p>
+            {[
+              { label: 'Critical', color: '#EF4444' },
+              { label: 'Warning',  color: '#F59E0B' },
+              { label: 'Normal',   color: '#10B981' },
+            ].map(({ label, color }) => (
+              <div key={label} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: color }} />
+                <span className="text-dark-600">{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Pin legend */}
-      {pins.length > 0 && (
+      {pins.length > 0 && !heatmap && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
           {pins.map((pin, i) => (
             <div key={pin.id} className={`flex items-start gap-2 p-2.5 rounded-lg border text-sm ${sevBg(pin.severity)}`}>
@@ -259,7 +477,7 @@ function UploadModal({
     if (!name.trim() || !imageUrl.trim()) return;
     setSubmitting(true);
     try {
-      const res = await inspectApi.createFloorPlan(projectId, { name, imageUrl });
+      const res = await inspectApi.createFloorPlan(projectId, { name, imageUrl, pins: [] });
       onCreated((res.data as { data: FloorPlan }).data);
       toast.success('Floor plan added');
       onClose();
@@ -392,7 +610,7 @@ export default function FloorPlansPage() {
           </Link>
           <div>
             <h1 className="text-xl font-bold text-dark-900">Floor Plan Markup</h1>
-            <p className="text-sm text-dark-400">Click the plan to place defect pins</p>
+            <p className="text-sm text-dark-400">Place defect pins · toggle Heatmap to see severity hotspots</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -428,27 +646,37 @@ export default function FloorPlansPage() {
         <div className="flex gap-6">
           {/* Plan tabs sidebar */}
           <div className="w-48 flex-shrink-0 space-y-2">
-            {plans.map(p => (
-              <div
-                key={p.id}
-                onClick={() => setSelected(p.id)}
-                className={`group relative rounded-xl border p-3 cursor-pointer transition-all ${
-                  selected === p.id
-                    ? 'border-brand-400 bg-brand-50 shadow-sm'
-                    : 'border-dark-200 hover:border-dark-300 bg-white'
-                }`}
-              >
-                <p className="text-sm font-semibold text-dark-800 truncate">{p.name}</p>
-                <p className="text-xs text-dark-400">{(p.pins ?? []).length} pin{(p.pins ?? []).length !== 1 ? 's' : ''}</p>
-                <button
-                  onClick={e => { e.stopPropagation(); deletePlan(p.id); }}
-                  disabled={deletingId === p.id}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-dark-300 hover:text-red-500 transition-all"
+            {plans.map(p => {
+              const pCrit = (p.pins ?? []).filter(x => x.severity === 'critical').length;
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => setSelected(p.id)}
+                  className={`group relative rounded-xl border p-3 cursor-pointer transition-all ${
+                    selected === p.id
+                      ? 'border-brand-400 bg-brand-50 shadow-sm'
+                      : 'border-dark-200 hover:border-dark-300 bg-white'
+                  }`}
                 >
-                  {deletingId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            ))}
+                  <p className="text-sm font-semibold text-dark-800 truncate">{p.name}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs text-dark-400">{(p.pins ?? []).length} pin{(p.pins ?? []).length !== 1 ? 's' : ''}</span>
+                    {pCrit > 0 && (
+                      <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 rounded-full">
+                        {pCrit} ⚠
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); deletePlan(p.id); }}
+                    disabled={deletingId === p.id}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-dark-300 hover:text-red-500 transition-all"
+                  >
+                    {deletingId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           {/* Active plan canvas */}
