@@ -4,8 +4,321 @@ import { useRouter } from 'next/navigation';
 import {
   User, Building2, BadgeCheck, Phone, MapPin, Image, FileText,
   Save, ArrowLeft, Loader2, CheckCircle, Upload, X, Palette,
+  Link2, Plus, Trash2, Play, Eye, EyeOff, ToggleLeft, ToggleRight,
+  CheckCircle2, AlertCircle,
 } from 'lucide-react';
 import { inspectApi, uploadApi } from '@/lib/api';
+
+// ─── Webhook types ────────────────────────────────────────────────────────────
+interface Webhook {
+  id: string;
+  url: string;
+  events: string[];
+  secret: string;
+  active: boolean;
+  createdAt: string;
+}
+
+const ALL_EVENTS = [
+  { key: 'report.status_changed', label: 'Status changed',    desc: 'Report moved to a new status' },
+  { key: 'capture.created',       label: 'Capture added',     desc: 'New photo/observation uploaded' },
+  { key: 'report.shared',         label: 'Report shared',     desc: 'Public share link enabled' },
+  { key: 'task.created',          label: 'Task created',      desc: 'Remediation task logged' },
+];
+
+function WebhooksSection() {
+  const [hooks, setHooks]           = useState<Webhook[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [showAdd, setShowAdd]       = useState(false);
+  const [newUrl, setNewUrl]         = useState('');
+  const [newEvents, setNewEvents]   = useState<string[]>(['report.status_changed', 'capture.created']);
+  const [adding, setAdding]         = useState(false);
+  const [revealId, setRevealId]     = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<Record<string, { ok: boolean; msg: string }>>({});
+  const [testing, setTesting]       = useState<Record<string, boolean>>({});
+  const [toggling, setToggling]     = useState<Record<string, boolean>>({});
+  const [deleting, setDeleting]     = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    try {
+      const res = await inspectApi.listWebhooks();
+      setHooks((res.data as { data: Webhook[] }).data ?? []);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function toggleEvent(key: string) {
+    setNewEvents(ev => ev.includes(key) ? ev.filter(e => e !== key) : [...ev, key]);
+  }
+
+  async function handleAdd() {
+    if (!newUrl.trim() || !newUrl.startsWith('http')) return;
+    setAdding(true);
+    try {
+      const res = await inspectApi.createWebhook({ url: newUrl.trim(), events: newEvents });
+      const created = (res.data as { data: Webhook }).data;
+      setHooks(h => [created, ...h]);
+      setNewUrl('');
+      setNewEvents(['report.status_changed', 'capture.created']);
+      setShowAdd(false);
+    } catch {
+      // ignore
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function handleToggle(hook: Webhook) {
+    setToggling(t => ({ ...t, [hook.id]: true }));
+    try {
+      const res = await inspectApi.updateWebhook(hook.id, { active: !hook.active });
+      const updated = (res.data as { data: Webhook }).data;
+      setHooks(h => h.map(x => x.id === hook.id ? updated : x));
+    } catch {
+      // ignore
+    } finally {
+      setToggling(t => ({ ...t, [hook.id]: false }));
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this webhook? This cannot be undone.')) return;
+    setDeleting(d => ({ ...d, [id]: true }));
+    try {
+      await inspectApi.deleteWebhook(id);
+      setHooks(h => h.filter(x => x.id !== id));
+    } catch {
+      // ignore
+    } finally {
+      setDeleting(d => ({ ...d, [id]: false }));
+    }
+  }
+
+  async function handleTest(id: string) {
+    setTesting(t => ({ ...t, [id]: true }));
+    setTestResult(r => ({ ...r, [id]: { ok: false, msg: '' } }));
+    try {
+      const res = await inspectApi.testWebhook(id);
+      const data = (res.data as { data?: { ok: boolean; status?: number }; success?: boolean; message?: string });
+      if (data.data) {
+        setTestResult(r => ({
+          ...r,
+          [id]: { ok: data.data!.ok ?? false, msg: `HTTP ${data.data!.status ?? '?'}` },
+        }));
+      } else {
+        setTestResult(r => ({ ...r, [id]: { ok: false, msg: data.message ?? 'Failed' } }));
+      }
+    } catch {
+      setTestResult(r => ({ ...r, [id]: { ok: false, msg: 'Request error' } }));
+    } finally {
+      setTesting(t => ({ ...t, [id]: false }));
+    }
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <Link2 className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Outbound Webhooks</h2>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowAdd(s => !s)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add endpoint
+        </button>
+      </div>
+      <p className="text-xs text-gray-400 mb-5">
+        Biddaro will POST signed JSON payloads to your endpoint when inspect events occur.
+        Verify the <span className="font-mono bg-gray-100 px-1 rounded">X-Biddaro-Signature</span> header with your secret.
+      </p>
+
+      {/* Add form */}
+      {showAdd && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 space-y-3">
+          <label className="block text-xs font-semibold text-gray-700">Endpoint URL</label>
+          <input
+            type="url"
+            value={newUrl}
+            onChange={e => setNewUrl(e.target.value)}
+            placeholder="https://your-server.com/webhook"
+            className="w-full text-sm border border-blue-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400"
+          />
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2">Events to subscribe</label>
+            <div className="grid grid-cols-2 gap-2">
+              {ALL_EVENTS.map(ev => (
+                <label key={ev.key} className="flex items-start gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={newEvents.includes(ev.key)}
+                    onChange={() => toggleEvent(ev.key)}
+                    className="mt-0.5 accent-brand-600"
+                  />
+                  <span>
+                    <span className="text-xs font-semibold text-gray-700 group-hover:text-brand-600">{ev.label}</span>
+                    <span className="block text-[10px] text-gray-400">{ev.desc}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={adding || !newUrl.startsWith('http')}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
+            >
+              {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              {adding ? 'Saving…' : 'Save webhook'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAdd(false)}
+              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+        </div>
+      ) : hooks.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mb-3">
+            <Link2 className="w-5 h-5 text-gray-400" />
+          </div>
+          <p className="text-sm font-semibold text-gray-500">No webhooks configured</p>
+          <p className="text-xs text-gray-400 mt-1">Add an endpoint to receive real-time inspect events</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-100">
+          {hooks.map(hook => {
+            const result = testResult[hook.id];
+            const isTesting = testing[hook.id];
+            return (
+              <div key={hook.id} className="py-4 first:pt-0 last:pb-0">
+                <div className="flex items-start gap-3">
+                  {/* Active toggle */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggle(hook)}
+                    disabled={toggling[hook.id]}
+                    className="mt-0.5 flex-shrink-0 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                    title={hook.active ? 'Disable webhook' : 'Enable webhook'}
+                  >
+                    {toggling[hook.id]
+                      ? <Loader2 className="w-5 h-5 animate-spin" />
+                      : hook.active
+                        ? <ToggleRight className="w-5 h-5 text-green-500" />
+                        : <ToggleLeft className="w-5 h-5 text-gray-400" />
+                    }
+                  </button>
+
+                  <div className="flex-1 min-w-0">
+                    {/* URL */}
+                    <p className="text-sm font-mono text-gray-800 truncate">{hook.url}</p>
+
+                    {/* Events */}
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {(hook.events as string[]).map(ev => (
+                        <span key={ev} className="inline-block text-[10px] font-mono bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                          {ev}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Secret */}
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <span className="text-[10px] text-gray-400 font-semibold uppercase">Secret:</span>
+                      {revealId === hook.id ? (
+                        <span className="text-[10px] font-mono text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200 break-all">
+                          {hook.secret}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-mono text-gray-400">{'•'.repeat(16)}</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setRevealId(r => r === hook.id ? null : hook.id)}
+                        className="text-gray-400 hover:text-gray-600"
+                        title={revealId === hook.id ? 'Hide secret' : 'Reveal secret'}
+                      >
+                        {revealId === hook.id
+                          ? <EyeOff className="w-3.5 h-3.5" />
+                          : <Eye className="w-3.5 h-3.5" />
+                        }
+                      </button>
+                    </div>
+
+                    {/* Test result */}
+                    {result && (
+                      <div className={`flex items-center gap-1 mt-1.5 text-xs font-semibold ${result.ok ? 'text-green-600' : 'text-red-500'}`}>
+                        {result.ok
+                          ? <CheckCircle2 className="w-3.5 h-3.5" />
+                          : <AlertCircle className="w-3.5 h-3.5" />
+                        }
+                        {result.ok ? `Delivery OK · ${result.msg}` : `Failed · ${result.msg}`}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleTest(hook.id)}
+                      disabled={isTesting}
+                      title="Send test payload"
+                      className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {isTesting
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Play className="w-4 h-4" />
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(hook.id)}
+                      disabled={deleting[hook.id]}
+                      title="Delete webhook"
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {deleting[hook.id]
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Trash2 className="w-4 h-4" />
+                      }
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="text-[10px] text-gray-400 mt-4 pt-4 border-t border-gray-100">
+        Payloads are signed using HMAC-SHA256. Header: <span className="font-mono">X-Biddaro-Signature: sha256=&lt;hex&gt;</span>
+      </p>
+    </div>
+  );
+}
 
 interface InspectSettings {
   companyName: string;
@@ -454,6 +767,9 @@ export default function InspectSettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Webhooks */}
+        <WebhooksSection />
 
         {/* Save button */}
         <div className="flex items-center justify-between">

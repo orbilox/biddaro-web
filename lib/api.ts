@@ -829,6 +829,21 @@ export const inspectApi = {
   // Report versioning
   listVersions:    (reportId: string) => api.get(`/inspect/reports/${reportId}/versions`),
   restoreVersion:  (reportId: string, vid: string) => api.post(`/inspect/reports/${reportId}/versions/${vid}/restore`, {}),
+  // Webhooks
+  listWebhooks:    () => api.get('/inspect/webhooks'),
+  createWebhook:   (data: { url: string; events: string[]; active?: boolean }) => api.post('/inspect/webhooks', data),
+  updateWebhook:   (id: string, data: { url?: string; events?: string[]; active?: boolean }) => api.put(`/inspect/webhooks/${id}`, data),
+  deleteWebhook:   (id: string) => api.delete(`/inspect/webhooks/${id}`),
+  testWebhook:     (id: string) => api.post(`/inspect/webhooks/${id}/test`, {}),
+  // Project team members
+  listProjectMembers:   (projectId: string) => api.get(`/inspect/projects/${projectId}/members`),
+  addProjectMember:     (projectId: string, data: { email: string; role?: string }) => api.post(`/inspect/projects/${projectId}/members`, data),
+  updateProjectMember:  (projectId: string, mid: string, data: { role: string }) => api.put(`/inspect/projects/${projectId}/members/${mid}`, data),
+  removeProjectMember:  (projectId: string, mid: string) => api.delete(`/inspect/projects/${projectId}/members/${mid}`),
+  // Client portal
+  enableClientPortal:  (projectId: string) => api.post(`/inspect/projects/${projectId}/client-portal`, {}),
+  disableClientPortal: (projectId: string) => api.delete(`/inspect/projects/${projectId}/client-portal`),
+  getClientPortal:     (token: string) => api.get(`/inspect/client-portal/${token}`),
 };
 
 export default api;

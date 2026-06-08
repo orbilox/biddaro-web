@@ -9,6 +9,8 @@ import {
   MapPin, User, Mail, FolderOpen, Sparkles, Upload, X,
   CalendarDays, Bell, RotateCcw, PenLine, ChevronLeft, ChevronRight,
   ZoomIn, Download, Search, Pencil, Undo2, Square, Circle, Minus,
+  Users, UserPlus, ShieldCheck, Eye as EyeIcon,
+  ExternalLink, Copy, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 import { toast } from '@/store/uiStore';
@@ -64,6 +66,8 @@ interface Project {
   clientEmail: string | null;
   description: string | null;
   status: string;
+  clientPortalToken: string | null;
+  clientPortalEnabled: boolean;
   template: {
     id: string;
     name: string;
@@ -544,6 +548,199 @@ interface Schedule {
   recurrence: string | null;
   status: string;
   completedAt: string | null;
+}
+
+// ─── Team Panel ───────────────────────────────────────────────────────────────
+
+interface TeamMember {
+  id: string;
+  email: string;
+  name: string | null;
+  userId: string | null;
+  role: string;
+  addedBy: string;
+  createdAt: string;
+}
+
+function TeamPanel({ projectId }: { projectId: string }) {
+  const [members, setMembers]         = useState<TeamMember[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [showAdd, setShowAdd]         = useState(false);
+  const [email, setEmail]             = useState('');
+  const [role, setRole]               = useState<'inspector' | 'viewer'>('inspector');
+  const [adding, setAdding]           = useState(false);
+  const [removingId, setRemovingId]   = useState<string | null>(null);
+  const [updatingId, setUpdatingId]   = useState<string | null>(null);
+
+  useEffect(() => { loadMembers(); }, []);
+
+  async function loadMembers() {
+    try {
+      const res = await inspectApi.listProjectMembers(projectId);
+      setMembers((res.data as { data: TeamMember[] }).data ?? []);
+    } catch { /* ignore */ } finally { setLoading(false); }
+  }
+
+  async function handleAdd() {
+    if (!email.trim()) return;
+    setAdding(true);
+    try {
+      const res = await inspectApi.addProjectMember(projectId, { email: email.trim(), role });
+      const added = (res.data as { data: TeamMember }).data;
+      setMembers(m => [added, ...m]);
+      setEmail('');
+      setShowAdd(false);
+      toast.success(`${email.trim()} added to project`);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Failed to add member');
+    } finally { setAdding(false); }
+  }
+
+  async function handleRoleChange(mid: string, newRole: string) {
+    setUpdatingId(mid);
+    try {
+      const res = await inspectApi.updateProjectMember(projectId, mid, { role: newRole });
+      const updated = (res.data as { data: TeamMember }).data;
+      setMembers(m => m.map(x => x.id === mid ? updated : x));
+    } catch { toast.error('Failed to update role'); } finally { setUpdatingId(null); }
+  }
+
+  async function handleRemove(mid: string, memberEmail: string) {
+    if (!confirm(`Remove ${memberEmail} from this project?`)) return;
+    setRemovingId(mid);
+    try {
+      await inspectApi.removeProjectMember(projectId, mid);
+      setMembers(m => m.filter(x => x.id !== mid));
+      toast.success('Member removed');
+    } catch { toast.error('Failed to remove member'); } finally { setRemovingId(null); }
+  }
+
+  return (
+    <div className="mt-6 bg-white border border-dark-100 rounded-2xl p-5 shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-dark-400" />
+          <h3 className="text-sm font-bold text-dark-800">Inspector Team</h3>
+          {!loading && members.length > 0 && (
+            <span className="text-xs bg-brand-100 text-brand-700 font-semibold px-2 py-0.5 rounded-full">
+              {members.length}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowAdd(s => !s)}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 px-2.5 py-1.5 rounded-lg hover:bg-brand-50 transition-colors"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          Add
+        </button>
+      </div>
+
+      {/* Add form */}
+      {showAdd && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 space-y-2.5">
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            placeholder="inspector@example.com"
+            className="w-full text-sm border border-blue-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400"
+          />
+          <div className="flex gap-2">
+            <select
+              value={role}
+              onChange={e => setRole(e.target.value as 'inspector' | 'viewer')}
+              className="flex-1 text-sm border border-blue-200 rounded-lg px-2 py-2 bg-white focus:outline-none"
+            >
+              <option value="inspector">Inspector — can add captures</option>
+              <option value="viewer">Viewer — read only</option>
+            </select>
+            <button
+              onClick={handleAdd}
+              disabled={adding || !email.trim()}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
+            >
+              {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              {adding ? '…' : 'Add'}
+            </button>
+          </div>
+          <p className="text-[10px] text-blue-500">
+            If they have a Biddaro account they&apos;ll get access immediately; otherwise the invite is stored for when they register.
+          </p>
+        </div>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="w-5 h-5 animate-spin text-dark-300" />
+        </div>
+      ) : members.length === 0 ? (
+        <div className="text-center py-6">
+          <Users className="w-8 h-8 text-dark-200 mx-auto mb-2" />
+          <p className="text-xs text-dark-400 font-medium">No team members yet</p>
+          <p className="text-[10px] text-dark-300 mt-0.5">Add inspectors to collaborate on this project</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {members.map(m => (
+            <div key={m.id} className="flex items-center gap-2.5 py-2 border-b border-dark-50 last:border-0">
+              {/* Avatar */}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-bold text-white">
+                  {(m.name ?? m.email).charAt(0).toUpperCase()}
+                </span>
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-dark-800 truncate">{m.name ?? m.email}</p>
+                {m.name && <p className="text-[10px] text-dark-400 truncate">{m.email}</p>}
+                <div className="flex items-center gap-1 mt-0.5">
+                  {m.role === 'inspector'
+                    ? <ShieldCheck className="w-3 h-3 text-brand-500" />
+                    : <EyeIcon className="w-3 h-3 text-dark-400" />
+                  }
+                  <span className="text-[10px] text-dark-400 capitalize">{m.role}</span>
+                  {m.userId && <span className="text-[10px] text-green-500 font-semibold ml-1">● Active</span>}
+                  {!m.userId && <span className="text-[10px] text-amber-500 font-semibold ml-1">○ Pending</span>}
+                </div>
+              </div>
+
+              {/* Role changer */}
+              <select
+                value={m.role}
+                disabled={updatingId === m.id}
+                onChange={e => handleRoleChange(m.id, e.target.value)}
+                className="text-[10px] border border-dark-200 rounded-lg px-1.5 py-1 bg-white text-dark-600 focus:outline-none disabled:opacity-50"
+              >
+                <option value="inspector">Inspector</option>
+                <option value="viewer">Viewer</option>
+              </select>
+
+              {/* Remove */}
+              <button
+                type="button"
+                onClick={() => handleRemove(m.id, m.email)}
+                disabled={removingId === m.id}
+                className="p-1 text-dark-300 hover:text-red-500 transition-colors disabled:opacity-50"
+                title="Remove from project"
+              >
+                {removingId === m.id
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <X className="w-3.5 h-3.5" />
+                }
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function SchedulePanel({ projectId }: { projectId: string }) {
@@ -1235,6 +1432,12 @@ export default function ProjectDetail() {
   const [qcSubmitting, setQcSubmitting] = useState(false);
   const qcCameraRef = useRef<HTMLInputElement>(null);
 
+  // Client portal state
+  const [portalEnabled, setPortalEnabled]       = useState(false);
+  const [portalToken, setPortalToken]           = useState<string | null>(null);
+  const [portalTogglingOn, setPortalTogglingOn] = useState(false);
+  const [portalLinkCopied, setPortalLinkCopied] = useState(false);
+
   function qcGetGps() {
     if (!navigator.geolocation) { toast.error('GPS not available'); return; }
     setQcGpsLoading(true);
@@ -1326,7 +1529,10 @@ export default function ProjectDetail() {
   const load = useCallback(async () => {
     try {
       const res = await inspectApi.getProject(id);
-      setProject((res.data as { data: Project }).data);
+      const data = (res.data as { data: Project }).data;
+      setProject(data);
+      setPortalEnabled(data.clientPortalEnabled ?? false);
+      setPortalToken(data.clientPortalToken ?? null);
     } catch {
       toast.error('Failed to load project');
     } finally {
@@ -1341,6 +1547,37 @@ export default function ProjectDetail() {
       .then(res => setAvailableTemplates((res.data as { data: { id: string; name: string }[] }).data ?? []))
       .catch(() => {});
   }, []);
+
+  async function handleTogglePortal() {
+    if (!project) return;
+    setPortalTogglingOn(true);
+    try {
+      if (portalEnabled) {
+        await inspectApi.disableClientPortal(project.id);
+        setPortalEnabled(false);
+        toast.success('Client portal disabled');
+      } else {
+        const res = await inspectApi.enableClientPortal(project.id);
+        const data = (res.data as { data: { clientPortalToken: string; clientPortalEnabled: boolean } }).data;
+        setPortalEnabled(true);
+        setPortalToken(data.clientPortalToken);
+        toast.success('Client portal enabled');
+      }
+    } catch {
+      toast.error('Failed to update client portal');
+    } finally {
+      setPortalTogglingOn(false);
+    }
+  }
+
+  function copyPortalLink() {
+    if (!portalToken) return;
+    const url = `${window.location.origin}/client-portal/${portalToken}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setPortalLinkCopied(true);
+      setTimeout(() => setPortalLinkCopied(false), 2000);
+    });
+  }
 
   async function generateReport() {
     if (!project || project.captures.length === 0) {
@@ -2932,6 +3169,68 @@ export default function ProjectDetail() {
           </div>
         </div>
       )}
+
+      {/* Client Portal */}
+      <div className="mt-4 bg-white border border-dark-100 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <ExternalLink className="w-4 h-4 text-dark-400" />
+            <h3 className="text-sm font-bold text-dark-800">Client Portal</h3>
+          </div>
+          <button
+            type="button"
+            onClick={handleTogglePortal}
+            disabled={portalTogglingOn}
+            className="text-dark-400 hover:text-dark-700 disabled:opacity-50"
+            title={portalEnabled ? 'Disable portal' : 'Enable portal'}
+          >
+            {portalTogglingOn
+              ? <Loader2 className="w-5 h-5 animate-spin" />
+              : portalEnabled
+                ? <ToggleRight className="w-5 h-5 text-green-500" />
+                : <ToggleLeft className="w-5 h-5 text-dark-400" />
+            }
+          </button>
+        </div>
+        {portalEnabled && portalToken ? (
+          <div className="space-y-2">
+            <p className="text-xs text-dark-500">Share this link with your client for read-only access to all shared reports.</p>
+            <div className="flex items-center gap-2 bg-dark-50 rounded-xl px-3 py-2 border border-dark-100">
+              <span className="text-xs font-mono text-dark-600 truncate flex-1">
+                {typeof window !== 'undefined'
+                  ? `${window.location.origin}/client-portal/${portalToken}`
+                  : `/client-portal/${portalToken}`
+                }
+              </span>
+              <button
+                type="button"
+                onClick={copyPortalLink}
+                className="flex-shrink-0 text-dark-400 hover:text-brand-600 transition-colors"
+                title="Copy link"
+              >
+                {portalLinkCopied
+                  ? <CheckCircle className="w-4 h-4 text-green-500" />
+                  : <Copy className="w-4 h-4" />
+                }
+              </button>
+            </div>
+            <a
+              href={`/client-portal/${portalToken}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-800"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Preview as client
+            </a>
+          </div>
+        ) : (
+          <p className="text-xs text-dark-400">Enable to generate a shareable client link with read-only access to all shared reports for this project.</p>
+        )}
+      </div>
+
+      {/* Inspector Team */}
+      <TeamPanel projectId={project.id} />
 
       {/* Inspection Schedule */}
       <SchedulePanel projectId={project.id} />
