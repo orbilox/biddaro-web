@@ -70,6 +70,8 @@ interface Report {
   publicViewCount: number;
   clientSignedByName: string | null;
   clientSignedAt: string | null;
+  inspectorSignature: string | null;
+  inspectorSignedAt: string | null;
   createdAt: string;
   updatedAt: string;
   project: {
@@ -1160,6 +1162,146 @@ function QrCodeBlock({ url, reportTitle }: { url: string; reportTitle: string })
   );
 }
 
+// ── Signature Pad Modal ───────────────────────────────────────────────────────
+
+function SignaturePadModal({
+  onSign,
+  onClose,
+  saving,
+}: {
+  onSign: (dataUrl: string) => void;
+  onClose: () => void;
+  saving: boolean;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [drawing, setDrawing] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(true);
+
+  function getPos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if ('touches' in e) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY,
+      };
+    }
+    return {
+      x: ((e as React.MouseEvent).clientX - rect.left) * scaleX,
+      y: ((e as React.MouseEvent).clientY - rect.top) * scaleY,
+    };
+  }
+
+  function startDraw(e: React.MouseEvent | React.TouchEvent) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    e.preventDefault();
+    setDrawing(true);
+    const ctx = canvas.getContext('2d')!;
+    const { x, y } = getPos(e, canvas);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }
+
+  function draw(e: React.MouseEvent | React.TouchEvent) {
+    if (!drawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    e.preventDefault();
+    const ctx = canvas.getContext('2d')!;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#1e293b';
+    const { x, y } = getPos(e, canvas);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    setIsEmpty(false);
+  }
+
+  function stopDraw() { setDrawing(false); }
+
+  function clearCanvas() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setIsEmpty(true);
+  }
+
+  function handleApply() {
+    const canvas = canvasRef.current;
+    if (!canvas || isEmpty) return;
+    onSign(canvas.toDataURL('image/png'));
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-dark-100">
+          <div className="flex items-center gap-2">
+            <PenLine className="w-5 h-5 text-brand-600" />
+            <h2 className="font-bold text-dark-900">Inspector Signature</h2>
+          </div>
+          <button onClick={onClose} className="text-dark-400 hover:text-dark-700">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Canvas */}
+        <div className="px-5 pt-4">
+          <p className="text-xs text-dark-500 mb-3">Sign below using your mouse or touch screen</p>
+          <div className="border-2 border-dashed border-dark-200 rounded-xl bg-dark-50 overflow-hidden touch-none select-none">
+            <canvas
+              ref={canvasRef}
+              width={460}
+              height={180}
+              className="w-full block cursor-crosshair"
+              onMouseDown={startDraw}
+              onMouseMove={draw}
+              onMouseUp={stopDraw}
+              onMouseLeave={stopDraw}
+              onTouchStart={startDraw}
+              onTouchMove={draw}
+              onTouchEnd={stopDraw}
+            />
+          </div>
+          {isEmpty && (
+            <p className="text-xs text-dark-400 text-center mt-2 italic">Draw your signature above</p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between px-5 py-4">
+          <button
+            type="button"
+            onClick={clearCanvas}
+            className="text-sm text-dark-500 hover:text-dark-800 border border-dark-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Clear
+          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onClose} className="text-sm text-dark-500 hover:text-dark-800 px-3 py-1.5 rounded-lg transition-colors">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleApply}
+              disabled={isEmpty || saving}
+              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              Apply Signature
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReportViewer() {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<Report | null>(null);
@@ -1181,6 +1323,9 @@ export default function ReportViewer() {
   const [savingCover, setSavingCover] = useState(false);
   const coverInputRef = React.useRef<HTMLInputElement>(null);
   const [showHistory, setShowHistory] = useState(false);
+  // Inspector e-signature
+  const [showSignPad, setShowSignPad]   = useState(false);
+  const [signingReport, setSigningReport] = useState(false);
   const [taskModal, setTaskModal] = useState<{
     title: string; severity: string; section: string; finding: string;
   } | null>(null);
@@ -1369,6 +1514,30 @@ export default function ReportViewer() {
     }
   }
 
+  async function handleSign(dataUrl: string) {
+    setSigningReport(true);
+    try {
+      await inspectApi.signReport(id, dataUrl);
+      setReport(r => r ? { ...r, inspectorSignature: dataUrl, inspectorSignedAt: new Date().toISOString() } : r);
+      setShowSignPad(false);
+      toast.success('Signature applied');
+    } catch {
+      toast.error('Failed to save signature');
+    } finally {
+      setSigningReport(false);
+    }
+  }
+
+  async function handleClearSignature() {
+    try {
+      await inspectApi.clearInspectorSignature(id);
+      setReport(r => r ? { ...r, inspectorSignature: null, inspectorSignedAt: null } : r);
+      toast.success('Signature removed');
+    } catch {
+      toast.error('Failed to remove signature');
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6 max-w-4xl mx-auto space-y-4">
@@ -1396,6 +1565,13 @@ export default function ReportViewer() {
           defaultClientName={report.project.clientName ?? ''}
           onClose={() => setShowSend(false)}
           onSent={load}
+        />
+      )}
+      {showSignPad && (
+        <SignaturePadModal
+          onSign={handleSign}
+          onClose={() => setShowSignPad(false)}
+          saving={signingReport}
         />
       )}
       {taskModal && (
@@ -1620,6 +1796,19 @@ export default function ReportViewer() {
             ? <Loader2 className="w-4 h-4 animate-spin" />
             : <Award className="w-4 h-4" />}
           {downloadingCert ? 'Generating…' : 'Certificate'}
+        </button>
+        {/* Inspector e-signature button */}
+        <button
+          onClick={() => report.inspectorSignature ? handleClearSignature() : setShowSignPad(true)}
+          className={`inline-flex items-center gap-2 font-semibold px-4 py-2 rounded-xl text-sm transition-colors ${
+            report.inspectorSignature
+              ? 'bg-violet-100 text-violet-700 border border-violet-200 hover:bg-violet-200'
+              : 'border border-dark-200 text-dark-700 hover:bg-dark-50'
+          }`}
+          title={report.inspectorSignature ? 'Clear inspector signature' : 'Add inspector signature'}
+        >
+          <PenLine className="w-4 h-4" />
+          {report.inspectorSignature ? 'Signed' : 'Sign'}
         </button>
         {/* Share button */}
         <button
@@ -1954,6 +2143,43 @@ export default function ReportViewer() {
           reportId={id}
           onRestored={() => { load(); setShowHistory(false); }}
         />
+      )}
+
+      {/* Inspector e-signature display */}
+      {report.inspectorSignature && (
+        <div className="mt-6 border border-dark-100 rounded-2xl p-5 bg-dark-50/40">
+          <div className="flex items-end justify-between gap-6 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-dark-400 font-semibold uppercase tracking-wider mb-2">Inspector Signature</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={report.inspectorSignature}
+                alt="Inspector signature"
+                className="max-h-20 max-w-xs object-contain bg-white border border-dark-100 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div className="text-right flex-shrink-0">
+              {settings?.inspectorName && (
+                <p className="text-sm font-semibold text-dark-800">{settings.inspectorName}</p>
+              )}
+              {settings?.licenseNo && (
+                <p className="text-xs text-dark-400 font-mono mt-0.5">Lic. {settings.licenseNo}</p>
+              )}
+              {report.inspectorSignedAt && (
+                <p className="text-xs text-dark-400 mt-1">
+                  Signed {new Date(report.inspectorSignedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              )}
+              <button
+                onClick={handleClearSignature}
+                className="text-xs text-dark-300 hover:text-red-500 mt-1.5 transition-colors"
+                title="Remove signature"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Footer */}
