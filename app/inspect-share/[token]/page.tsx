@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import {
   AlertTriangle, CheckCircle, FileText, MapPin, User,
   Calendar, Shield, Loader2, XCircle, PenLine, RotateCcw,
+  ThumbsUp, ThumbsDown, MessageSquare,
 } from 'lucide-react';
 import { inspectApi } from '@/lib/api';
 
@@ -256,6 +257,111 @@ function SignaturePad({ token, onSigned }: SignaturePadProps) {
   );
 }
 
+// ── Per-section feedback widget ───────────────────────────────────────────────
+
+function SectionFeedbackWidget({
+  token,
+  sectionId,
+  sectionTitle,
+}: {
+  token: string;
+  sectionId: string;
+  sectionTitle: string;
+}) {
+  const [reaction, setReaction]   = useState<'thumbs_up' | 'thumbs_down' | null>(null);
+  const [comment, setComment]     = useState('');
+  const [showInput, setShowInput] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted]   = useState(false);
+
+  async function submit(r: 'thumbs_up' | 'thumbs_down') {
+    if (submitting) return;
+    setReaction(r);
+    setSubmitting(true);
+    try {
+      await inspectApi.submitSectionFeedback(token, {
+        sectionId,
+        sectionTitle,
+        reaction: r,
+        comment: comment.trim() || undefined,
+      });
+      setSubmitted(true);
+      setShowInput(false);
+    } catch {
+      // silent — don't disturb the client experience
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">
+        <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+        <span>Thanks for your feedback!</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 pt-3 border-t border-gray-100">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-400">Was this section helpful?</span>
+        <button
+          onClick={() => { setShowInput(true); submit('thumbs_up'); }}
+          disabled={submitting}
+          className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+            reaction === 'thumbs_up'
+              ? 'bg-green-100 text-green-700 border-green-200'
+              : 'bg-white text-gray-500 border-gray-200 hover:border-green-300 hover:text-green-600'
+          }`}
+        >
+          <ThumbsUp className="w-3.5 h-3.5" /> Yes
+        </button>
+        <button
+          onClick={() => { setShowInput(true); submit('thumbs_down'); }}
+          disabled={submitting}
+          className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+            reaction === 'thumbs_down'
+              ? 'bg-red-100 text-red-700 border-red-200'
+              : 'bg-white text-gray-500 border-gray-200 hover:border-red-300 hover:text-red-600'
+          }`}
+        >
+          <ThumbsDown className="w-3.5 h-3.5" /> No
+        </button>
+        <button
+          onClick={() => setShowInput(s => !s)}
+          className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-gray-200 bg-white text-gray-500 hover:border-gray-400 transition-colors"
+        >
+          <MessageSquare className="w-3.5 h-3.5" /> Comment
+        </button>
+      </div>
+      {showInput && (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            placeholder="Optional comment…"
+            className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-brand-400"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && reaction) { submit(reaction); }
+            }}
+          />
+          {reaction && (
+            <button
+              onClick={() => submit(reaction)}
+              disabled={submitting}
+              className="text-xs bg-brand-600 hover:bg-brand-700 text-white font-semibold px-3 py-1.5 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Send'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function PublicReportPage() {
   const params = useParams();
@@ -460,6 +566,12 @@ export default function PublicReportPage() {
                     </ul>
                   </div>
                 )}
+                {/* Client feedback widget */}
+                <SectionFeedbackWidget
+                  token={token}
+                  sectionId={section.id ?? String(i)}
+                  sectionTitle={section.title}
+                />
               </div>
             </div>
           ))}

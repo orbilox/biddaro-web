@@ -782,6 +782,10 @@ export const inspectApi = {
   getPublicReport:    (token: string) => api.get(`/inspect/public/${token}`),
   signPublicReport:   (token: string, signerName: string, signatureData: string) =>
     api.post(`/inspect/public/${token}/sign`, { signerName, signatureData }),
+  submitSectionFeedback: (token: string, data: Record<string, unknown>) =>
+    api.post(`/inspect/public/${token}/feedback`, data),
+  listSectionFeedback: (reportId: string) =>
+    api.get(`/inspect/reports/${reportId}/feedback`),
   getAnalytics:     () => api.get('/inspect/analytics'),
   generateTrendSummary: () => api.post('/inspect/analytics/trend', {}),
   listLanguages: () => api.get('/inspect/languages'),

@@ -1326,6 +1326,12 @@ export default function ReportViewer() {
   // Inspector e-signature
   const [showSignPad, setShowSignPad]   = useState(false);
   const [signingReport, setSigningReport] = useState(false);
+  // Client section feedback
+  const [sectionFeedback, setSectionFeedback] = useState<Array<{
+    id: string; sectionId: string; sectionTitle: string;
+    reaction: string; comment: string | null; createdAt: string;
+  }>>([]);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [taskModal, setTaskModal] = useState<{
     title: string; severity: string; section: string; finding: string;
   } | null>(null);
@@ -1463,6 +1469,14 @@ export default function ReportViewer() {
       .then(res => setSettings((res.data as { data: InspectSettings }).data))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!id) return;
+    inspectApi.listSectionFeedback(id)
+      .then(res => setSectionFeedback((res.data as { data: typeof sectionFeedback }).data))
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const [downloadingCert, setDownloadingCert] = useState(false);
   async function downloadCertificate() {
@@ -1822,6 +1836,20 @@ export default function ReportViewer() {
           <Share2 className="w-4 h-4" />
           {report.publicEnabled ? 'Shared' : 'Share'}
         </button>
+        {/* Client feedback */}
+        {sectionFeedback.length > 0 && (
+          <button
+            onClick={() => setShowFeedback(f => !f)}
+            className={`inline-flex items-center gap-2 font-semibold px-4 py-2 rounded-xl text-sm transition-colors ${
+              showFeedback
+                ? 'bg-violet-600 text-white'
+                : 'border border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            Feedback ({sectionFeedback.length})
+          </button>
+        )}
         <button
           onClick={() => setEditMode(m => !m)}
           className={`inline-flex items-center gap-2 font-semibold px-4 py-2 rounded-xl text-sm transition-colors ${
@@ -2143,6 +2171,46 @@ export default function ReportViewer() {
           reportId={id}
           onRestored={() => { load(); setShowHistory(false); }}
         />
+      )}
+
+      {/* Client section feedback panel */}
+      {showFeedback && sectionFeedback.length > 0 && (
+        <div className="mt-6 border border-violet-100 rounded-2xl overflow-hidden">
+          <div className="bg-violet-50 px-5 py-3 border-b border-violet-100 flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-violet-600" />
+            <h3 className="font-bold text-violet-900 text-sm">Client Section Feedback</h3>
+            <span className="ml-auto text-xs text-violet-500">{sectionFeedback.length} reaction{sectionFeedback.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="divide-y divide-dark-50">
+            {sectionFeedback.map(fb => (
+              <div key={fb.id} className="px-5 py-3 flex items-start gap-3">
+                <span className={`text-lg flex-shrink-0 mt-0.5 ${fb.reaction === 'thumbs_up' ? 'text-green-500' : 'text-red-500'}`}>
+                  {fb.reaction === 'thumbs_up' ? '👍' : '👎'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-dark-800 truncate">{fb.sectionTitle}</p>
+                  {fb.comment && (
+                    <p className="text-xs text-dark-500 mt-0.5 leading-relaxed">&ldquo;{fb.comment}&rdquo;</p>
+                  )}
+                </div>
+                <span className="text-xs text-dark-300 flex-shrink-0 mt-0.5">
+                  {new Date(fb.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="px-5 py-3 bg-dark-50/50 text-xs text-dark-400 flex items-center gap-3">
+            <span className="text-green-600 font-semibold">
+              👍 {sectionFeedback.filter(f => f.reaction === 'thumbs_up').length}
+            </span>
+            <span className="text-red-500 font-semibold">
+              👎 {sectionFeedback.filter(f => f.reaction === 'thumbs_down').length}
+            </span>
+            <span className="ml-auto">
+              {sectionFeedback.filter(f => f.comment).length} with comments
+            </span>
+          </div>
+        </div>
       )}
 
       {/* Inspector e-signature display */}
