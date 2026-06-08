@@ -1641,6 +1641,32 @@ export default function ProjectDetail() {
     }
   }
 
+  // All state that would otherwise fall after early returns — hooks must be unconditional
+  const [captureSearch, setCaptureSearch] = useState('');
+  const [captureTypeFilter, setCaptureTypeFilter] = useState<'all' | 'photo' | 'text' | 'voice'>('all');
+  const [captureSevFilter, setCaptureSevFilter] = useState<'all' | 'critical' | 'warning' | 'normal'>('all');
+  const [captureTagFilter, setCaptureTagFilter] = useState<string | null>(null);
+  const [tagEditId, setTagEditId] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState('');
+  const [savingTagId, setSavingTagId] = useState<string | null>(null);
+  const [editNoteId, setEditNoteId] = useState<string | null>(null);
+  const [editNoteContent, setEditNoteContent] = useState('');
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+  const [groupBySection, setGroupBySection] = useState(false);
+  const [sectionEditId, setSectionEditId] = useState<string | null>(null);
+  const [sectionDraft, setSectionDraft] = useState('');
+  const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
+  const [selectedCaptures, setSelectedCaptures] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [descOpen, setDescOpen] = useState(false);
+  const [descDraft, setDescDraft] = useState('');
+  const [savingDesc, setSavingDesc] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
+  const [editingField, setEditingField] = useState<'name' | 'clientName' | 'location' | null>(null);
+  const [fieldDraft, setFieldDraft] = useState('');
+  const [savingField, setSavingField] = useState(false);
+  const [changingSevId, setChangingSevId] = useState<string | null>(null);
+
   if (loading) {
     return (
       <div className="p-6 max-w-4xl mx-auto space-y-4">
@@ -1666,24 +1692,7 @@ export default function ProjectDetail() {
     .filter(c => c.type === 'photo' && c.imageUrl)
     .map(c => ({ id: c.id, url: c.imageUrl!, caption: c.content, section: c.section }));
 
-  // Capture filter state
-  const [captureSearch, setCaptureSearch] = useState('');
-  const [captureTypeFilter, setCaptureTypeFilter] = useState<'all' | 'photo' | 'text' | 'voice'>('all');
-  const [captureSevFilter, setCaptureSevFilter] = useState<'all' | 'critical' | 'warning' | 'normal'>('all');
-  const [captureTagFilter, setCaptureTagFilter] = useState<string | null>(null);
-
-  // Tag editing state
-  const [tagEditId, setTagEditId] = useState<string | null>(null);
-  const [tagInput, setTagInput] = useState('');
-  const [savingTagId, setSavingTagId] = useState<string | null>(null);
-
-  // Inline note editing state
-  const [editNoteId, setEditNoteId] = useState<string | null>(null);
-  const [editNoteContent, setEditNoteContent] = useState('');
-  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
-
-  // Section grouping toggle
-  const [groupBySection, setGroupBySection] = useState(false);
+  // Capture filter state / tag editing / note editing / section grouping — declared above early returns
 
   // Collect all unique tags across this project's captures
   const allCaptureTags = Array.from(
@@ -1695,9 +1704,7 @@ export default function ProjectDetail() {
     ...((project?.template?.structure?.sections ?? []) as TemplateSection[]).map(s => s.title),
   ])).sort();
 
-  const [sectionEditId, setSectionEditId] = useState<string | null>(null);
-  const [sectionDraft, setSectionDraft] = useState('');
-  const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
+  // sectionEditId, sectionDraft, savingSectionId declared above early returns
 
   const updateCaptureSection = async (captureId: string, newSection: string | null) => {
     if (!project) return;
@@ -1730,9 +1737,7 @@ export default function ProjectDetail() {
     return true;
   });
 
-  // Bulk-select state
-  const [selectedCaptures, setSelectedCaptures] = useState<Set<string>>(new Set());
-  const [bulkDeleting, setBulkDeleting] = useState(false);
+  // selectedCaptures, bulkDeleting declared above early returns
 
   const toggleSelect = (id: string) => {
     setSelectedCaptures(prev => {
@@ -1855,10 +1860,7 @@ export default function ProjectDetail() {
     }
   };
 
-  // Project header inline editing
-  const [descOpen, setDescOpen] = useState(false);
-  const [descDraft, setDescDraft] = useState('');
-  const [savingDesc, setSavingDesc] = useState(false);
+  // descOpen, descDraft, savingDesc declared above early returns
 
   const saveDesc = async () => {
     if (!project) return;
@@ -1870,8 +1872,6 @@ export default function ProjectDetail() {
     } catch { toast.error('Failed to save notes'); }
     finally { setSavingDesc(false); }
   };
-
-  const [changingStatus, setChangingStatus] = useState(false);
 
   const changeProjectStatus = async (newStatus: string) => {
     if (!project) return;
@@ -1885,10 +1885,6 @@ export default function ProjectDetail() {
       setChangingStatus(false);
     }
   };
-
-  const [editingField, setEditingField] = useState<'name' | 'clientName' | 'location' | null>(null);
-  const [fieldDraft, setFieldDraft] = useState('');
-  const [savingField, setSavingField] = useState(false);
 
   const startEditField = (field: 'name' | 'clientName' | 'location') => {
     setEditingField(field);
@@ -1911,7 +1907,6 @@ export default function ProjectDetail() {
     }
   };
 
-  const [changingSevId, setChangingSevId] = useState<string | null>(null);
   const SEV_CYCLE: Record<string, string> = { normal: 'warning', warning: 'critical', critical: 'normal' };
 
   const cycleCaptureSeverity = async (captureId: string, currentSev: string) => {
