@@ -27,8 +27,19 @@
  *   14   /sitemap/14     /us/hire hub + categories + states      500
  *   15   /sitemap/15     /us/hire cities (all)                 3,000
  *   16   /sitemap/16     /us/cost hub + services + cities      1,600
+ *   27   /sitemap/27     /erp core feature pages                  10
+ *   28   /sitemap/28     /erp/vs comparison pages                   5
+ *   29   /sitemap/29     /erp/for segment pages                     6
+ *   30   /sitemap/30     /erp/india/[city] pages                   20
+ *   31   /sitemap/31     /erp/faq topic pages                      15
+ *   32   /sitemap/32     /biddaro-inspect hub + regional hubs        8
+ *   33   /sitemap/33     /biddaro-inspect/features/[slug]            6
+ *   34   /sitemap/34     /biddaro-inspect/for/[segment]              7
+ *   35   /sitemap/35     /biddaro-inspect/vs/[competitor]            5
+ *   36   /sitemap/36     /biddaro-inspect/templates/[slug]          20
+ *   37   /sitemap/37     /biddaro-inspect/india/[city]              20
  *   ──   ──────────────  ────────────────────────────────────  ──────
- *                                              TOTAL:        ~13,593
+ *                                              TOTAL:        ~13,715
  *
  *  ✅ Submit to Google Search Console: https://biddaro.com/sitemap.xml
  * ─────────────────────────────────────────────────────────────────────────────
@@ -50,9 +61,18 @@ import { SG_COST_SERVICES } from '@/lib/cost-data-sg';
 import { USA_LOCATIONS, USA_JOB_CATEGORY_META } from '@/lib/seo-data-usa';
 import { USA_COST_SERVICES } from '@/lib/cost-data-usa';
 import { ERP_FEATURES, ERP_COMPARISONS, ERP_SEGMENTS, ERP_FAQ_TOPICS, ERP_INDIA_CITIES } from '@/lib/erp-seo-data';
+import {
+  INSPECT_FEATURES,
+  INSPECT_INDUSTRIES,
+  INSPECT_COMPETITORS,
+  INSPECT_TEMPLATES,
+  INSPECT_INDIA_CITIES,
+  getAllInspectFeatureSlugs,
+  getAllInspectIndustrySlugs,
+} from '@/lib/inspect-seo-data';
 
 export const SITEMAP_BASE = 'https://biddaro.com';
-export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31] as const;
+export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37] as const;
 
 export interface SitemapEntry {
   url: string;
@@ -98,6 +118,13 @@ export function buildSitemap(id: number): SitemapEntry[] {
     case 29: return buildErpSegmentsSitemap();
     case 30: return buildErpIndiaCitiesSitemap();
     case 31: return buildErpFaqSitemap();
+    // Inspect AI sitemaps
+    case 32: return buildInspectCoreSitemap();
+    case 33: return buildInspectFeaturesSitemap();
+    case 34: return buildInspectIndustriesSitemap();
+    case 35: return buildInspectVsSitemap();
+    case 36: return buildInspectTemplatesSitemap();
+    case 37: return buildInspectCitiesSitemap();
     default: return [];
   }
 }
@@ -479,5 +506,60 @@ function buildErpIndiaCitiesSitemap(): SitemapEntry[] {
 function buildErpFaqSitemap(): SitemapEntry[] {
   return ERP_FAQ_TOPICS.map((topic) =>
     entry(`/erp/faq/${topic.slug}`, 0.75, 'monthly')
+  );
+}
+
+// ─── Sitemap 32 — Inspect AI Core / Hub Pages ────────────────────────────────
+
+function buildInspectCoreSitemap(): SitemapEntry[] {
+  return [
+    entry('/biddaro-inspect',                   1.0,  'weekly'),
+    entry('/biddaro-inspect/features',          0.9,  'monthly'),
+    entry('/biddaro-inspect/for',               0.9,  'monthly'),
+    entry('/biddaro-inspect/vs',                0.9,  'monthly'),
+    entry('/biddaro-inspect/templates',         0.9,  'monthly'),
+    entry('/biddaro-inspect/india',             0.9,  'weekly'),
+    entry('/biddaro-inspect/uae',               0.9,  'weekly'),
+    entry('/biddaro-inspect/singapore',         0.9,  'weekly'),
+  ];
+}
+
+// ─── Sitemap 33 — Inspect Feature Pages ──────────────────────────────────────
+
+function buildInspectFeaturesSitemap(): SitemapEntry[] {
+  return getAllInspectFeatureSlugs().map((slug) =>
+    entry(`/biddaro-inspect/features/${slug}`, 0.85, 'monthly')
+  );
+}
+
+// ─── Sitemap 34 — Inspect Industry / Use-case Pages ──────────────────────────
+
+function buildInspectIndustriesSitemap(): SitemapEntry[] {
+  return getAllInspectIndustrySlugs().map((slug) =>
+    entry(`/biddaro-inspect/for/${slug}`, 0.85, 'monthly')
+  );
+}
+
+// ─── Sitemap 35 — Inspect vs Competitor Pages ────────────────────────────────
+
+function buildInspectVsSitemap(): SitemapEntry[] {
+  return INSPECT_COMPETITORS.map((c) =>
+    entry(`/biddaro-inspect/vs/${c.slug}`, 0.85, 'monthly')
+  );
+}
+
+// ─── Sitemap 36 — Inspect Template Pages ─────────────────────────────────────
+
+function buildInspectTemplatesSitemap(): SitemapEntry[] {
+  return INSPECT_TEMPLATES.map((t) =>
+    entry(`/biddaro-inspect/templates/${t.slug}`, 0.8, 'monthly')
+  );
+}
+
+// ─── Sitemap 37 — Inspect India City Pages ───────────────────────────────────
+
+function buildInspectCitiesSitemap(): SitemapEntry[] {
+  return INSPECT_INDIA_CITIES.map((city) =>
+    entry(`/biddaro-inspect/india/${city.slug}`, 0.8, 'monthly')
   );
 }

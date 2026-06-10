@@ -11,6 +11,163 @@ import {
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 
+// ─── JSON-LD Schemas ──────────────────────────────────────────────────────────
+
+const SOFTWARE_APPLICATION_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Biddaro Inspect',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Android, iOS, Web',
+  description:
+    'AI-powered construction inspection report software. Capture photos, voice notes, and observations on site — get a professional client-ready report in minutes.',
+  url: 'https://biddaro.com/biddaro-inspect',
+  screenshot: 'https://biddaro.com/og-inspect.png',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+    description: 'Free during beta',
+  },
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '5',
+    ratingCount: '3',
+    bestRating: '5',
+    worstRating: '1',
+  },
+  provider: {
+    '@type': 'Organization',
+    name: 'Biddaro',
+    url: 'https://biddaro.com',
+  },
+};
+
+const FAQ_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'How does Biddaro Inspect learn my report format?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'You upload your existing report template (Word, PDF, or a sample report). Our AI analyses the structure, headings, section order, and writing style. Within minutes it can generate new reports that match your format — indistinguishable from reports you wrote manually.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Does it work without internet on site?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. The mobile app works fully offline. Photos, voice notes, and typed observations are stored locally and sync automatically when you regain connectivity. Nothing is lost if you lose signal mid-inspection.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What file formats does it export?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Biddaro Inspect exports to Microsoft Word (.docx) and PDF. Word export means you can make final edits before sending. PDF export is ready to send directly to clients.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is our inspection data secure?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. All data is encrypted in transit and at rest. Biddaro Inspect will be SOC 2 Type II certified. Your reports and site photos are never used to train AI models.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I use this alongside the Biddaro Site Manager ERP?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes — Biddaro Inspect is built to work alongside Site Manager. Inspection findings automatically create tasks in your project, and DPRs can be generated from the same field capture session.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What types of inspections does it support?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Any inspection type — site progress, defect identification, structural assessment, MEP commissioning, pre-handover punch lists, property condition assessments, and more. The AI adapts to whatever format and inspection type you need.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How long does it take to generate a report?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Most reports are generated in under 5 minutes from the moment you finish your site capture. The AI processes your photos, voice notes, and observations and produces a structured draft ready for your review.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is Biddaro Inspect available in India, UAE, and Singapore?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. Biddaro Inspect is available in India, UAE, and Singapore. The platform supports INR, AED, and SGD pricing, and the team provides local support in each market.',
+      },
+    },
+  ],
+};
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: 'https://biddaro.com',
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Biddaro Inspect',
+      item: 'https://biddaro.com/biddaro-inspect',
+    },
+  ],
+};
+
+const HOWTO_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'HowTo',
+  name: 'How to generate a construction inspection report with Biddaro Inspect',
+  description:
+    'Turn field observations into a professional client-ready inspection report in four steps using Biddaro Inspect AI.',
+  totalTime: 'PT5M',
+  step: [
+    {
+      '@type': 'HowToStep',
+      position: 1,
+      name: 'Upload your template',
+      text: 'Send us your existing inspection report format — Word doc, PDF, or describe it. Biddaro Inspect learns your structure, headings, and tone in minutes.',
+    },
+    {
+      '@type': 'HowToStep',
+      position: 2,
+      name: 'Capture on site',
+      text: 'Use the mobile app to take photos, record voice notes, and type observations. Works offline — syncs when you\'re back in range.',
+    },
+    {
+      '@type': 'HowToStep',
+      position: 3,
+      name: 'AI writes the report',
+      text: 'Our AI reads your field data, matches your writing style, and generates a structured, professional inspection report — in your exact format.',
+    },
+    {
+      '@type': 'HowToStep',
+      position: 4,
+      name: 'Review and export',
+      text: 'Open the draft, make any edits, and export as Word (.docx) or PDF. Clients get a branded, professional document in minutes — not days.',
+    },
+  ],
+};
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const STATS = [
@@ -322,6 +479,24 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export default function InspectPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
+      {/* ── JSON-LD Structured Data ── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SOFTWARE_APPLICATION_SCHEMA) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(HOWTO_SCHEMA) }}
+      />
+
       <Navbar />
 
       {/* ── Hero ── */}
