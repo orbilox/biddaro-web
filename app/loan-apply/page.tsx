@@ -276,6 +276,8 @@ export default function LoanApplyPage() {
         razorpay_signature:     subProof.razorpay_signature,
         razorpaySubscriptionId: subProof.razorpay_subscription_id,
         razorpayPlanId:         planId,
+        // Meta CAPI signals — forwarded to server for CAPI deduplication + fbc coverage
+        ...metaSignals,
       };
 
       // Save to DB immediately (no auth needed) so admin can see it right away

@@ -23,11 +23,20 @@ export function readCookie(name: string): string | undefined {
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
-/** Return Meta browser signal cookies for forwarding to CAPI (cross-domain). */
-export function getMetaSignals(): { fbp?: string; fbc?: string } {
+/**
+ * Return Meta browser signals for forwarding to CAPI (cross-domain).
+ * Includes _fbp/_fbc cookies AND fbclid URL param.
+ * fbclid is present when users click a Facebook/Instagram ad; passing it
+ * lets the server construct fbc = fb.1.{ts}.{fbclid} for +0.7 EMQ boost.
+ */
+export function getMetaSignals(): { fbp?: string; fbc?: string; fbclid?: string } {
+  const fbclid = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('fbclid') ?? undefined)
+    : undefined;
   return {
-    fbp: readCookie('_fbp'),
-    fbc: readCookie('_fbc'),
+    fbp:    readCookie('_fbp'),
+    fbc:    readCookie('_fbc'),
+    fbclid,
   };
 }
 
