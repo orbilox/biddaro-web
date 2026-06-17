@@ -8,7 +8,7 @@ import {
   Crown, Star, TrendingUp, Radio, Hammer, FolderKanban, Banknote, Bot,
   MessageSquare, ShieldAlert, ArrowRight, ChevronDown, Lightbulb, Info,
   Zap, BadgeCheck, DollarSign, Clock, Building2, User, Menu, X,
-  Mic, Paperclip, History, RefreshCw, Copy, Sparkles,
+  Mic, Paperclip, History, RefreshCw, Copy, Sparkles, Camera,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -82,6 +82,7 @@ const NAV_GROUPS = [
       { id: 'build-planner',     label: 'Build Planner',            icon: Hammer },
       { id: 'project-manager',   label: 'Project Manager',          icon: FolderKanban },
       { id: 'loans',             label: 'Loans',                    icon: Banknote },
+      { id: 'biddaro-inspect',   label: 'Biddaro Inspect',          icon: Camera },
       { id: 'ai-assistant',      label: 'AI Assistant',             icon: Bot },
       { id: 'messages',          label: 'Messages',                 icon: MessageSquare },
       { id: 'disputes',          label: 'Disputes',                 icon: ShieldAlert },
@@ -970,9 +971,88 @@ export default function GuidePage() {
               ]} />
             </div>
 
-            {/* 27 — AI Assistant */}
+            {/* 27 — Biddaro Inspect */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <SectionHeader id="ai-assistant" icon={Bot} number={27} title="AI Assistant" subtitle="Biddaro offers two complementary AI experiences: a full-featured general-purpose chat assistant and 8 purpose-built tools — all free, no login required." />
+              <SectionHeader id="biddaro-inspect" icon={Camera} number={27} title="Biddaro Inspect" subtitle="AI-powered mobile inspection app for construction and property professionals. Capture, annotate, and generate full inspection reports from your phone." />
+
+              <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-xl p-5 my-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 mb-1">Biddaro Inspect — Mobile App</p>
+                    <p className="text-xs text-gray-500">iOS & Android · AI report generation · Offline capture</p>
+                  </div>
+                  <div className="flex gap-3 flex-wrap">
+                    <Link href="/biddaro-inspect" className="inline-flex items-center gap-2 bg-violet-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors">
+                      <Camera className="w-4 h-4" />Learn More
+                    </Link>
+                  </div>
+                </div>
+                <p className="text-xs text-green-700 font-medium mt-3 flex items-center gap-1">
+                  <BadgeCheck className="w-3.5 h-3.5" /> 14-day free trial · No credit card required
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4 my-5">
+                <div className="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                  <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-2">Capture on Site</p>
+                  <ul className="text-xs text-violet-800 space-y-1">
+                    <li>• 📸 Photo capture with GPS tagging</li>
+                    <li>• 🎙️ Voice notes with auto-transcription</li>
+                    <li>• ✍️ Text observations and severity ratings</li>
+                    <li>• 🗺️ Floor plan markup with pinned findings</li>
+                    <li>• 📍 Offline capture — syncs when back online</li>
+                  </ul>
+                </div>
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-2">Generate & Share</p>
+                  <ul className="text-xs text-purple-800 space-y-1">
+                    <li>• ✨ AI writes full narrative inspection report</li>
+                    <li>• 📄 Export as Word (.docx) or PDF</li>
+                    <li>• 🔗 Shareable client portal link</li>
+                    <li>• ✅ Inspector e-signature & sign-off</li>
+                    <li>• 📊 Compare reports across multiple visits</li>
+                  </ul>
+                </div>
+              </div>
+
+              <p className="text-sm font-semibold text-gray-800 mb-3">Key Features</p>
+              <div className="space-y-3">
+                {[
+                  { icon: '📸', title: 'Photo Annotation', desc: 'Draw directly on photos to highlight defects. Add callouts, arrows, and severity labels before they go into the report.' },
+                  { icon: '🗺️', title: 'Floor Plan Markup', desc: 'Upload your floor plan and tap to place finding pins. Each pin links to photos, notes, and severity ratings — all included in the report.' },
+                  { icon: '📅', title: 'Inspection Schedules', desc: 'Set up recurring inspections (one-off, weekly, monthly). Get email reminders before each visit so nothing slips through the cracks.' },
+                  { icon: '📋', title: 'Report Templates', desc: 'Choose from 20+ pre-built templates (construction site, property condition, fire safety, MEP, structural, and more) or create your own.' },
+                  { icon: '📊', title: 'Analytics Dashboard', desc: 'Track inspection volumes, defect trends, severity breakdowns, and project progress across all your sites over time.' },
+                  { icon: '🔄', title: 'Report Compare', desc: "Side-by-side comparison of two inspection reports for the same project. See what improved, what's new, and what still needs attention." },
+                  { icon: '🔗', title: 'Webhooks', desc: 'Send real-time notifications to your own systems when reports are generated, schedules are triggered, or findings are updated.' },
+                  { icon: '🌐', title: 'Global Search', desc: 'Search across all projects, reports, and captures from a single search bar — instantly find any finding, note, or document.' },
+                ].map(({ icon, title, desc }) => (
+                  <div key={title} className="flex gap-3">
+                    <span className="text-xl flex-shrink-0 mt-0.5">{icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{title}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Steps steps={[
+                'Download <strong>Biddaro Inspect</strong> from the App Store or Google Play.',
+                'Log in with your Biddaro account credentials — the same account as the web platform.',
+                'Tap <strong>+ New Project</strong> and enter the site name, client, and location.',
+                'Tap <strong>Start Capture</strong> — take photos, record voice notes, and add text observations.',
+                'Use <strong>Floor Plans</strong> to upload your site plan and pin findings to exact locations.',
+                'When done, tap <strong>Generate Report</strong> — AI writes the full narrative in ~30 seconds.',
+                'Review the report, add your <strong>e-signature</strong>, and share the client portal link.',
+              ]} />
+
+              <Tip>Run the inspection on the app first, then generate the report when you have WiFi. The offline mode caches all captures locally so you never lose data on-site.</Tip>
+            </div>
+
+            {/* 28 — AI Assistant */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <SectionHeader id="ai-assistant" icon={Bot} number={28} title="AI Assistant" subtitle="Biddaro offers two complementary AI experiences: a full-featured general-purpose chat assistant and 8 purpose-built tools — all free, no login required." />
 
               {/* Sub-section A — Overview banner */}
               <div className="bg-gradient-to-r from-brand-50 to-blue-50 border border-brand-200 rounded-xl p-5 my-5">
@@ -1061,7 +1141,7 @@ export default function GuidePage() {
 
             {/* 28 — Messages */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <SectionHeader id="messages" icon={MessageSquare} number={28} title="Messages" subtitle="Communicate directly with contractors or job posters within Biddaro. All messages are logged for dispute resolution." />
+              <SectionHeader id="messages" icon={MessageSquare} number={29} title="Messages" subtitle="Communicate directly with contractors or job posters within Biddaro. All messages are logged for dispute resolution." />
               <Bullets items={[
                 'Go to <strong>Messages</strong> in the sidebar to see all your conversations.',
                 'Click on any conversation to open it and send a message.',
@@ -1075,7 +1155,7 @@ export default function GuidePage() {
 
             {/* 29 — Disputes */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <SectionHeader id="disputes" icon={ShieldAlert} number={29} title="Disputes" subtitle="The dispute system is Biddaro's mechanism for resolving disagreements between job posters and contractors fairly and transparently." />
+              <SectionHeader id="disputes" icon={ShieldAlert} number={30} title="Disputes" subtitle="The dispute system is Biddaro's mechanism for resolving disagreements between job posters and contractors fairly and transparently." />
               <Steps steps={[
                 'Go to <strong>Disputes</strong> in the sidebar.',
                 'Click <strong>Raise a Dispute</strong> and select the relevant contract.',

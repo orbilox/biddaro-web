@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ChevronRight, Globe, Briefcase, IndianRupee, HelpCircle, FileText, Map, DollarSign } from 'lucide-react';
+import { ChevronRight, Globe, Briefcase, IndianRupee, HelpCircle, FileText, Map, DollarSign, Building2, Camera, Banknote } from 'lucide-react';
 
 // ── India
 import { JOB_CATEGORY_META, INDIA_LOCATIONS } from '@/lib/seo-data';
@@ -22,6 +22,15 @@ import { SG_COST_SERVICES } from '@/lib/cost-data-sg';
 // ── USA
 import { USA_JOB_CATEGORY_META, USA_LOCATIONS } from '@/lib/seo-data-usa';
 import { USA_COST_SERVICES } from '@/lib/cost-data-usa';
+
+// ── Loans
+import { LOAN_TYPES_SEO } from '@/lib/loan-data';
+
+// ── ERP
+import { ERP_FEATURES, ERP_COMPARISONS, ERP_SEGMENTS, ERP_FAQ_TOPICS, ERP_INDIA_CITIES } from '@/lib/erp-seo-data';
+
+// ── Biddaro Inspect
+import { INSPECT_FEATURES, INSPECT_COMPETITORS, INSPECT_TEMPLATES, INSPECT_INDUSTRIES, INSPECT_INDIA_CITIES } from '@/lib/inspect-seo-data';
 
 export const metadata: Metadata = {
   title: 'Site Map — Biddaro | Complete Website Structure (India · UAE · Singapore · USA)',
@@ -70,10 +79,30 @@ const usaHire      = usaCats * USA_LOCATIONS.length + usaCats + usaCats * usaCit
 const usaCost      = 1 + USA_COST_SERVICES.length + USA_COST_SERVICES.length * usaCities;
 const usaTotal     = usaHire + usaCost;
 
-// Core
-const corePages    = 15;
+// Loans
+const loanTypes    = LOAN_TYPES_SEO.length;
+const loanTotal    = 1 + loanTypes + loanTypes * indiaCities + 1 + 1 + loanTypes * indiaStates + 1;
 
-const grandTotal   = corePages + indiaTotal + uaeTotal + uaeArTotal + sgTotal + usaTotal;
+// ERP
+const erpFeatures    = ERP_FEATURES.length;
+const erpComparisons = ERP_COMPARISONS.length;
+const erpSegments    = ERP_SEGMENTS.length;
+const erpFaqTopics   = ERP_FAQ_TOPICS.length;
+const erpCities      = ERP_INDIA_CITIES.length;
+const erpTotal       = 1 + erpFeatures + erpComparisons + erpSegments + erpFaqTopics + erpCities + 2; // +2 for /erp/pricing, /erp/india
+
+// Biddaro Inspect
+const inspectFeatures    = INSPECT_FEATURES.length;
+const inspectCompetitors = INSPECT_COMPETITORS.length;
+const inspectTemplates   = INSPECT_TEMPLATES.length;
+const inspectIndustries  = INSPECT_INDUSTRIES.length;
+const inspectCities      = INSPECT_INDIA_CITIES.length;
+const inspectTotal       = 1 + inspectFeatures + inspectCompetitors + inspectTemplates + inspectIndustries + inspectCities + 3; // +3 for india hub, uae, sg
+
+// Core
+const corePages    = 22;
+
+const grandTotal   = corePages + indiaTotal + uaeTotal + uaeArTotal + sgTotal + usaTotal + loanTotal + erpTotal + inspectTotal;
 
 // ─── XML Sitemaps registry ─────────────────────────────────────────────────────
 
@@ -97,6 +126,25 @@ const XML_SITEMAPS = [
   { id: 16, label: '🇺🇸 USA — Cost Guides & Cities',              url: '/sitemap/16', count: 1 + USA_COST_SERVICES.length + USA_COST_SERVICES.length * usaCities },
   { id: 17, label: '🇦🇪 UAE AR — Arabic Hire Hub & Emirates',     url: '/sitemap/17', count: uaeArCats + uaeArCats * UAE_LOCATIONS_AR.length },
   { id: 18, label: '🇦🇪 UAE AR — Arabic Hire Cities & Cost',      url: '/sitemap/18', count: uaeArCats * uaeArCities + 1 + UAE_COST_SERVICES_AR.length + UAE_COST_SERVICES_AR.length * uaeArCities },
+  { id: 19, label: '🏦 Loans — Hub, Types & Cities (Part 1)',      url: '/sitemap/19', count: 1 + loanTypes + 3 * indiaCities },
+  { id: 20, label: '🏦 Loans — Cities (Part 2)',                   url: '/sitemap/20', count: 3 * indiaCities },
+  { id: 21, label: '🏦 Loans — Cities (Part 3)',                   url: '/sitemap/21', count: (loanTypes - 3) * indiaCities },
+  { id: 22, label: '🏦 Loans — FAQ Topics',                        url: '/sitemap/22', count: erpFaqTopics },
+  { id: 23, label: '🏦 Loans — Glossary Terms',                    url: '/sitemap/23', count: '50+' },
+  { id: 24, label: '🏦 Loans — State Hubs (Part 1)',               url: '/sitemap/24', count: 3 * indiaStates },
+  { id: 25, label: '🏦 Loans — State Hubs (Part 2)',               url: '/sitemap/25', count: (loanTypes - 3) * indiaStates },
+  { id: 26, label: '🏦 Loans — Compare Pages',                     url: '/sitemap/26', count: '10+' },
+  { id: 27, label: '🏗️ ERP — Core Feature Pages',                  url: '/sitemap/27', count: erpFeatures + 1 },
+  { id: 28, label: '🏗️ ERP — vs Comparison Pages',                 url: '/sitemap/28', count: erpComparisons },
+  { id: 29, label: '🏗️ ERP — Use-Case / Segment Pages',            url: '/sitemap/29', count: erpSegments },
+  { id: 30, label: '🏗️ ERP — India City Pages',                    url: '/sitemap/30', count: erpCities },
+  { id: 31, label: '🏗️ ERP — FAQ Topics',                          url: '/sitemap/31', count: erpFaqTopics },
+  { id: 32, label: '🔍 Inspect — Hub & Regional Pages',             url: '/sitemap/32', count: 4 },
+  { id: 33, label: '🔍 Inspect — Feature Pages',                    url: '/sitemap/33', count: inspectFeatures },
+  { id: 34, label: '🔍 Inspect — Industry / Segment Pages',         url: '/sitemap/34', count: inspectIndustries },
+  { id: 35, label: '🔍 Inspect — vs Competitor Pages',              url: '/sitemap/35', count: inspectCompetitors },
+  { id: 36, label: '🔍 Inspect — Report Template Pages',            url: '/sitemap/36', count: inspectTemplates },
+  { id: 37, label: '🔍 Inspect — India City Pages',                 url: '/sitemap/37', count: inspectCities },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -402,6 +450,141 @@ export default function HtmlSitemapPage() {
           </div>
         </section>
 
+        {/* ── Loans ── */}
+        <section>
+          <SectionTitle icon={<Banknote className="w-5 h-5 text-emerald-500" />}
+            title="🏦 Construction Loans"
+            subtitle={`${loanTotal.toLocaleString()} pages — /loans/[type]/[city] across India`} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CountryCard title={`Loan Types (${loanTypes})`}>
+              {LOAN_TYPES_SEO.map(loan => (
+                <CardRow key={loan.slug} href={`/loans/${loan.slug}`} emoji="🏦" label={loan.name}
+                  meta={`${indiaStates} states · ${indiaCities} cities`} />
+              ))}
+            </CountryCard>
+            <CountryCard title="Loan Hub Pages">
+              {[
+                { href: '/loans',               label: 'Construction Loans Hub' },
+                { href: '/loans/faq',           label: 'Loans FAQ' },
+                { href: '/loans/glossary',       label: 'Loans Glossary' },
+                { href: '/loans/compare',        label: 'Compare Loan Products' },
+                { href: '/loan-apply',           label: 'Apply for a Loan' },
+              ].map(p => (
+                <CardRow key={p.href} href={p.href} label={p.label} />
+              ))}
+            </CountryCard>
+          </div>
+        </section>
+
+        {/* ── ERP ── */}
+        <section>
+          <SectionTitle icon={<Building2 className="w-5 h-5 text-orange-500" />}
+            title="🏗️ Construction ERP"
+            subtitle={`${erpTotal.toLocaleString()} pages — /erp/[feature] · /erp/vs · /erp/for · /erp/india`} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CountryCard title={`ERP Modules (${erpFeatures})`}>
+              {ERP_FEATURES.map(f => (
+                <CardRow key={f.slug} href={`/erp/${f.slug}`} emoji={f.icon} label={f.name}
+                  meta={f.price} />
+              ))}
+            </CountryCard>
+            <CountryCard title={`Comparisons (${erpComparisons})`}>
+              {ERP_COMPARISONS.map(c => (
+                <CardRow key={c.slug} href={`/erp/vs/${c.slug}`} emoji="⚡" label={`Biddaro vs ${c.competitor}`} />
+              ))}
+            </CountryCard>
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CountryCard title={`Use-Cases (${erpSegments})`}>
+              {ERP_SEGMENTS.map(s => (
+                <CardRow key={s.slug} href={`/erp/for/${s.slug}`} emoji="🏢" label={s.name} />
+              ))}
+            </CountryCard>
+            <CountryCard title={`ERP FAQ Topics (${erpFaqTopics})`}>
+              {ERP_FAQ_TOPICS.map(t => (
+                <CardRow key={t.slug} href={`/erp/faq/${t.slug}`} label={t.question.length > 50 ? t.question.slice(0, 50) + '…' : t.question} />
+              ))}
+            </CountryCard>
+          </div>
+          <div className="mt-4 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-semibold text-dark-800 text-sm">ERP India Cities ({erpCities})</h3>
+            </div>
+            <div className="p-5 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+              {ERP_INDIA_CITIES.map(city => (
+                <Link key={city.slug} href={`/erp/india/${city.slug}`}
+                  className="text-xs text-brand-600 hover:text-brand-800 hover:underline font-medium py-1">
+                  {city.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Biddaro Inspect ── */}
+        <section>
+          <SectionTitle icon={<Camera className="w-5 h-5 text-violet-500" />}
+            title="🔍 Biddaro Inspect — AI Inspection Reports"
+            subtitle={`${inspectTotal.toLocaleString()} pages — /biddaro-inspect/[feature] · templates · industries · comparisons`} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CountryCard title={`Features (${inspectFeatures})`}>
+              {INSPECT_FEATURES.map(f => (
+                <CardRow key={f.slug} href={`/biddaro-inspect/features/${f.slug}`} emoji="✨" label={f.name} />
+              ))}
+            </CountryCard>
+            <CountryCard title={`Industries / Use-Cases (${inspectIndustries})`}>
+              {INSPECT_INDUSTRIES.map(i => (
+                <CardRow key={i.slug} href={`/biddaro-inspect/for/${i.slug}`} emoji="🏗️" label={i.name} />
+              ))}
+            </CountryCard>
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CountryCard title={`vs Competitors (${inspectCompetitors})`}>
+              {INSPECT_COMPETITORS.map(c => (
+                <CardRow key={c.slug} href={`/biddaro-inspect/vs/${c.slug}`} emoji="⚡" label={`Biddaro Inspect vs ${c.name}`} />
+              ))}
+            </CountryCard>
+            <CountryCard title="Regional Hubs">
+              {[
+                { href: '/biddaro-inspect',            label: 'Biddaro Inspect — Main Hub' },
+                { href: '/biddaro-inspect/india',      label: '🇮🇳 India Inspection Software' },
+                { href: '/biddaro-inspect/uae',        label: '🇦🇪 UAE Inspection Software' },
+                { href: '/biddaro-inspect/singapore',  label: '🇸🇬 Singapore Inspection Software' },
+                { href: '/biddaro-inspect/templates',  label: 'All Report Templates' },
+              ].map(p => (
+                <CardRow key={p.href} href={p.href} label={p.label} />
+              ))}
+            </CountryCard>
+          </div>
+          <div className="mt-4 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+              <h3 className="font-semibold text-dark-800 text-sm">Report Templates ({inspectTemplates})</h3>
+              <Link href="/biddaro-inspect/templates" className="text-xs text-brand-600 hover:text-brand-700 font-semibold">Browse All →</Link>
+            </div>
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {INSPECT_TEMPLATES.map(t => (
+                <Link key={t.slug} href={`/biddaro-inspect/templates/${t.slug}`}
+                  className="text-xs text-dark-600 hover:text-brand-600 hover:underline py-0.5 transition-colors">
+                  {t.title}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-semibold text-dark-800 text-sm">Inspect India Cities ({inspectCities})</h3>
+            </div>
+            <div className="p-5 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+              {INSPECT_INDIA_CITIES.map(city => (
+                <Link key={city.slug} href={`/biddaro-inspect/india/${city.slug}`}
+                  className="text-xs text-brand-600 hover:text-brand-800 hover:underline font-medium py-1">
+                  {city.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ── Ask / Q&A ── */}
         <section>
           <SectionTitle icon={<HelpCircle className="w-5 h-5 text-purple-500" />}
@@ -435,8 +618,14 @@ export default function HtmlSitemapPage() {
                 { href: '/hire',           label: 'Hire Contractors (India)', badge: 'priority 0.95' },
                 { href: '/cost',           label: 'Cost Guides (India)',      badge: 'priority 0.95' },
                 { href: '/ask',            label: 'Ask & Learn Hub',          badge: 'priority 0.9' },
-                { href: '/open-jobs',      label: 'Open Jobs',               badge: 'live feed' },
-                { href: '/uae/hire',       label: '🇦🇪 UAE Hire (English)',    badge: 'priority 0.9' },
+                { href: '/open-jobs',         label: 'Open Jobs',                badge: 'live feed' },
+                { href: '/loans',             label: 'Construction Loans',        badge: 'priority 0.9' },
+                { href: '/erp',               label: '🏗️ Construction ERP',       badge: 'priority 1.0' },
+                { href: '/erp/pricing',       label: '🏗️ ERP Pricing',            badge: 'priority 0.9' },
+                { href: '/biddaro-inspect',   label: '🔍 Biddaro Inspect',        badge: 'priority 1.0' },
+                { href: '/how-it-works',      label: 'How It Works',              badge: '' },
+                { href: '/investors',         label: 'Investors',                 badge: '' },
+                { href: '/uae/hire',          label: '🇦🇪 UAE Hire (English)',    badge: 'priority 0.9' },
                 { href: '/uae/cost',       label: '🇦🇪 UAE Cost (English)',    badge: 'priority 0.9' },
                 { href: '/uae/ar/hire',    label: '🇦🇪 UAE Hire (العربية)',    badge: 'priority 0.9' },
                 { href: '/uae/ar/cost',    label: '🇦🇪 UAE Cost (العربية)',    badge: 'priority 0.9' },
@@ -473,6 +662,7 @@ export default function HtmlSitemapPage() {
             Sitemap last updated:{' '}
             {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.
             &nbsp;Total indexed pages: <strong className="text-dark-600">{grandTotal.toLocaleString()}</strong>.
+            &nbsp;Products: Marketplace · Loans · ERP · Biddaro Inspect.
             &nbsp;Countries: India · UAE (EN + AR) · Singapore · USA.
             &nbsp;
             <a href="/sitemap.xml" className="text-brand-600 hover:underline font-medium">View XML Sitemap →</a>
