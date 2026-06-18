@@ -66,13 +66,21 @@ function StageBadge({ stage, converted, optOut }: { stage: number; converted: bo
       <XCircle className="w-3 h-3" /> Opted out
     </span>
   );
-  if (stage >= 4) return (
+  if (stage >= 7) return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">
-      Stage 4 — Final sent
+      Stage 7 — Final sent
     </span>
   );
-  const colors = ['bg-yellow-100 text-yellow-700', 'bg-orange-100 text-orange-700', 'bg-orange-100 text-orange-700', 'bg-red-100 text-red-600'];
-  const labels = ['Captured', 'Stage 1 sent', 'Stage 2 sent', 'Stage 3 sent'];
+  const colors = [
+    'bg-yellow-100 text-yellow-700',
+    'bg-yellow-100 text-yellow-700',
+    'bg-orange-100 text-orange-700',
+    'bg-orange-100 text-orange-700',
+    'bg-red-100 text-red-600',
+    'bg-red-100 text-red-600',
+    'bg-red-200 text-red-700',
+  ];
+  const labels = ['Captured', 'Stage 1 sent', 'Stage 2 sent', 'Stage 3 sent', 'Stage 4 sent', 'Stage 5 sent', 'Stage 6 sent'];
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${colors[stage]}`}>
       <Clock className="w-3 h-3" /> {labels[stage]}
