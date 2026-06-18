@@ -52,6 +52,7 @@ export const authApi = {
     api.post('/auth/reset-password', data),
   sendOtp: (email: string) => api.post('/auth/send-otp', { email }),
   verifyOtp: (email: string, code: string) => api.post('/auth/verify-otp', { email, code }),
+  phoneVerify: (idToken: string) => api.post('/auth/phone-verify', { idToken }),
 };
 
 // ─── Jobs ─────────────────────────────────────────────────────────────────────
@@ -131,6 +132,8 @@ export const notificationsApi = {
   subscribePush:  (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
     api.post('/notifications/subscribe-push', sub),
   unsubscribePush: (endpoint: string) => api.post('/notifications/unsubscribe-push', { endpoint }),
+  registerFcmToken: (data: { token: string; platform: string }) =>
+    api.post('/notifications/fcm-token', data),
 };
 
 // ─── Messages ─────────────────────────────────────────────────────────────────

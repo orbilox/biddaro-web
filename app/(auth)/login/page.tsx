@@ -6,6 +6,7 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { PhoneLoginForm } from '@/components/auth/PhoneLoginForm';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/store/uiStore';
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const { setUser } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginMode, setLoginMode] = useState<'email' | 'phone'>('email');
 
   const {
     register,
@@ -52,12 +54,41 @@ export default function LoginPage() {
     <div className="w-full max-w-md">
       <div className="bg-white rounded-2xl border border-gray-200 shadow-card p-8">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-dark-900">Welcome back</h1>
           <p className="text-dark-500 text-sm mt-1.5">Sign in to your Biddaro account</p>
         </div>
 
-        {/* Form */}
+        {/* Login mode tabs */}
+        <div className="flex rounded-lg border border-gray-200 p-1 mb-6 gap-1">
+          <button
+            type="button"
+            onClick={() => setLoginMode('email')}
+            className={`flex-1 text-sm font-medium py-1.5 rounded-md transition-colors ${
+              loginMode === 'email'
+                ? 'bg-brand-600 text-white'
+                : 'text-dark-500 hover:text-dark-800'
+            }`}
+          >
+            Email
+          </button>
+          <button
+            type="button"
+            onClick={() => setLoginMode('phone')}
+            className={`flex-1 text-sm font-medium py-1.5 rounded-md transition-colors ${
+              loginMode === 'phone'
+                ? 'bg-brand-600 text-white'
+                : 'text-dark-500 hover:text-dark-800'
+            }`}
+          >
+            Phone OTP
+          </button>
+        </div>
+
+        {loginMode === 'phone' ? (
+          <PhoneLoginForm onSuccess={() => router.push(ROUTES.DASHBOARD)} />
+        ) : (
+        /* Form */
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Input
             label="Email address"
@@ -98,6 +129,7 @@ export default function LoginPage() {
             Sign In
           </Button>
         </form>
+        )}
 
         <p className="text-center text-sm text-dark-500 mt-6">
           Don&apos;t have an account?{' '}

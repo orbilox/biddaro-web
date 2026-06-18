@@ -8,6 +8,7 @@
 
 import { useEffect } from 'react';
 import { notificationsApi } from '@/lib/api';
+import { getFirebaseMessaging } from '@/lib/firebase';
 
 // Converts a base64url string to a Uint8Array (required by pushManager.subscribe)
 function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
@@ -59,13 +60,33 @@ export function usePushNotifications() {
 
         if (cancelled || !sub) return;
 
-        // Send subscription to backend
+        // Send VAPID subscription to backend
         const json = sub.toJSON();
         if (json.endpoint && json.keys?.p256dh && json.keys?.auth) {
           await notificationsApi.subscribePush({
             endpoint: json.endpoint,
             keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
           });
+        }
+
+        // Also register an FCM token for richer cross-platform push
+        try {
+          const messaging = await getFirebaseMessaging();
+          if (messaging) {
+            const { getToken } = await import('firebase/messaging');
+            const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+            if (vapidKey) {
+              const fcmToken = await getToken(messaging, {
+                vapidKey,
+                serviceWorkerRegistration: registration,
+              });
+              if (fcmToken) {
+                await notificationsApi.registerFcmToken({ token: fcmToken, platform: 'web' });
+              }
+            }
+          }
+        } catch {
+          // FCM token registration is non-critical
         }
       } catch {
         // Silently fail — push is non-critical
