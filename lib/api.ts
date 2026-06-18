@@ -330,6 +330,10 @@ export const adminApi = {
   // Broadcast Notification
   broadcast: (data: { title: string; message: string; targetRole?: string; type?: string }) =>
     api.post('/admin/broadcast', data),
+
+  // Loan Leads
+  loanLeads: (params?: { page?: number; limit?: number; filter?: string }) =>
+    api.get('/admin/loan-leads', { params }),
 };
 
 // ─── AI Assistant ─────────────────────────────────────────────────────────────
