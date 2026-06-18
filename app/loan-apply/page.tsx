@@ -158,10 +158,31 @@ export default function LoanApplyPage() {
     document.head.appendChild(s);
   }, []);
 
+  // ── Lead capture — fired after personal info step (step 5) ─────────────────
+  function captureLead() {
+    const name = `${form.firstName} ${form.lastName}`.trim();
+    if (!name || !form.email || !form.phone) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/loans/lead`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email:    form.email,
+        phone:    form.phone,
+        loanType: form.loanType,
+        amount:   form.amount  ? parseFloat(form.amount)  : undefined,
+        city:     form.city    || undefined,
+        source:   'loan-apply',
+      }),
+    }).catch(() => {}); // fire-and-forget — don't block the UI
+  }
+
   // ── Navigation ──────────────────────────────────────────────────────────────
   function next() {
     if (!validateStep()) return;
     setError('');
+    // Capture lead silently after personal info is validated
+    if (step === 5) captureLead();
     setDir('forward');
     setStep(s => s + 1);
     cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
