@@ -93,6 +93,7 @@ const adminNavSections: NavSection[] = [
       { href: '/admin/loans', label: 'Loan Applications', icon: Banknote },
       { href: '/admin/loan-inquiries', label: 'Loan Inquiries', icon: IndianRupee },
       { href: '/admin/loan-leads', label: 'Loan Leads', icon: Landmark },
+      { href: '/admin/push-notifications', label: 'Push Notifications', icon: Bell },
       { href: '/admin/disputes', label: 'Disputes', icon: AlertCircle },
     ],
   },

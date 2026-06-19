@@ -334,6 +334,9 @@ export const adminApi = {
   // Loan Leads
   loanLeads: (params?: { page?: number; limit?: number; filter?: string }) =>
     api.get('/admin/loan-leads', { params }),
+
+  // Push Notification Stats
+  pushStats: () => api.get('/admin/push-stats'),
 };
 
 // ─── AI Assistant ─────────────────────────────────────────────────────────────
