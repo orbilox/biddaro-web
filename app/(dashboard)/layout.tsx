@@ -7,6 +7,7 @@ import { PageLoader } from '@/components/shared/LoadingSpinner';
 import { ROUTES } from '@/lib/constants';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { PushNotificationBanner } from '@/components/notifications/PushNotificationBanner';
+import { MetaPixelIdentify } from '@/components/shared/MetaPixelIdentify';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -33,6 +34,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <MetaPixelIdentify />
       <DashboardLayout>{children}</DashboardLayout>
       <PushNotificationBanner />
     </>

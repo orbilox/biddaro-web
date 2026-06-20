@@ -145,6 +145,7 @@ export default function LoanApplyPage() {
 
   // ViewContent — user landed on the loan apply page
   useEffect(() => {
+    getMetaSignals(); // capture + persist fbclid if present in URL
     pixelViewContent({ contentName: 'Loan Apply Form', contentCategory: 'loans', value: 100 });
   }, []);
 

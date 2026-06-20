@@ -23,21 +23,30 @@ export function readCookie(name: string): string | undefined {
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
+const FBC_STORAGE_KEY = '_biddaro_fbc';
+
 /**
  * Return Meta browser signals for forwarding to CAPI (cross-domain).
- * Includes _fbp/_fbc cookies AND fbclid URL param.
- * fbclid is present when users click a Facebook/Instagram ad; passing it
- * lets the server construct fbc = fb.1.{ts}.{fbclid} for +0.7 EMQ boost.
+ * fbclid is persisted in localStorage so it survives page navigation —
+ * Meta ads only append fbclid to the landing page URL, not subsequent pages.
  */
 export function getMetaSignals(): { fbp?: string; fbc?: string; fbclid?: string } {
-  const fbclid = typeof window !== 'undefined'
-    ? (new URLSearchParams(window.location.search).get('fbclid') ?? undefined)
-    : undefined;
-  return {
-    fbp:    readCookie('_fbp'),
-    fbc:    readCookie('_fbc'),
-    fbclid,
-  };
+  if (typeof window === 'undefined') return {};
+
+  // Capture fbclid from URL and persist it
+  const fbclid = new URLSearchParams(window.location.search).get('fbclid') ?? undefined;
+  if (fbclid) {
+    const fbc = `fb.1.${Date.now()}.${fbclid}`;
+    try {
+      localStorage.setItem(FBC_STORAGE_KEY, fbc);
+      document.cookie = `_fbc=${fbc}; path=/; max-age=7776000; SameSite=Lax`;
+    } catch {}
+  }
+
+  // fbc: prefer cookie (set by Meta pixel), then our persisted value
+  const fbc = readCookie('_fbc') || localStorage.getItem(FBC_STORAGE_KEY) || undefined;
+
+  return { fbp: readCookie('_fbp'), fbc, fbclid };
 }
 
 /** View Content — call on key landing pages with content details. */
@@ -67,6 +76,7 @@ export function pixelIdentify(opts: {
   phone?:      string;
   firstName?:  string;
   lastName?:   string;
+  city?:       string;
   externalId?: string;
 }): void {
   if (typeof window === 'undefined' || !window.fbq) return;
@@ -75,6 +85,7 @@ export function pixelIdentify(opts: {
   if (opts.phone)      userData.ph          = opts.phone.replace(/\D/g, '');
   if (opts.firstName)  userData.fn          = opts.firstName.trim().toLowerCase();
   if (opts.lastName)   userData.ln          = opts.lastName.trim().toLowerCase();
+  if (opts.city)       userData.ct          = opts.city.trim().toLowerCase().replace(/\s+/g, '');
   if (opts.externalId) userData.external_id = opts.externalId;
   // Re-init with user data — Meta pixel de-dupes and hashes before sending
   window.fbq('init', '914655691586718', userData as any);
