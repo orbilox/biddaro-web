@@ -2,7 +2,18 @@ export const APP_NAME = 'Biddaro';
 export const PENDING_LOAN_KEY = 'biddaro_pending_loan';
 export const APP_DESCRIPTION = 'The construction marketplace connecting job posters with skilled contractors.';
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+// On the production domain, the browser talks same-origin (empty base → "/api/v1")
+// and Vercel proxies to the backend (see next.config.js rewrites). This works even
+// for users whose network can't resolve the railway.app domain, and avoids CORS.
+// Localhost dev and preview deploys fall back to the explicit API URL.
+function resolveApiBaseUrl(): string {
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('biddaro.com')) {
+    return '';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export const JOB_CATEGORIES = [
   'General Construction',

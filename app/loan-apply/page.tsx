@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { loansApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { PENDING_LOAN_KEY } from '@/lib/constants';
+import { PENDING_LOAN_KEY, API_BASE_URL } from '@/lib/constants';
 import { pixelViewContent, pixelAddPaymentInfo, pixelLead, pixelSubscribe, pixelIdentify, getMetaSignals } from '@/lib/metaPixel';
 
 // ─── Social proof entries ─────────────────────────────────────────────────────
@@ -170,7 +170,7 @@ export default function LoanApplyPage() {
   function captureLead() {
     const name = `${form.firstName} ${form.lastName}`.trim();
     if (!name || !form.email || !form.phone) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/loans/lead`, {
+    fetch(`${API_BASE_URL}/api/v1/loans/lead`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
