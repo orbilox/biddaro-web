@@ -126,6 +126,13 @@ export default function LoanApplyPage() {
   const [error,  setError]  = useState('');
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Subscription is pre-created as soon as the user reaches the review step so
+  // that rzp.open() can fire synchronously inside the click handler — required
+  // on mobile, where Razorpay's UPI app-intent redirect only works if it stays
+  // inside the original click gesture (no `await` before `.open()`).
+  const [subInfo, setSubInfo] = useState<{ subscriptionId: string; planId: string; key: string } | null>(null);
+  const [subInfoLoading, setSubInfoLoading] = useState(false);
+
   const [form, setForm] = useState({
     loanType:       'home_construction',
     amount:         '',
@@ -224,102 +231,119 @@ export default function LoanApplyPage() {
     }
   }
 
+  // Pre-create the subscription as soon as the review step is reached, so the
+  // click handler below has subscriptionId/key ready and never needs to await
+  // a network call before calling rzp.open().
+  useEffect(() => {
+    if (step !== 7 || subInfo || subInfoLoading) return;
+    setSubInfoLoading(true);
+    setError('');
+    (async () => {
+      try {
+        const metaSignals = getMetaSignals();
+        const subRes = await loansApi.createIndiaSubscription({
+          loanType:  form.loanType,
+          email:     form.email,
+          phone:     form.phone,
+          firstName: form.firstName,
+          lastName:  form.lastName,
+          ...metaSignals,
+        });
+        setSubInfo(subRes.data.data);
+      } catch {
+        setError('Could not initialize payment. Please tap "Subscribe" to retry.');
+      } finally {
+        setSubInfoLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   // ── Subscribe ₹100/month + Redirect ─────────────────────────────────────────
-  async function handlePay() {
+  // IMPORTANT: stays synchronous up to rzp.open() — no `await` before it. On
+  // mobile, Razorpay's UPI app-intent redirect only works inside the original
+  // click gesture; awaiting a network call first drops that gesture context
+  // and the redirect silently fails (this was the mobile-only bug).
+  function handlePay() {
     setError('');
 
-    // Ensure Razorpay SDK is loaded
     if (typeof (window as any).Razorpay === 'undefined') {
       setError('Payment SDK is still loading — please wait a moment and try again.');
       return;
     }
 
-    setPaying(true);
-    try {
-      const metaSignals = getMetaSignals();   // _fbp / _fbc cookies forwarded cross-domain
-      const subRes = await loansApi.createIndiaSubscription({
-        loanType:  form.loanType,
-        email:     form.email,
-        phone:     form.phone,
-        firstName: form.firstName,
-        lastName:  form.lastName,
-        ...metaSignals,
-      });
-      const { subscriptionId, planId, key } = subRes.data.data;
-
-      // Identify user to Meta Pixel — dramatically improves Event Match Quality
-      pixelIdentify({
-        email:     form.email,
-        phone:     form.phone,
-        firstName: form.firstName,
-        lastName:  form.lastName,
-      });
-      // Browser pixel: user opened payment modal
-      pixelAddPaymentInfo({ value: 100, currency: 'INR', contentCategory: form.loanType });
-
-      const subProof = await new Promise<SubProof>((resolve, reject) => {
-        const rzp = new (window as any).Razorpay({
-          key,
-          subscription_id: subscriptionId,
-          name:            'Biddaro',
-          description:     'Loan Eligibility — ₹100/month',
-          theme:           { color: '#f97316' },
-          prefill: {
-            name:    `${form.firstName} ${form.lastName}`.trim(),
-            email:   form.email,
-            contact: form.phone,
-          },
-          handler: resolve,
-          modal: {
-            ondismiss:  () => reject(new Error('cancelled')),
-            escape:     true,
-            backdropClose: false,
-          },
-        });
-        rzp.on('payment.failed', (resp: any) => {
-          reject(new Error(resp?.error?.description || 'Payment failed'));
-        });
-        rzp.open();
-      });
-
-      // Browser pixel: subscription authorized (identity already set above)
-      pixelSubscribe();
-      pixelLead({ contentCategory: form.loanType });
-
-      const payload = {
-        ...form,
-        amount:        parseFloat(form.amount),
-        tenure:        parseInt(form.tenure),
-        monthlyIncome: parseFloat(form.monthlyIncome),
-        country:       'IN',
-        feePaid:       0,
-        razorpay_payment_id:    subProof.razorpay_payment_id,
-        razorpay_order_id:      '',
-        razorpay_signature:     subProof.razorpay_signature,
-        razorpaySubscriptionId: subProof.razorpay_subscription_id,
-        razorpayPlanId:         planId,
-        // Meta CAPI signals — forwarded to server for CAPI deduplication + fbc coverage
-        ...metaSignals,
-      };
-
-      // Save to DB immediately (no auth needed) so admin can see it right away
-      try { await loansApi.submitInquiry(payload); } catch { /* non-blocking */ }
-
-      // Store in sessionStorage for dashboard auto-submit after registration
-      sessionStorage.setItem(PENDING_LOAN_KEY, JSON.stringify(payload));
-      router.push('/register');
-    } catch (err: any) {
-      if (err?.message !== 'cancelled') {
-        // Show the real error message — helps debug Razorpay failures on mobile
-        const msg = (err as any)?.response?.data?.message
-          || (err as any)?.response?.data?.error
-          || err?.message
-          || 'Payment failed. Please try again.';
-        setError(msg);
-      }
-    } finally {
-      setPaying(false);
+    if (!subInfo) {
+      setError('Payment is still initializing — please wait a moment and try again.');
+      return;
     }
+
+    setPaying(true);
+    const metaSignals = getMetaSignals();
+    const { subscriptionId, planId, key } = subInfo;
+
+    // Identify user to Meta Pixel — dramatically improves Event Match Quality
+    pixelIdentify({
+      email:     form.email,
+      phone:     form.phone,
+      firstName: form.firstName,
+      lastName:  form.lastName,
+    });
+    pixelAddPaymentInfo({ value: 100, currency: 'INR', contentCategory: form.loanType });
+
+    const rzp = new (window as any).Razorpay({
+      key,
+      subscription_id: subscriptionId,
+      name:            'Biddaro',
+      description:     'Loan Eligibility — ₹100/month',
+      theme:           { color: '#f97316' },
+      prefill: {
+        name:    `${form.firstName} ${form.lastName}`.trim(),
+        email:   form.email,
+        contact: form.phone,
+      },
+      handler: async (subProof: SubProof) => {
+        try {
+          pixelSubscribe();
+          pixelLead({ contentCategory: form.loanType });
+
+          const payload = {
+            ...form,
+            amount:        parseFloat(form.amount),
+            tenure:        parseInt(form.tenure),
+            monthlyIncome: parseFloat(form.monthlyIncome),
+            country:       'IN',
+            feePaid:       0,
+            razorpay_payment_id:    subProof.razorpay_payment_id,
+            razorpay_order_id:      '',
+            razorpay_signature:     subProof.razorpay_signature,
+            razorpaySubscriptionId: subProof.razorpay_subscription_id,
+            razorpayPlanId:         planId,
+            ...metaSignals,
+          };
+
+          // Save to DB immediately (no auth needed) so admin can see it right away
+          try { await loansApi.submitInquiry(payload); } catch { /* non-blocking */ }
+
+          sessionStorage.setItem(PENDING_LOAN_KEY, JSON.stringify(payload));
+          router.push('/register');
+        } catch (err: any) {
+          setError(err?.message || 'Something went wrong after payment. Please contact support.');
+          setPaying(false);
+        }
+      },
+      modal: {
+        ondismiss:     () => setPaying(false),
+        escape:        true,
+        backdropClose: false,
+      },
+    });
+
+    rzp.on('payment.failed', (resp: any) => {
+      setPaying(false);
+      setError(resp?.error?.description || 'Payment failed. Please try again.');
+    });
+
+    rzp.open();
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -573,11 +597,13 @@ export default function LoanApplyPage() {
             <button
               type="button"
               onClick={handlePay}
-              disabled={paying}
+              disabled={paying || subInfoLoading}
               className="w-full mt-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 text-base transition-colors"
             >
               {paying
                 ? <><Loader2 className="w-5 h-5 animate-spin" /> Opening Razorpay…</>
+                : subInfoLoading
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> Preparing payment…</>
                 : <><IndianRupee className="w-5 h-5" /> Subscribe ₹100/month &amp; Submit</>
               }
             </button>
