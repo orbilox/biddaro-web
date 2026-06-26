@@ -339,10 +339,14 @@ export const adminApi = {
   pushStats: () => api.get('/admin/push-stats'),
 
   // Social Posts
-  socialPosts: (params?: { page?: number; limit?: number; status?: string }) =>
+  socialPosts: (params?: { page?: number; limit?: number; status?: string; from?: string; to?: string }) =>
     api.get('/admin/social-posts', { params }),
   generateSocialPost: (topic?: string) =>
     api.post('/admin/social-posts/generate', topic ? { topic } : {}),
+  planSocialMonth: (data: { year: number; month: number; cadence: string; customDays?: number[] }) =>
+    api.post('/admin/social-posts/plan-month', data),
+  generateSocialSlot: (id: string) =>
+    api.post(`/admin/social-posts/${id}/generate`),
   updateSocialPost: (id: string, status: string) =>
     api.patch(`/admin/social-posts/${id}`, { status }),
   deleteSocialPost: (id: string) =>
