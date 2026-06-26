@@ -337,6 +337,16 @@ export const adminApi = {
 
   // Push Notification Stats
   pushStats: () => api.get('/admin/push-stats'),
+
+  // Social Posts
+  socialPosts: (params?: { page?: number; limit?: number; status?: string }) =>
+    api.get('/admin/social-posts', { params }),
+  generateSocialPost: (topic?: string) =>
+    api.post('/admin/social-posts/generate', topic ? { topic } : {}),
+  updateSocialPost: (id: string, status: string) =>
+    api.patch(`/admin/social-posts/${id}`, { status }),
+  deleteSocialPost: (id: string) =>
+    api.delete(`/admin/social-posts/${id}`),
 };
 
 // ─── AI Assistant ─────────────────────────────────────────────────────────────
