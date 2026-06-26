@@ -92,7 +92,7 @@ export default function SocialPostsPage() {
 
   async function setStatus(id: string, status: string) {
     try {
-      await adminApi.updateSocialPost(id, status);
+      await adminApi.updateSocialPost(id, { status });
       setPosts(prev => prev.map(p => (p.id === id ? { ...p, status } : p)));
       toast.success(status === 'used' ? 'Marked as used' : status === 'archived' ? 'Archived' : 'Updated');
     } catch {

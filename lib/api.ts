@@ -345,10 +345,12 @@ export const adminApi = {
     api.post('/admin/social-posts/generate', topic ? { topic } : {}),
   planSocialMonth: (data: { year: number; month: number; cadence: string; customDays?: number[] }) =>
     api.post('/admin/social-posts/plan-month', data),
+  createSocialPost: (data: { scheduledFor?: string; topic: string; caption?: string }) =>
+    api.post('/admin/social-posts', data),
   generateSocialSlot: (id: string) =>
     api.post(`/admin/social-posts/${id}/generate`),
-  updateSocialPost: (id: string, status: string) =>
-    api.patch(`/admin/social-posts/${id}`, { status }),
+  updateSocialPost: (id: string, data: { status?: string; topic?: string; caption?: string; hashtags?: string }) =>
+    api.patch(`/admin/social-posts/${id}`, data),
   deleteSocialPost: (id: string) =>
     api.delete(`/admin/social-posts/${id}`),
 };
