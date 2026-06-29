@@ -16,6 +16,7 @@ interface SocialPost {
   caption:      string;
   hashtags:     string | null;
   imageUrl:     string | null;
+  imageError:   string | null;
   status:       string;   // planned | draft | used | archived
   scheduledFor: string | null;
 }
@@ -383,6 +384,12 @@ export default function SocialCalendarPage() {
                     </div>
                   ) : (
                     <div className="aspect-square w-full rounded-xl bg-gray-50 flex items-center justify-center text-gray-300"><ImageIcon className="w-10 h-10" /></div>
+                  )}
+
+                  {!post.imageUrl && post.imageError && (
+                    <div className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg p-2">
+                      <span className="font-semibold">Image failed:</span> {post.imageError}
+                    </div>
                   )}
 
                   <label className="text-xs font-medium text-gray-500">Topic / note</label>
