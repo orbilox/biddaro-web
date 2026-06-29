@@ -71,8 +71,10 @@ export default function SocialPostsPage() {
   async function generateNow() {
     setGen(true);
     try {
-      await adminApi.generateSocialPost(topic.trim() || undefined);
+      const res = await adminApi.generateSocialPost(topic.trim() || undefined);
+      const imageError = res.data.data.imageError as string | undefined;
       toast.success('New post generated');
+      if (imageError) toast.error('Image failed', imageError);
       setTopic('');
       load();
     } catch (e: unknown) {

@@ -148,10 +148,12 @@ export default function SocialCalendarPage() {
     try {
       const res = await adminApi.generateSocialSlot(id);
       const updated = res.data.data.post as SocialPost;
+      const imageError = res.data.data.imageError as string | undefined;
       setPosts(prev => prev.map(p => (p.id === id ? updated : p)));
       setModal(m => (m && m.post?.id === id ? { ...m, post: updated } : m));
       setEditCaption(updated.caption);
       setEditHashtags(updated.hashtags || '');
+      if (imageError) toast.error('Image failed', imageError);
       return true;
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
