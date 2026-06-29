@@ -159,7 +159,7 @@ export default function SocialPostsPage() {
         <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 rounded-xl px-3 py-2">
           <ImageIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>
-            Posts are generating captions but no images. To add AI images, set <code className="font-mono">GEMINI_API_KEY</code> (and AWS S3 keys) in your Railway environment.
+            Posts are generating captions but no images. Image generation uses OpenAI (DALL·E 3) by default — make sure your OpenAI billing is active. To use Gemini instead, set <code className="font-mono">IMAGE_PROVIDER=gemini</code> with a funded <code className="font-mono">GEMINI_API_KEY</code>.
           </span>
         </div>
       )}
