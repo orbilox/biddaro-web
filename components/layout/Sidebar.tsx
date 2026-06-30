@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
   ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban, Hammer, Banknote,
-  PanelLeftClose, PanelLeftOpen, Gift, Bell, IndianRupee, Zap, ClipboardCheck, Landmark, Megaphone, CalendarDays,
+  PanelLeftClose, PanelLeftOpen, Gift, Bell, IndianRupee, Zap, ClipboardCheck, Landmark, Megaphone, CalendarDays, MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -102,6 +102,7 @@ const adminNavSections: NavSection[] = [
       { href: '/admin/social-posts', label: 'Social Posts', icon: Megaphone },
       { href: '/admin/social-calendar', label: 'Social Calendar', icon: CalendarDays },
       { href: '/admin/push-notifications', label: 'Push Notifications', icon: Bell },
+      { href: '/admin/whatsapp-followups', label: 'WhatsApp Follow-ups', icon: MessageCircle },
     ],
   },
   {

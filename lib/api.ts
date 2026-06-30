@@ -338,6 +338,9 @@ export const adminApi = {
   // Push Notification Stats
   pushStats: () => api.get('/admin/push-stats'),
 
+  // WhatsApp Follow-up Stats
+  whatsappStats: () => api.get('/admin/whatsapp-stats'),
+
   // Social Posts
   socialPosts: (params?: { page?: number; limit?: number; status?: string; from?: string; to?: string }) =>
     api.get('/admin/social-posts', { params }),
