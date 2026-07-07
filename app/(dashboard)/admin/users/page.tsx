@@ -11,7 +11,7 @@ import { Modal } from '@/components/ui/Modal';
 import {
   Users, Search, Filter, ChevronLeft, ChevronRight,
   CheckCircle, XCircle, Shield, Briefcase, HardHat,
-  MoreVertical, Edit, Trash2, Wallet, Eye, SlidersHorizontal,
+  MoreVertical, Edit, Trash2, Wallet, Eye, SlidersHorizontal, ClipboardCheck,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -29,8 +29,16 @@ interface AdminUser {
   location?: string;
   rating?: number;
   createdAt: string;
+  signupSource?: string | null;
   wallet?: { balance: number; totalEarned: number };
-  _count?: { postedJobs: number; placedBids: number; contractsAsContractor: number; contractsAsPoster: number };
+  _count?: {
+    postedJobs: number; placedBids: number; contractsAsContractor: number; contractsAsPoster: number;
+    inspectProjects?: number; inspectReports?: number;
+  };
+}
+
+function isInspector(u: AdminUser) {
+  return u.signupSource === 'inspect_app' || (u._count?.inspectProjects ?? 0) > 0 || (u._count?.inspectReports ?? 0) > 0;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -181,6 +189,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
+  const [source, setSource] = useState('');
   const [isActive, setIsActive] = useState('');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
@@ -194,6 +203,7 @@ export default function AdminUsersPage() {
       const params: any = { page, limit: 20 };
       if (search) params.search = search;
       if (role) params.role = role;
+      if (source) params.source = source;
       if (isActive !== '') params.isActive = isActive;
       const res = await adminApi.listUsers(params);
       setUsers(res.data.data.users);
@@ -203,7 +213,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, role, isActive]);
+  }, [page, search, role, source, isActive]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -251,6 +261,10 @@ export default function AdminUsersPage() {
               {f.label}
             </button>
           ))}
+          <button onClick={() => { setSource(source === 'inspect' ? '' : 'inspect'); setPage(1); }}
+            className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${source === 'inspect' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            Inspectors
+          </button>
         </div>
         <div className="flex gap-2">
           <button onClick={() => { setIsActive(''); setPage(1); }}
@@ -308,10 +322,17 @@ export default function AdminUsersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${roleBadge(user.role)}`}>
-                      {roleIcon(user.role)}
-                      {user.role === 'job_poster' ? 'Poster' : user.role === 'contractor' ? 'Contractor' : 'Admin'}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full w-fit ${roleBadge(user.role)}`}>
+                        {roleIcon(user.role)}
+                        {user.role === 'job_poster' ? 'Poster' : user.role === 'contractor' ? 'Contractor' : 'Admin'}
+                      </span>
+                      {isInspector(user) && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full w-fit bg-teal-100 text-teal-700">
+                          <ClipboardCheck className="w-3 h-3" /> Inspector
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex flex-col gap-1">
