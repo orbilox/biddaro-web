@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Briefcase, FileText, MessageSquare, Wallet,
   AlertCircle, User, PlusCircle, ClipboardList, HardHat, X, ChevronRight, Search,
   ShieldCheck, BanknoteIcon, Users, DollarSign, BarChart2, Shield, Building2, Crown, Package, Radio, FolderKanban, Hammer, Banknote,
-  PanelLeftClose, PanelLeftOpen, Gift, Bell, IndianRupee, Zap, ClipboardCheck, Landmark, Megaphone, CalendarDays, MessageCircle,
+  PanelLeftClose, PanelLeftOpen, Gift, Bell, IndianRupee, Zap, ClipboardCheck, Landmark, Megaphone, CalendarDays, MessageCircle, Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -55,6 +55,7 @@ const contractorNavItems: NavItem[] = [
   { href: ROUTES.PROJECT_MANAGER, label: 'Project Manager', icon: FolderKanban },
   { href: ROUTES.SITE_MANAGER, label: 'Site Manager', icon: Building2 },
   { href: '/inspect', label: 'Inspect', icon: ClipboardCheck },
+  { href: '/my-site', label: 'My Website', icon: Globe },
   { href: ROUTES.LOANS, label: 'Loans', icon: Banknote },
   { href: ROUTES.ADDONS, label: 'Add-Ons', icon: Package },
   { href: '/referral', label: 'Refer & Earn', icon: Gift },

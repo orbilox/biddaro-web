@@ -358,6 +358,24 @@ export const adminApi = {
     api.delete(`/admin/social-posts/${id}`),
 };
 
+// ─── Contractor Sites (Biddaro Sites) ─────────────────────────────────────────
+
+export const sitesApi = {
+  getMine:   () => api.get('/sites/me/site'),
+  upsert:    (data: {
+    slug?: string; headline?: string; about?: string; services?: string[];
+    accentColor?: string; whatsapp?: string; showReviews?: boolean;
+    showPortfolio?: boolean; enabled?: boolean;
+  }) => api.put('/sites/me/site', data),
+  myLeads:   () => api.get('/sites/me/leads'),
+  subscribe: () => api.post('/sites/me/subscribe', {}),
+  verify:    (data: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) =>
+    api.post('/sites/me/verify', data),
+  // Public (used from the public site page's quote form)
+  sendLead:  (slug: string, data: { name: string; phone: string; message?: string }) =>
+    api.post(`/sites/${slug}/lead`, data),
+};
+
 // ─── AI Assistant ─────────────────────────────────────────────────────────────
 
 export type AiTextPart = { type: 'text'; text: string };
