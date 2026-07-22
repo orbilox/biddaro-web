@@ -343,6 +343,7 @@ export const adminApi = {
 
   // Inspect App Stats
   inspectStats: () => api.get('/admin/inspect-stats'),
+  safetyStats: () => api.get('/admin/safety-stats'),
 
   // Social Posts
   socialPosts: (params?: { page?: number; limit?: number; status?: string; from?: string; to?: string }) =>

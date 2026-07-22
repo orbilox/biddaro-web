@@ -86,6 +86,7 @@ const adminNavSections: NavSection[] = [
       { href: '/admin/transactions', label: 'Transactions', icon: DollarSign },
       { href: '/admin/premium', label: 'Premium', icon: Crown },
       { href: '/admin/inspect-app', label: 'Inspect App', icon: ClipboardCheck },
+      { href: '/admin/safety-app', label: 'Safety App', icon: ShieldCheck },
     ],
   },
   {
