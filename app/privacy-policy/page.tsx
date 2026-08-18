@@ -152,13 +152,28 @@ export default function PrivacyPolicyPage() {
             </p>
           </Section>
 
-          <Section title="12. Changes to This Policy">
+          <Section title="12. Biddaro Safety Mobile App">
+            <p>
+              Biddaro Safety is our Android mobile app for construction site safety management (toolbox talks, safety audits, and hazard tracking). In addition to the data described above, the app may access and collect the following, and only when you use the relevant feature:
+            </p>
+            <ul>
+              <li><strong>Camera &amp; Photos</strong> — to capture safety-audit photos, hazard evidence, toolbox-talk attendance selfies, and &quot;fixed&quot; proof images attached to your records.</li>
+              <li><strong>Precise Location (GPS)</strong> — to tag toolbox talks, audits, and hazard reports with coordinates for verification.</li>
+              <li><strong>Account information (name, email)</strong> — to sign you in and sync your sites, talks, audits, and hazards.</li>
+              <li><strong>App activity</strong> — to power your safety dashboard analytics and improve the app.</li>
+            </ul>
+            <p>
+              This data is used solely to provide app functionality (creating, storing, and sharing your site-safety records) and to manage your account. Camera and location are accessed only while you actively use the corresponding feature, and those permissions can be revoked at any time in your device settings. Data is encrypted in transit (HTTPS). You can request deletion of your account and associated safety data at any time by contacting <a href="mailto:privacy@biddaro.com" className="text-brand-600 hover:underline">privacy@biddaro.com</a>.
+            </p>
+          </Section>
+
+          <Section title="13. Changes to This Policy">
             <p>
               We may update this Privacy Policy from time to time. We will notify you of significant changes by posting the new policy on this page with an updated &quot;Last updated&quot; date and, where appropriate, via email. Your continued use of Biddaro after changes are posted constitutes acceptance of the updated policy.
             </p>
           </Section>
 
-          <Section title="13. Contact Us">
+          <Section title="14. Contact Us">
             <p>If you have questions or concerns about this Privacy Policy, please contact us:</p>
             <ul>
               <li><strong>Email:</strong> <a href="mailto:privacy@biddaro.com" className="text-brand-600 hover:underline">privacy@biddaro.com</a></li>
