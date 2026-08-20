@@ -72,7 +72,7 @@ import {
 } from '@/lib/inspect-seo-data';
 
 export const SITEMAP_BASE = 'https://biddaro.com';
-export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37] as const;
+export const SITEMAP_IDS  = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39] as const;
 
 export interface SitemapEntry {
   url: string;
@@ -125,6 +125,10 @@ export function buildSitemap(id: number): SitemapEntry[] {
     case 35: return buildInspectVsSitemap();
     case 36: return buildInspectTemplatesSitemap();
     case 37: return buildInspectCitiesSitemap();
+
+    // ── Loan programmatic expansion ──
+    case 38: return buildLoanCityHubSitemap();
+    case 39: return buildLoanExtrasSitemap();
     default: return [];
   }
 }
@@ -442,6 +446,35 @@ function buildLoanCompareSitemap(): SitemapEntry[] {
   const entries: SitemapEntry[] = [entry('/loans/compare', 0.85, 'weekly')];
   for (const cmp of LOAN_COMPARISONS) {
     entries.push(entry(`/loans/compare/${cmp.slug}`, 0.8, 'monthly'));
+  }
+  return entries;
+}
+
+// ─── Sitemap 38 — Cross-type City Loan Hubs (/loans/city/[city]) ─────────────
+
+function buildLoanCityHubSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+  for (const state of INDIA_LOCATIONS) {
+    for (const city of state.cities) {
+      entries.push(entry(`/loans/city/${city.slug}`, 0.8, 'monthly'));
+    }
+  }
+  return entries;
+}
+
+// ─── Sitemap 39 — Loan extras: state hubs, calculators, per-type templates ───
+
+function buildLoanExtrasSitemap(): SitemapEntry[] {
+  const entries: SitemapEntry[] = [
+    entry('/loans/emi-calculator', 0.85, 'monthly'),
+    entry('/loans/eligibility-calculator', 0.85, 'monthly'),
+  ];
+  for (const state of INDIA_LOCATIONS) {
+    entries.push(entry(`/loans/state/${state.slug}`, 0.8, 'monthly'));
+  }
+  for (const loan of LOAN_TYPES_SEO) {
+    entries.push(entry(`/loans/${loan.slug}/documents`, 0.75, 'monthly'));
+    entries.push(entry(`/loans/${loan.slug}/interest-rates`, 0.78, 'monthly'));
   }
   return entries;
 }
