@@ -285,7 +285,7 @@ export default function LoanStateHubPage({ params }: Props) {
             {LOAN_TYPES_SEO.filter(l => l.slug !== loan.slug).map(otherLoan => (
               <Link
                 key={otherLoan.slug}
-                href={`/loans/${otherLoan.slug}/${state.slug}`}
+                href={`/loans/${otherLoan.slug}/state/${state.slug}`}
                 className="group border border-gray-200 hover:border-orange-400 rounded-xl p-4 text-center transition-colors"
               >
                 <p className="text-sm font-semibold text-gray-700 group-hover:text-orange-600">{otherLoan.name}</p>

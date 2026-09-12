@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import {
   ChevronRight, CheckCircle, ArrowRight, IndianRupee,
   MapPin, Calculator, Shield, Zap, Clock, TrendingUp, BadgeCheck,
 } from 'lucide-react';
 import { LOAN_TYPES_SEO, getLoanType, getRelatedLoanTypes } from '@/lib/loan-data';
-import { INDIA_LOCATIONS } from '@/lib/seo-data';
+import { INDIA_LOCATIONS, getLocation } from '@/lib/seo-data';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,7 +101,13 @@ const COLOR_MAP: Record<string, { bg: string; text: string; border: string; icon
 export default function LoanCityPage({ params }: Props) {
   const loan     = getLoanType(params.type);
   const cityData = findCity(params.city);
-  if (!loan || !cityData) notFound();
+  if (!loan) notFound();
+  if (!cityData) {
+    // A state slug sometimes lands in the city slot (e.g. legacy /loans/{type}/{state}
+    // links). Redirect to the correct state route instead of 404-ing.
+    if (getLocation(params.city)) permanentRedirect(`/loans/${loan.slug}/state/${params.city}`);
+    notFound();
+  }
 
   const city    = cityData.name;
   const state   = cityData.state;
