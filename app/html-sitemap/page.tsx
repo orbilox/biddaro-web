@@ -23,6 +23,14 @@ import { SG_COST_SERVICES } from '@/lib/cost-data-sg';
 import { USA_JOB_CATEGORY_META, USA_LOCATIONS } from '@/lib/seo-data-usa';
 import { USA_COST_SERVICES } from '@/lib/cost-data-usa';
 
+// ── Australia
+import { AU_JOB_CATEGORY_META, AU_LOCATIONS } from '@/lib/seo-data-au';
+import { AU_COST_SERVICES } from '@/lib/cost-data-au';
+
+// ── Canada
+import { CA_JOB_CATEGORY_META, CA_LOCATIONS } from '@/lib/seo-data-ca';
+import { CA_COST_SERVICES } from '@/lib/cost-data-ca';
+
 // ── Loans
 import { LOAN_TYPES_SEO } from '@/lib/loan-data';
 
@@ -33,9 +41,9 @@ import { ERP_FEATURES, ERP_COMPARISONS, ERP_SEGMENTS, ERP_FAQ_TOPICS, ERP_INDIA_
 import { INSPECT_FEATURES, INSPECT_COMPETITORS, INSPECT_TEMPLATES, INSPECT_INDUSTRIES, INSPECT_INDIA_CITIES } from '@/lib/inspect-seo-data';
 
 export const metadata: Metadata = {
-  title: 'Site Map — Biddaro | Complete Website Structure (India · UAE · Singapore · USA)',
+  title: 'Site Map — Biddaro | Complete Website Structure (India · UAE · Singapore · USA · Australia · Canada)',
   description:
-    'Complete site map of Biddaro — the global construction job marketplace. Browse all hire pages, cost guides, Q&A articles, and more across India, UAE (English & Arabic), Singapore, and USA.',
+    'Complete site map of Biddaro — the global construction job marketplace. Browse all hire pages, cost guides, Q&A articles, and more across India, UAE (English & Arabic), Singapore, USA, Australia, and Canada.',
   alternates: { canonical: 'https://biddaro.com/html-sitemap' },
   robots: { index: true, follow: true },
 };
@@ -79,6 +87,20 @@ const usaHire      = usaCats * USA_LOCATIONS.length + usaCats + usaCats * usaCit
 const usaCost      = 1 + USA_COST_SERVICES.length + USA_COST_SERVICES.length * usaCities;
 const usaTotal     = usaHire + usaCost;
 
+// Australia
+const auCities     = AU_LOCATIONS.reduce((s, st) => s + st.cities.length, 0);
+const auCats       = AU_JOB_CATEGORY_META.length;
+const auHire       = auCats * AU_LOCATIONS.length + auCats + auCats * auCities;
+const auCost       = 1 + AU_COST_SERVICES.length + AU_COST_SERVICES.length * auCities;
+const auTotal      = auHire + auCost;
+
+// Canada
+const caCities     = CA_LOCATIONS.reduce((s, st) => s + st.cities.length, 0);
+const caCats       = CA_JOB_CATEGORY_META.length;
+const caHire       = caCats * CA_LOCATIONS.length + caCats + caCats * caCities;
+const caCost       = 1 + CA_COST_SERVICES.length + CA_COST_SERVICES.length * caCities;
+const caTotal      = caHire + caCost;
+
 // Loans
 const loanTypes    = LOAN_TYPES_SEO.length;
 const loanTotal    = 1 + loanTypes + loanTypes * indiaCities + 1 + 1 + loanTypes * indiaStates + 1;
@@ -102,7 +124,7 @@ const inspectTotal       = 1 + inspectFeatures + inspectCompetitors + inspectTem
 // Core
 const corePages    = 22;
 
-const grandTotal   = corePages + indiaTotal + uaeTotal + uaeArTotal + sgTotal + usaTotal + loanTotal + erpTotal + inspectTotal;
+const grandTotal   = corePages + indiaTotal + uaeTotal + uaeArTotal + sgTotal + usaTotal + auTotal + caTotal + loanTotal + erpTotal + inspectTotal;
 
 // ─── XML Sitemaps registry ─────────────────────────────────────────────────────
 
@@ -145,6 +167,12 @@ const XML_SITEMAPS = [
   { id: 35, label: '🔍 Inspect — vs Competitor Pages',              url: '/sitemap/35', count: inspectCompetitors },
   { id: 36, label: '🔍 Inspect — Report Template Pages',            url: '/sitemap/36', count: inspectTemplates },
   { id: 37, label: '🔍 Inspect — India City Pages',                 url: '/sitemap/37', count: inspectCities },
+  { id: 40, label: '🇦🇺 Australia — Hire Hub & States',            url: '/sitemap/40', count: auCats + auCats * AU_LOCATIONS.length },
+  { id: 41, label: '🇦🇺 Australia — Hire Cities',                  url: '/sitemap/41', count: auCats * auCities },
+  { id: 42, label: '🇦🇺 Australia — Cost Guides & Cities',         url: '/sitemap/42', count: 1 + AU_COST_SERVICES.length + AU_COST_SERVICES.length * auCities },
+  { id: 43, label: '🇨🇦 Canada — Hire Hub & Provinces',           url: '/sitemap/43', count: caCats + caCats * CA_LOCATIONS.length },
+  { id: 44, label: '🇨🇦 Canada — Hire Cities',                    url: '/sitemap/44', count: caCats * caCities },
+  { id: 45, label: '🇨🇦 Canada — Cost Guides & Cities',           url: '/sitemap/45', count: 1 + CA_COST_SERVICES.length + CA_COST_SERVICES.length * caCities },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -165,14 +193,14 @@ export default function HtmlSitemapPage() {
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Biddaro Site Map</h1>
           <p className="text-dark-300 text-lg max-w-2xl">
-            Complete structure of every page on Biddaro — India, UAE (English &amp; Arabic), Singapore, and USA.
+            Complete structure of every page on Biddaro — India, UAE (English &amp; Arabic), Singapore, USA, Australia, and Canada.
           </p>
 
           {/* Stats bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
             {[
               { label: 'Total Pages',    value: grandTotal.toLocaleString() },
-              { label: 'Countries',      value: '4' },
+              { label: 'Countries',      value: '6' },
               { label: 'Languages',      value: '2 (EN + AR)' },
               { label: 'XML Sitemaps',   value: XML_SITEMAPS.length.toString() },
             ].map(s => (
@@ -184,13 +212,15 @@ export default function HtmlSitemapPage() {
           </div>
 
           {/* Country page breakdown */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mt-4">
             {[
               { flag: '🇮🇳', label: 'India', count: indiaTotal },
               { flag: '🇦🇪', label: 'UAE (EN)', count: uaeTotal },
               { flag: '🇦🇪', label: 'UAE (AR)', count: uaeArTotal },
               { flag: '🇸🇬', label: 'Singapore', count: sgTotal },
               { flag: '🇺🇸', label: 'USA', count: usaTotal },
+              { flag: '🇦🇺', label: 'Australia', count: auTotal },
+              { flag: '🇨🇦', label: 'Canada', count: caTotal },
             ].map(c => (
               <div key={c.label} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-center">
                 <p className="text-lg">{c.flag}</p>

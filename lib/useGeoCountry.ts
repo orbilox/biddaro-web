@@ -19,6 +19,8 @@ const GEO_MAP: Record<string, GeoInfo> = {
   AE: { countryCode: 'AE', currency: 'AED', symbol: 'د.إ',  countryName: 'UAE' },
   SG: { countryCode: 'SG', currency: 'SGD', symbol: 'S$',   countryName: 'Singapore' },
   US: { countryCode: 'US', currency: 'USD', symbol: '$',     countryName: 'USA' },
+  AU: { countryCode: 'AU', currency: 'AUD', symbol: 'A$',    countryName: 'Australia' },
+  CA: { countryCode: 'CA', currency: 'CAD', symbol: 'C$',    countryName: 'Canada' },
 };
 
 const DEFAULT: GeoInfo = GEO_MAP['US'];

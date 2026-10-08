@@ -106,6 +106,13 @@ export interface ConnectPackage {
   priceInRupees: number;
   label: string;
   perConnect: number;
+  // Multi-currency (present on all responses; INR for India, AED/SGD abroad)
+  currency?: string;
+  symbol?: string;
+  gateway?: 'razorpay' | 'stripe';
+  amountMinor?: number;
+  amount?: number;   // major units in `currency`
+  display?: string;  // e.g. "₹149", "AED7", "S$2.5"
 }
 
 // ─── Notification Types ───────────────────────────────────────────────────────

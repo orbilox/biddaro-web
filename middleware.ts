@@ -10,6 +10,8 @@ const COUNTRY_CURRENCY_MAP: Record<string, string> = {
   IN: 'INR',
   AE: 'AED',
   SG: 'SGD',
+  AU: 'AUD',
+  CA: 'CAD',
 };
 
 export function middleware(req: NextRequest) {

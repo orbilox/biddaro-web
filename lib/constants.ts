@@ -44,6 +44,8 @@ export const SUPPORTED_COUNTRIES = [
   { label: 'United Arab Emirates', value: 'AE', currency: 'AED', symbol: 'د.إ', locale: 'en_AE' },
   { label: 'Singapore', value: 'SG', currency: 'SGD', symbol: 'S$', locale: 'en_SG' },
   { label: 'United States', value: 'US', currency: 'USD', symbol: '$', locale: 'en_US' },
+  { label: 'Australia', value: 'AU', currency: 'AUD', symbol: 'A$', locale: 'en_AU' },
+  { label: 'Canada', value: 'CA', currency: 'CAD', symbol: 'C$', locale: 'en_CA' },
 ] as const;
 
 export const CURRENCIES = [
@@ -51,6 +53,8 @@ export const CURRENCIES = [
   { label: 'AED (د.إ)', value: 'AED', symbol: 'د.إ' },
   { label: 'SGD (S$)', value: 'SGD', symbol: 'S$' },
   { label: 'INR (₹)', value: 'INR', symbol: '₹' },
+  { label: 'AUD (A$)', value: 'AUD', symbol: 'A$' },
+  { label: 'CAD (C$)', value: 'CAD', symbol: 'C$' },
 ] as const;
 
 export const BUDGET_RANGES = [
@@ -177,6 +181,8 @@ const CONNECT_USD_RATES: Record<string, number> = {
   INR: 0.012,
   AED: 0.272,
   SGD: 0.74,
+  AUD: 0.65,
+  CAD: 0.73,
 };
 
 /**

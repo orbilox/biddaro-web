@@ -20,6 +20,8 @@ const CONTRACTOR_HUBS = [
   { flag: '🇦🇪', label: 'UAE',              sub: 'العربية',         href: '/uae/ar/hire' },
   { flag: '🇸🇬', label: 'Singapore',        sub: 'English',         href: '/sg/hire' },
   { flag: '🇺🇸', label: 'USA',              sub: 'English',         href: '/us/hire' },
+  { flag: '🇦🇺', label: 'Australia',        sub: 'English',         href: '/au/hire' },
+  { flag: '🇨🇦', label: 'Canada',           sub: 'English',         href: '/ca/hire' },
 ];
 
 export function Navbar() {
